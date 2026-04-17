@@ -1,0 +1,58 @@
+# ====================================================================
+# [Root] LEGO Amusement Park Digital Twin - Master Ignore
+# ====================================================================
+
+# --- OS & IDE Specific ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.bak
+.env
+.env.local
+
+# --- Unity Client (unity-client/) ---
+# 유니티는 라이브러리와 임시 파일을 제외하는 것이 핵심입니다.
+unity-client/**/[Ll]ibrary/
+unity-client/**/[Tt]emp/
+unity-client/**/[Oo]bj/
+unity-client/**/[Build]/
+unity-client/**/[Bb]uilds/
+unity-client/**/[Logs]/
+unity-client/**/[MemoryCaptures]/
+
+# 에러가 났던 샘플 및 스타터 에셋 (필요 없다면 제외 권장)
+# unity-client/**/Assets/Samples/
+
+# Unity 자동 생성 파일
+unity-client/**/*.csproj
+unity-client/**/*.sln
+unity-client/**/*.user
+unity-client/**/*.userprefs
+unity-client/**/*.pidb
+unity-client/**/*.suo
+
+# Assets 내 .meta 파일은 '반드시' 포함해야 하므로 예외 처리
+!unity-client/**/Assets/**/*.meta
+
+# --- Middleware Server (middleware-server/) ---
+middleware-server/node_modules/
+middleware-server/npm-debug.log*
+middleware-server/.pnpm-debug.log*
+
+# --- Vision Engine (vision-engine/) ---
+vision-engine/__pycache__/
+vision-engine/*.py[cod]
+vision-engine/venv/
+vision-engine/env/
+vision-engine/.venv/
+vision-engine/.pytest_cache/
+# 인식 테스트용 임시 결과물 이미지 제외
+vision-engine/data/output/
+vision-engine/debug_*.jpg
+
+# --- Hardware (hardware-controller/) ---
+hardware-controller/build/
+hardware-controller/*.hex
+hardware-controller/*.elf
