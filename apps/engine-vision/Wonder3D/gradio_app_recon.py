@@ -1,3 +1,32 @@
+# ====================================================================
+# [STEP 0] RTX 4070 & PyTorch 2.1.0 호환성 통합 핫픽스 (반드시 최상단 위치)
+# ====================================================================
+import torch
+import torch.utils._pytree
+import torch.distributed
+
+def fix_pytree(*args, **kwargs): pass
+if not hasattr(torch.utils._pytree, 'register_pytree_node'):
+    torch.utils._pytree.register_pytree_node = fix_pytree
+if not hasattr(torch.utils._pytree, 'register_leaf'):
+    torch.utils._pytree.register_leaf = fix_pytree
+
+if not hasattr(torch, "xpu"):
+    class DummyXPU:
+        def __init__(self):
+            self.device_count = lambda: 0
+            self.is_available = lambda: False
+        def empty_cache(self): pass
+        def __getattr__(self, name): return lambda *args, **kwargs: None
+    torch.xpu = DummyXPU()
+
+if not hasattr(torch.distributed, "device_mesh"):
+    class DummyMesh:
+        DeviceMesh = None
+    torch.distributed.device_mesh = DummyMesh()
+# ====================================================================
+# (기존 grdio_app_recon.py의 코드는 이 아래부터 시작됩니다)
+
 import os
 import torch
 import fire

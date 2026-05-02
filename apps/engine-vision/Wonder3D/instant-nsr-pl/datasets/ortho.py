@@ -267,10 +267,10 @@ class OrthoDataModule(pl.LightningDataModule):
     def general_loader(self, dataset, batch_size):
         sampler = None
         return DataLoader(
-            dataset, 
-            num_workers=os.cpu_count(), 
+            dataset,
+            num_workers=self.config.get('num_workers', 0),
             batch_size=batch_size,
-            pin_memory=True,
+            pin_memory=False,
             sampler=sampler
         )
     

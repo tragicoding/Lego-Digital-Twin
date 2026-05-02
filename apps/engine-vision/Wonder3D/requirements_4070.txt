@@ -1,0 +1,39 @@
+# --- 핵심 가속 엔진 (우리가 이미 맞춘 버전 고정) ---
+torch==2.1.0+cu118
+torchvision==0.16.0+cu118
+xformers==0.0.22.post7
+--extra-index-url https://download.pytorch.org/whl/cu118
+
+# --- Wonder3D 핵심 로직 ---
+diffusers[torch]==0.19.3
+transformers>=4.25.1
+accelerate
+bitsandbytes
+omegaconf==2.2.3
+pytorch-lightning<2
+einops
+ftfy
+piq
+
+# --- 3D 및 그래픽스 처리 ---
+nerfacc==0.3.5
+trimesh==3.9.8
+PyMCubes==0.1.2
+pyhocon==0.3.57
+icecream==2.1.0
+matplotlib
+opencv-python
+imageio
+imageio-ffmpeg
+scipy
+pyransac3d
+torch_efficient_distloss
+
+# --- 유틸리티 및 UI ---
+gradio==3.50.2
+numpy<2.0.0
+pillow<11.0.0
+rembg
+segment_anything
+tensorboard
+modelcards
