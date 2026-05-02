@@ -17,15 +17,15 @@ dataset:
 model:
   name: neus
   radius: 1.0
-  num_samples_per_ray: 1024
-  train_num_rays: 256
-  max_train_num_rays: 8192
+  num_samples_per_ray: 256
+  train_num_rays: 128
+  max_train_num_rays: 256
   grid_prune: true
   grid_prune_occ_thre: 0.001
   dynamic_ray_sampling: true
   batch_image_sampling: true
   randomized: true
-  ray_chunk: 2048
+  ray_chunk: 512
   cos_anneal_end: 20000
   learned_background: false
   background_color: black

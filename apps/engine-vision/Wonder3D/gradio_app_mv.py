@@ -1,3 +1,29 @@
+# [STEP 0] RTX 4070 & PyTorch 2.1.0 호환성 통합 핫픽스
+import torch
+import torch.utils._pytree
+import torch.distributed
+
+def fix_pytree(*args, **kwargs): pass
+if not hasattr(torch.utils._pytree, 'register_pytree_node'):
+    torch.utils._pytree.register_pytree_node = fix_pytree
+if not hasattr(torch.utils._pytree, 'register_leaf'):
+    torch.utils._pytree.register_leaf = fix_pytree
+
+if not hasattr(torch, "xpu"):
+    class DummyXPU:
+        def __init__(self): self.device_count = lambda: 0; self.is_available = lambda: False
+        def empty_cache(self): pass
+        def __getattr__(self, name): return lambda *args, **kwargs: None
+    torch.xpu = DummyXPU()
+
+if not hasattr(torch.distributed, "device_mesh"):
+    class DummyMesh: DeviceMesh = None
+    torch.distributed.device_mesh = DummyMesh()
+# -------------------------------------------------------------------
+
+import os # 여기서부터 기존 코드가 시작됩니다
+import fire
+# ... (기존 코드 계속) ...
 import os
 import torch
 import fire
@@ -157,7 +183,8 @@ def load_wonder3d_pipeline(cfg):
 
     pipeline = MVDiffusionImagePipeline.from_pretrained(
     cfg.pretrained_model_name_or_path,
-    torch_dtype=weight_dtype
+    torch_dtype=weight_dtype,
+    trust_remote_code=True
     )
 
     # pipeline.to('cuda:0')

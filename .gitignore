@@ -56,3 +56,32 @@ vision-engine/debug_*.jpg
 hardware-controller/build/
 hardware-controller/*.hex
 hardware-controller/*.elf
+
+# --- Large Binary & Package Files ---
+# 설치 패키지 (수 GB)
+*.deb
+*.rpm
+
+# --- ML Model Weights & Checkpoints ---
+# 수백 MB ~ GB급 모델 파일
+*.pth
+*.pt
+*.ckpt
+*.safetensors
+*.bin
+apps/engine-vision/Wonder3D/ckpts/
+
+# --- Wonder3D 실험 결과물 ---
+# 3D 재구성 결과 (obj, ply 등) 및 학습 로그
+apps/engine-vision/Wonder3D/instant-nsr-pl/exp/
+apps/engine-vision/Wonder3D/outputs/
+apps/engine-vision/Wonder3D/runs/
+
+# --- Wonder3D 입력 캡처 이미지 ---
+# 실험용으로 촬영된 lego 이미지들
+apps/engine-vision/Wonder3D/inputs/
+
+# --- Python 캐시 ---
+apps/engine-vision/Wonder3D/__pycache__/
+**/__pycache__/
+**/*.py[cod]
