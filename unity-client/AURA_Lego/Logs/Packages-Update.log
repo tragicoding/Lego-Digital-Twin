@@ -56,3 +56,16 @@ The following packages were added:
   com.unity.ide.vscode@1.2.4
   com.unity.test-framework@1.5.1
   com.unity.ugui@2.0.0
+
+=== Sun May  3 19:21:49 2026
+
+Packages were changed.
+Update Mode: updateDependencies
+
+The following packages were added:
+  com.unity.2d.sprite@1.0.0
+  com.unity.2d.tilemap@1.0.0
+  com.unity.ads@4.4.2
+  com.unity.analytics@3.8.1
+  com.unity.purchasing@4.12.2
+  com.unity.xr.legacyinputhelpers@2.1.12
