@@ -84,4 +84,5 @@ apps/engine-vision/Wonder3D/inputs/
 # --- Python 캐시 ---
 apps/engine-vision/Wonder3D/__pycache__/
 **/__pycache__/
-**/*.py[cod]
+**/*.py[cod]apps/engine-vision/Wonder3D/benchmark_dashboard.html
+apps/engine-vision/Wonder3D/benchmark_log.json
