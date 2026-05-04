@@ -1,0 +1,96 @@
+[
+  {
+    "timestamp": "2026-05-03T15:00:13",
+    "scene": "scene@20260503-145617",
+    "input_image": "./inputs/lego_capture_20260503_145417.png",
+    "params": {
+      "resolution": 384,
+      "n_levels": 12,
+      "n_features_per_level": 2,
+      "hashmap_size": 19,
+      "base_resolution": 32,
+      "train_num_rays": 128,
+      "max_train_num_rays": 256,
+      "num_samples_per_ray": 256,
+      "ray_chunk": 512,
+      "max_steps": 6000,
+      "precision": 16,
+      "lr_geometry": 0.001,
+      "lr_texture": 0.01,
+      "mlp_neurons": 64,
+      "mlp_hidden_layers": 1,
+      "note": "auto_pipeline"
+    },
+    "elapsed_sec": 263.8,
+    "elapsed_min": 4.4,
+    "step1_sec": 29.2,
+    "step2_sec": 229.8,
+    "success": true,
+    "mesh": {
+      "vertices": 240866,
+      "faces": 481732
+    },
+    "obj_path": "instant-nsr-pl/exp/scene@20260503-145617/@20260503-145626/save/it6000-mc384.obj",
+    "gpu_before": {
+      "gpu_name": "NVIDIA GeForce RTX 4070 Laptop GPU",
+      "mem_total_mb": 8188,
+      "mem_used_mb": 0,
+      "temperature": 38,
+      "utilization": 0
+    },
+    "gpu_after": {
+      "gpu_name": "NVIDIA GeForce RTX 4070 Laptop GPU",
+      "mem_total_mb": 8188,
+      "mem_used_mb": 0,
+      "temperature": 55,
+      "utilization": 0
+    }
+  },
+  {
+    "timestamp": "2026-05-03T15:33:23",
+    "scene": "scene@20260503-145617",
+    "input_image": "./inputs/lego_capture_20260503_152651.png",
+    "params": {
+      "resolution": 384,
+      "n_levels": 12,
+      "n_features_per_level": 2,
+      "hashmap_size": 19,
+      "base_resolution": 32,
+      "train_num_rays": 128,
+      "max_train_num_rays": 256,
+      "num_samples_per_ray": 256,
+      "ray_chunk": 512,
+      "max_steps": 6000,
+      "precision": 16,
+      "lr_geometry": 0.001,
+      "lr_texture": 0.01,
+      "mlp_neurons": 64,
+      "mlp_hidden_layers": 1,
+      "note": "auto_pipeline"
+    },
+    "elapsed_sec": 280.6,
+    "elapsed_min": 4.68,
+    "step1_sec": 42.0,
+    "step2_sec": 233.9,
+    "success": true,
+    "mesh": {
+      "vertices": 0,
+      "faces": 0
+    },
+    "obj_path": null,
+    "gpu_before": {
+      "gpu_name": "NVIDIA GeForce RTX 4070 Laptop GPU",
+      "mem_total_mb": 8188,
+      "mem_used_mb": 0,
+      "temperature": 39,
+      "utilization": 0
+    },
+    "gpu_after": {
+      "gpu_name": "NVIDIA GeForce RTX 4070 Laptop GPU",
+      "mem_total_mb": 8188,
+      "mem_used_mb": 0,
+      "temperature": 55,
+      "utilization": 0
+    }
+  }
+]

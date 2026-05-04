@@ -24,7 +24,7 @@ if not hasattr(torch.distributed, "device_mesh"):
 # ====================================================================
 
 import sys
-from PIL import Image
+from PIL import Image, ImageFilter, ImageEnhance
 from omegaconf import OmegaConf
 from utils.misc import load_config
 # 기존 UI 파일에서 핵심 AI 로직만 그대로 가져옵니다.
@@ -46,9 +46,20 @@ def main(image_path):
     # 3. 전처리 (배경 투명화 및 리사이즈)
     print("[Headless] 이미지 분석 및 배경 제거 중...")
     input_image = Image.open(image_path).convert('RGBA')
-    # chk_group을 통해 배경 제거와 스케일링 명령을 강제로 활성화합니다.
-    # Rescale 옵션을 제거하여 투명도(Alpha) 채널을 보존합니다.
     processed_image_highres, _ = preprocess(predictor, input_image, chk_group=["Background Removal"])
+
+    # 3-1. 레고 디테일 강화 (스터드·모서리 윤곽 선명화)
+    print("[Headless] 레고 엣지 샤프닝 적용 중...")
+    r, g, b, a = processed_image_highres.split()
+    rgb = Image.merge("RGB", (r, g, b))
+    # 언샤프 마스크: 엣지를 뚜렷하게
+    rgb = rgb.filter(ImageFilter.UnsharpMask(radius=1.5, percent=180, threshold=2))
+    # 대비 강화: 스터드 음영 부각
+    rgb = ImageEnhance.Contrast(rgb).enhance(1.4)
+    # 선명도 추가 강화
+    rgb = ImageEnhance.Sharpness(rgb).enhance(2.5)
+    r2, g2, b2 = rgb.split()
+    processed_image_highres = Image.merge("RGBA", (r2, g2, b2, a))
 
     # 4. 6방향 도면 생성!
     print("[Headless] 6방향 2D 도면 및 노멀맵 생성 중... (RTX 4070 풀가동)")
@@ -56,11 +67,11 @@ def main(image_path):
         pipeline=pipeline,
         cfg=cfg,
         single_image=processed_image_highres,
-        guidance_scale=1.0, # UI의 기본값들
-        steps=50,
+        guidance_scale=3.0,  # 1.0→3.0: 입력 이미지 디테일을 더 충실하게 반영
+        steps=75,            # 50→75: 더 정교한 생성
         seed=42,
         crop_size=192,
-        chk_group=["Write Results"] # 파일로 저장하라는 핵심 플래그
+        chk_group=["Write Results"]
     )
     print("\n[SUCCESS] 도면 생성이 완료되었습니다! (outputs/ 폴더를 확인하세요)")
 
