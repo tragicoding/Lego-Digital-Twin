@@ -142,3 +142,6 @@ git push origin feature/vision
 | single GPU에서 DDP 데드락 | `launch.py` strategy=None 패치 적용됨 |
 | DataLoader workers 멈춤 | `dataset.num_workers=0` 옵션 추가 |
 | `pin_memory` CUDA 에러 | `datasets/ortho.py` pin_memory=False 패치 적용됨 |
+
+
+

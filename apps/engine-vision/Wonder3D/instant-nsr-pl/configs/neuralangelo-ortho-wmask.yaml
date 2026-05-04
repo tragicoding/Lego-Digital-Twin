@@ -18,8 +18,8 @@ model:
   name: neus
   radius: 1.0
   num_samples_per_ray: 256
-  train_num_rays: 128
-  max_train_num_rays: 256
+  train_num_rays: 256
+  max_train_num_rays: 512
   grid_prune: true
   grid_prune_occ_thre: 0.001
   dynamic_ray_sampling: true
@@ -40,14 +40,14 @@ model:
     finite_difference_eps: progressive
     isosurface:
       method: mc
-      resolution: 192
+      resolution: 384
       chunk: 2097152
       threshold: 0.
     xyz_encoding_config:
       otype: ProgressiveBandHashGrid
-      n_levels: 10 # 12 modify
-      n_features_per_level: 2
-      log2_hashmap_size: 19
+      n_levels: 12
+      n_features_per_level: 4
+      log2_hashmap_size: 20
       base_resolution: 32
       per_level_scale: 1.3195079107728942
       include_xyz: true
@@ -58,8 +58,8 @@ model:
       otype: VanillaMLP
       activation: ReLU
       output_activation: none
-      n_neurons: 64
-      n_hidden_layers: 1
+      n_neurons: 128
+      n_hidden_layers: 2
       sphere_init: true
       sphere_init_radius: 0.5
       weight_norm: true
@@ -73,7 +73,7 @@ model:
       otype: VanillaMLP
       activation: ReLU
       output_activation: none
-      n_neurons: 64
+      n_neurons: 128
       n_hidden_layers: 2
     color_activation: sigmoid
 
@@ -135,7 +135,7 @@ export:
   ortho_scale: 1.35   #modify
 
 trainer:
-  max_steps: 3000
+  max_steps: 10000
   log_every_n_steps: 100
   num_sanity_val_steps: 0
   val_check_interval: 4000
