@@ -1,0 +1,680 @@
+[Licensing::Module] Trying to connect to existing licensing client channel...
+Built from '6000.2/staging' branch; Version is '6000.2.2f1 (ea398eefe1c2) revision 15350158'; Using compiler version '194234433'; Build Type 'Release'
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-ym167" at "2026-05-04T08:29:48.6609705Z"
+OS: 'Windows 11  (10.0.26200) 64bit Professional' Language: 'ko' Physical Memory: 16243 MB
+BatchMode: 1, IsHumanControllingUs: 0, StartBugReporterOnCrash: 0, Is64bit: 1
+Date: 2026-05-04T08:29:48Z
+
+COMMAND LINE ARGUMENTS:
+C:\Program Files\Unity\Hub\Editor\6000.2.2f1\Editor\Unity.exe
+-adb2
+-batchMode
+-noUpm
+-name
+AssetImportWorker2
+-projectPath
+C:/Users/ym167/Documents/GitHub/Lego-Digital-Twin/unity-client/AURA_Lego
+-logFile
+Logs/AssetImportWorker2.log
+-srvPort
+64428
+-licensingIpc
+LicenseClient-ym167
+-job-worker-count
+9
+-background-job-worker-count
+8
+-gc-helper-count
+1
+-name
+AssetImport
+Successfully changed project path to: C:/Users/ym167/Documents/GitHub/Lego-Digital-Twin/unity-client/AURA_Lego
+C:/Users/ym167/Documents/GitHub/Lego-Digital-Twin/unity-client/AURA_Lego
+[UnityMemory] Configuration Parameters - Can be set up in boot.config
+    "memorysetup-allocator-temp-initial-block-size-main=262144"
+    "memorysetup-allocator-temp-initial-block-size-worker=262144"
+    "memorysetup-bucket-allocator-granularity=16"
+    "memorysetup-bucket-allocator-bucket-count=8"
+    "memorysetup-bucket-allocator-block-size=33554432"
+    "memorysetup-bucket-allocator-block-count=8"
+    "memorysetup-main-allocator-block-size=16777216"
+    "memorysetup-thread-allocator-block-size=16777216"
+    "memorysetup-gfx-main-allocator-block-size=16777216"
+    "memorysetup-gfx-thread-allocator-block-size=16777216"
+    "memorysetup-cache-allocator-block-size=4194304"
+    "memorysetup-typetree-allocator-block-size=2097152"
+    "memorysetup-profiler-bucket-allocator-granularity=16"
+    "memorysetup-profiler-bucket-allocator-bucket-count=8"
+    "memorysetup-profiler-bucket-allocator-block-size=33554432"
+    "memorysetup-profiler-bucket-allocator-block-count=8"
+    "memorysetup-profiler-allocator-block-size=16777216"
+    "memorysetup-profiler-editor-allocator-block-size=1048576"
+    "memorysetup-temp-allocator-size-main=16777216"
+    "memorysetup-job-temp-allocator-block-size=2097152"
+    "memorysetup-job-temp-allocator-block-size-background=1048576"
+    "memorysetup-job-temp-allocator-reduction-small-platforms=262144"
+    "memorysetup-temp-allocator-size-background-worker=32768"
+    "memorysetup-temp-allocator-size-job-worker=262144"
+    "memorysetup-temp-allocator-size-preload-manager=33554432"
+    "memorysetup-temp-allocator-size-nav-mesh-worker=65536"
+    "memorysetup-temp-allocator-size-audio-worker=65536"
+    "memorysetup-temp-allocator-size-cloud-worker=32768"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gfx=262144"
+Player connection [43540]  Target information:
+
+Player connection [43540]  * "[IP] 172.30.1.51 [Port] 0 [Flags] 2 [Guid] 1140067961 [EditorId] 1140067961 [Version] 1048832 [Id] WindowsEditor(7,DESKTOP-M3M7B9U) [Debug] 1 [PackageName] WindowsEditor [ProjectName] Editor" 
+
+Player connection [43540] Host joined multi-casting on [225.0.0.222:54997]...
+Player connection [43540] Host joined alternative multi-casting on [225.0.0.222:34997]...
+JobSystem: Creating JobQueue using job-worker-count value 9
+[Licensing::Client] Code 10 while verifying Licensing Client signature (process Id: 25020, path: "C:/Program Files/Unity Hub/UnityLicensingClient_V1/Unity.Licensing.Client.exe")
+[Licensing::Module] LicensingClient has failed validation; ignoring
+[Licensing::Client] Handshaking with LicensingClient:
+  Version:                 1.17.4+4293ba1
+  Session Id:              7b80572f24df4b5b8abe117aad883dbb
+  Correlation Id:          f6e4c30dd7cc0bb2bdf833244529a3a5
+  External correlation Id: 8004379292156402962
+  Machine Id:              nKW9zLnA3Cvjb+21/QgkJaxjydA=
+[Licensing::Module] Successfully connected to LicensingClient on channel: "LicenseClient-ym167" (connect: 0.00s, validation: 0.00s, handshake: 0.05s)
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-ym167-notifications" at "2026-05-04T08:29:48.7115782Z"
+[Licensing::Module] Licensing Background thread has ended after 0.05s
+Input System module state changed to: Initialized.
+[Physics::Module] Initialized fallback backend.
+[Physics::Module] Id: 0xdecafbad
+Library Redirect Path: Library/
+[Physics::Module] Selected backend.
+[Physics::Module] Name: PhysX
+[Physics::Module] Id: 0xf2b8ea05
+[Physics::Module] SDK Version: 4.1.2
+[Physics::Module] Integration Version: 1.0.0
+[Physics::Module] Threading Mode: Multi-Threaded
+Refreshing native plugins compatible for Editor in 30.67 ms, found 12 plugins.
+Preloading 1 native plugins for Editor in 0.62 ms.
+Initialize engine version: 6000.2.2f1 (ea398eefe1c2)
+[Subsystems] Discovering subsystems at path C:/Program Files/Unity/Hub/Editor/6000.2.2f1/Editor/Data/Resources/UnitySubsystems
+[Subsystems] Discovering subsystems at path C:/Users/ym167/Documents/GitHub/Lego-Digital-Twin/unity-client/AURA_Lego/Assets
+GfxDevice: creating device client; kGfxThreadingModeNonThreaded
+d3d12: failed to query info queue interface (0x80004002).
+Direct3D:
+    Version:         Direct3D 12 [level 12.1]
+    Renderer:        NVIDIA GeForce RTX 3070 (ID=0x2488)
+    Vendor:          NVIDIA
+    VRAM:            8018 MB
+    App VRAM Budget: 7250 MB
+    Driver:          32.0.15.6094
+Initialize mono
+Mono path[0] = 'C:/Program Files/Unity/Hub/Editor/6000.2.2f1/Editor/Data/Managed'
+Mono path[1] = 'C:/Program Files/Unity/Hub/Editor/6000.2.2f1/Editor/Data/MonoBleedingEdge/lib/mono/unityjit-win32'
+Mono config path = 'C:/Program Files/Unity/Hub/Editor/6000.2.2f1/Editor/Data/MonoBleedingEdge/etc'
+Using monoOptions --debugger-agent=transport=dt_socket,embedding=1,server=y,suspend=n,address=127.0.0.1:56208
+Begin MonoManager ReloadAssembly
+Registering precompiled unity dll's ...
+Register platform support module: C:/Program Files/Unity/Hub/Editor/6000.2.2f1/Editor/Data/PlaybackEngines/WindowsStandaloneSupport/UnityEditor.WindowsStandalone.Extensions.dll
+Registered in 0.002094 seconds.
+- Loaded All Assemblies, in  0.322 seconds
+Native extension for WindowsStandalone target not found
+Mono: successfully reloaded assembly
+- Finished resetting the current domain, in  0.264 seconds
+Domain Reload Profiling: 583ms
+	BeginReloadAssembly (115ms)
+		ExecutionOrderSort (0ms)
+		DisableScriptedObjects (0ms)
+		BackupInstance (0ms)
+		ReleaseScriptingObjects (0ms)
+		CreateAndSetChildDomain (1ms)
+	RebuildCommonClasses (31ms)
+	RebuildNativeTypeToScriptingClass (9ms)
+	initialDomainReloadingComplete (39ms)
+	LoadAllAssembliesAndSetupDomain (126ms)
+		LoadAssemblies (112ms)
+		RebuildTransferFunctionScriptingTraits (0ms)
+		AnalyzeDomain (123ms)
+			TypeCache.Refresh (122ms)
+				TypeCache.ScanAssembly (109ms)
+			BuildScriptInfoCaches (0ms)
+			ResolveRequiredComponents (0ms)
+	FinalizeReload (264ms)
+		ReleaseScriptCaches (0ms)
+		RebuildScriptCaches (0ms)
+		SetupLoadedEditorAssemblies (226ms)
+			LogAssemblyErrors (0ms)
+			InitializePlatformSupportModulesInManaged (40ms)
+			SetLoadedEditorAssemblies (3ms)
+			BeforeProcessingInitializeOnLoad (46ms)
+			ProcessInitializeOnLoadAttributes (94ms)
+			ProcessInitializeOnLoadMethodAttributes (43ms)
+			AfterProcessingInitializeOnLoad (0ms)
+			EditorAssembliesLoaded (0ms)
+		ExecutionOrderSort2 (0ms)
+		AwakeInstancesAfterBackupRestoration (0ms)
+========================================================================
+Worker process is ready to serve import requests
+Import Worker Mode flag is 0x00
+Begin MonoManager ReloadAssembly
+[Licensing::Client] Successfully resolved entitlement details
+[Licensing::Module] License group:
+  Id: 14569190939381-UnityPersXXXX
+  Product: Unity Personal
+  Type: Assigned
+  Expiration: Unlimited
+Symbol file LoadedFromMemory is not a mono symbol file
+- Loaded All Assemblies, in  0.923 seconds
+Refreshing native plugins compatible for Editor in 20.63 ms, found 12 plugins.
+Native extension for WindowsStandalone target not found
+Package Manager log level set to [2]
+[Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
+[Package Manager] Unable to send message (not connected to server process).
+[Package Manager] Cannot connect to Unity Package Manager local server
+Refreshing native plugins compatible for Editor in 19.89 ms, found 12 plugins.
+[Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
+[Package Manager] Unable to send message (not connected to server process).
+[Package Manager] Cannot connect to Unity Package Manager local server
+[Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
+[Package Manager] Unable to send message (not connected to server process).
+[Package Manager] Cannot connect to Unity Package Manager local server
+[MODES] ModeService[none].Initialize
+[MODES] ModeService[none].LoadModes
+[MODES] Loading mode Default (0) for mode-current-id-AURA_Lego
+[Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
+[Package Manager] Unable to send message (not connected to server process).
+[Package Manager] Cannot connect to Unity Package Manager local server
+AssertionException: Error removing KTX for Unity WebGL sub-packages.. Failed fetching installed packages.
+Assertion failure. Values are not equal.
+Expected: Failure == Success
+  at UnityEngine.Assertions.Assert.Fail (System.String message, System.String userMessage) [0x00043] in <b4c8c45fec274213bfac03ee0e9a3d62>:0 
+  at UnityEngine.Assertions.Assert.AreEqual[T] (T expected, T actual, System.String message, System.Collections.Generic.IEqualityComparer`1[T] comparer) [0x0005f] in <b4c8c45fec274213bfac03ee0e9a3d62>:0 
+  at UnityEngine.Assertions.Assert.AreEqual[T] (T expected, T actual, System.String message) [0x00009] in <b4c8c45fec274213bfac03ee0e9a3d62>:0 
+  at SubPackage.SubPackageRemover.GetAllInstalledPackagesAsync (System.Double timeout) [0x000b7] in .\Library\PackageCache\com.unity.cloud.ktx@7a35f681840e\Editor\Scripts\SubPackage\SubPackageRemover.cs:81 
+  at SubPackage.SubPackageRemover.TryRemoveObsoleteSubPackagesAsync () [0x0002a] in .\Library\PackageCache\com.unity.cloud.ktx@7a35f681840e\Editor\Scripts\SubPackage\SubPackageRemover.cs:35 
+UnityEngine.DebugLogHandler:Internal_LogException_Injected(Exception, IntPtr)
+UnityEngine.DebugLogHandler:Internal_LogException(Exception, Object)
+UnityEngine.DebugLogHandler:LogException(Exception, Object)
+UnityEngine.Logger:LogException(Exception, Object)
+UnityEngine.Debug:LogException(Exception)
+SubPackage.<TryRemoveObsoleteSubPackagesAsync>d__5:MoveNext() (at .\Library\PackageCache\com.unity.cloud.ktx@7a35f681840e\Editor\Scripts\SubPackage\SubPackageRemover.cs:52)
+System.Runtime.CompilerServices.AsyncVoidMethodBuilder:Start(<TryRemoveObsoleteSubPackagesAsync>d__5&)
+SubPackage.SubPackageRemover:TryRemoveObsoleteSubPackagesAsync()
+System.Reflection.RuntimeMethodInfo:InternalInvoke(RuntimeMethodInfo, Object, Object[], Exception&)
+System.Reflection.RuntimeMethodInfo:Invoke(Object, BindingFlags, Binder, Object[], CultureInfo)
+System.Reflection.MethodBase:Invoke(Object, Object[])
+UnityEditor.EditorAssemblies:ProcessInitializeOnLoadMethodAttributes()
+
+(Filename: ./Library/PackageCache/com.unity.cloud.ktx@7a35f681840e/Editor/Scripts/SubPackage/SubPackageRemover.cs Line: 52)
+
+Mono: successfully reloaded assembly
+[Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
+[Package Manager] Unable to send message (not connected to server process).
+[Package Manager] Cannot connect to Unity Package Manager local server
+[Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
+[Package Manager] Unable to send message (not connected to server process).
+[Package Manager] Cannot connect to Unity Package Manager local server
+- Finished resetting the current domain, in  0.953 seconds
+Domain Reload Profiling: 1869ms
+	BeginReloadAssembly (154ms)
+		ExecutionOrderSort (0ms)
+		DisableScriptedObjects (4ms)
+		BackupInstance (0ms)
+		ReleaseScriptingObjects (0ms)
+		CreateAndSetChildDomain (24ms)
+	RebuildCommonClasses (29ms)
+	RebuildNativeTypeToScriptingClass (9ms)
+	initialDomainReloadingComplete (37ms)
+	LoadAllAssembliesAndSetupDomain (686ms)
+		LoadAssemblies (455ms)
+		RebuildTransferFunctionScriptingTraits (0ms)
+		AnalyzeDomain (320ms)
+			TypeCache.Refresh (226ms)
+				TypeCache.ScanAssembly (204ms)
+			BuildScriptInfoCaches (80ms)
+			ResolveRequiredComponents (10ms)
+	FinalizeReload (954ms)
+		ReleaseScriptCaches (0ms)
+		RebuildScriptCaches (0ms)
+		SetupLoadedEditorAssemblies (776ms)
+			LogAssemblyErrors (0ms)
+			InitializePlatformSupportModulesInManaged (2ms)
+			SetLoadedEditorAssemblies (5ms)
+			BeforeProcessingInitializeOnLoad (132ms)
+			ProcessInitializeOnLoadAttributes (353ms)
+			ProcessInitializeOnLoadMethodAttributes (279ms)
+			AfterProcessingInitializeOnLoad (5ms)
+			EditorAssembliesLoaded (0ms)
+		ExecutionOrderSort2 (0ms)
+		AwakeInstancesAfterBackupRestoration (5ms)
+WARNING: Shader Unsupported: 'Hidden/Simulation/URP/Synthetic' - All subshaders removed
+WARNING: Shader Did you use #pragma only_renderers and omit this platform?
+WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
+WARNING: Shader Unsupported: 'Hidden/Simulation/URP/Synthetic' - All subshaders removed
+WARNING: Shader Did you use #pragma only_renderers and omit this platform?
+WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
+WARNING: Shader Unsupported: 'Simulation/Standard Lit' - All subshaders removed
+WARNING: Shader Did you use #pragma only_renderers and omit this platform?
+WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
+WARNING: Shader Unsupported: 'Simulation/Standard Lit' - All subshaders removed
+WARNING: Shader Did you use #pragma only_renderers and omit this platform?
+WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
+WARNING: Shader Unsupported: 'Hidden/Simulation/Synthetic Lit' - All subshaders removed
+WARNING: Shader Did you use #pragma only_renderers and omit this platform?
+WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
+WARNING: Shader Unsupported: 'Hidden/Simulation/Synthetic Lit' - All subshaders removed
+WARNING: Shader Did you use #pragma only_renderers and omit this platform?
+WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
+WARNING: Shader Unsupported: 'Simulation/URP/Room X-Ray' - All subshaders removed
+WARNING: Shader Did you use #pragma only_renderers and omit this platform?
+WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
+WARNING: Shader Unsupported: 'Simulation/URP/Room X-Ray' - All subshaders removed
+WARNING: Shader Did you use #pragma only_renderers and omit this platform?
+WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
+WARNING: Shader Unsupported: 'Simulation/Room X-Ray' - All subshaders removed
+WARNING: Shader Did you use #pragma only_renderers and omit this platform?
+WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
+WARNING: Shader Unsupported: 'Simulation/Room X-Ray' - All subshaders removed
+WARNING: Shader Did you use #pragma only_renderers and omit this platform?
+WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
+WARNING: Shader Unsupported: 'Simulation/URP/Lit' - All subshaders removed
+WARNING: Shader Did you use #pragma only_renderers and omit this platform?
+WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
+WARNING: Shader Unsupported: 'Simulation/URP/Lit' - All subshaders removed
+WARNING: Shader Did you use #pragma only_renderers and omit this platform?
+WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
+Launched and connected shader compiler UnityShaderCompiler.exe after 0.04 seconds
+Refreshing native plugins compatible for Editor in 18.74 ms, found 12 plugins.
+Preloading 1 native plugins for Editor in 0.10 ms.
+Unloading 23 Unused Serialized files (Serialized files now loaded: 0)
+Unloading 8641 unused Assets / (7.5 MB). Loaded Objects now: 9313.
+Memory consumption went from 177.7 MB to 170.2 MB.
+Total: 11.715800 ms (FindLiveObjects: 0.719100 ms CreateObjectMapping: 0.567600 ms MarkObjects: 7.192500 ms  DeleteObjects: 3.235800 ms)
+
+========================================================================
+Received Import Request.
+  Time since last request: 68980.343046 seconds.
+  path: Assets/External Assets/mecabricks/Arendelle Castle Village_org.fbx
+  artifactKey: Guid(70a82b57fafa38a45a899c4ceb687397) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/External Assets/mecabricks/Arendelle Castle Village_org.fbx using Guid(70a82b57fafa38a45a899c4ceb687397) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'f82f93b2ade05e7e7d9e471202fa2908') in 4.5656047 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 2168
+
+========================================================================
+Received Import Request.
+  Time since last request: 302.867572 seconds.
+  path: Assets/External Assets/mecabricks/carousel 1.fbx
+  artifactKey: Guid(64553c98894d2aa4fbcbd0b90c67edfd) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/External Assets/mecabricks/carousel 1.fbx using Guid(64553c98894d2aa4fbcbd0b90c67edfd) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '71fd81d98d363c4be3d0827152eeb61a') in 5.2399221 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 13816
+
+========================================================================
+Received Import Request.
+  Time since last request: 868.526277 seconds.
+  path: Assets/External Assets/mecabricks/Arendelle Castle_store.fbx
+  artifactKey: Guid(0c1da92957828f1408b2b13e7511240e) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/External Assets/mecabricks/Arendelle Castle_store.fbx using Guid(0c1da92957828f1408b2b13e7511240e) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '85ec3ad162605f7f69a309c056500181') in 0.2542098 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 98
+
+========================================================================
+Received Import Request.
+  Time since last request: 237.698995 seconds.
+  path: Assets/New Terrain 2.asset
+  artifactKey: Guid(56c3cf7b5cef4d548ade9297cec6f2a3) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/New Terrain 2.asset using Guid(56c3cf7b5cef4d548ade9297cec6f2a3) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '9456716faa21c22d4d65ae8a3f703c52') in 0.0402251 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 3
+
+========================================================================
+Received Import Request.
+  Time since last request: 17.628401 seconds.
+  path: Assets/Materials/Materials/glass4.mat
+  artifactKey: Guid(a6d85b0e4ea2c134a81b4ae48d680747) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/Materials/Materials/glass4.mat using Guid(a6d85b0e4ea2c134a81b4ae48d680747) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'dbd17b51a8bf170e4ed27ec582ce37e0') in 0.0189689 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 73.664834 seconds.
+  path: Assets/External Assets/mecabricks/Fairground Carousel 1.fbx
+  artifactKey: Guid(7715e418aaa43b24e9dfc874885d10bd) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/External Assets/mecabricks/Fairground Carousel 1.fbx using Guid(7715e418aaa43b24e9dfc874885d10bd) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '6e335724bfaa1128b8ea9a3ec31f353e') in 5.0277312 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 2864
+
+========================================================================
+Received Import Request.
+  Time since last request: 49.716015 seconds.
+  path: Assets/Materials/LegoZone
+  artifactKey: Guid(54b950a9aecd5454398eb60f07d8395f) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/Materials/LegoZone using Guid(54b950a9aecd5454398eb60f07d8395f) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '33844b886301964a56354573ba28b328') in 0.0015477 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 0
+
+========================================================================
+Received Import Request.
+  Time since last request: 16.222557 seconds.
+  path: Assets/Materials/LegoZone/Lego_Red.mat
+  artifactKey: Guid(e509993bd75ec064e99ed63b0f6c2c38) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/Materials/LegoZone/Lego_Red.mat using Guid(e509993bd75ec064e99ed63b0f6c2c38) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '4b8d1b5be6b0d7f7fd004e3475a1ca4d') in 0.0168997 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 38.830062 seconds.
+  path: Assets/Materials/LegoZone/Lego_Red.mat
+  artifactKey: Guid(e509993bd75ec064e99ed63b0f6c2c38) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/Materials/LegoZone/Lego_Red.mat using Guid(e509993bd75ec064e99ed63b0f6c2c38) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'fd690d1a1b944b5ea1727850884ff53e') in 0.0189748 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 45.099788 seconds.
+  path: Assets/Materials/LegoZone/Lego_Yellow.mat
+  artifactKey: Guid(f445208623040824cbd8aada91c623e4) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/Materials/LegoZone/Lego_Yellow.mat using Guid(f445208623040824cbd8aada91c623e4) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '5a1e8f29e679fa3581f011c988f3deaf') in 0.0246021 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 196.256701 seconds.
+  path: Assets/Materials/LegoZone/Rego_Green.mat
+  artifactKey: Guid(a831ce0075aaedc49aa877e445471ae5) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/Materials/LegoZone/Rego_Green.mat using Guid(a831ce0075aaedc49aa877e445471ae5) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '9f51375b527c56f06cd0f4c56c3a7afe') in 0.0209027 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 11.245798 seconds.
+  path: Assets/Materials/LegoZone/Rego_Blue.mat
+  artifactKey: Guid(a831ce0075aaedc49aa877e445471ae5) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/Materials/LegoZone/Rego_Blue.mat using Guid(a831ce0075aaedc49aa877e445471ae5) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'a0f34fc6bdcecc4299411a502cc9228b') in 0.0177561 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 29.745146 seconds.
+  path: Assets/External Assets/mecabricks/Ferris Wheel 1.fbx
+  artifactKey: Guid(6146beebd5fb93348bbbd77ac8ba4475) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/External Assets/mecabricks/Ferris Wheel 1.fbx using Guid(6146beebd5fb93348bbbd77ac8ba4475) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'a7cda3f586837b605d3fdd091de71c31') in 14.3181868 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 10585
+
+========================================================================
+Received Import Request.
+  Time since last request: 76.091445 seconds.
+  path: Assets/External Assets/mecabricks/Heartlake City Amusement Pier 1.fbx
+  artifactKey: Guid(67ce2fa15e386eb46a527a170e96005f) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/External Assets/mecabricks/Heartlake City Amusement Pier 1.fbx using Guid(67ce2fa15e386eb46a527a170e96005f) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '9c950daae210d5d26295d30688b4a9dc') in 12.0359578 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 6620
+
+========================================================================
+Received Import Request.
+  Time since last request: 83.088626 seconds.
+  path: Assets/External Assets/mecabricks/Hogwarts Tree 1.fbx
+  artifactKey: Guid(e3a4e3f72bf244045bf627e8ce58c9eb) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/External Assets/mecabricks/Hogwarts Tree 1.fbx using Guid(e3a4e3f72bf244045bf627e8ce58c9eb) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '715f729bbc8d9ffd0ca8df248c4006f8') in 2.6526522 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1404
+
+========================================================================
+Received Import Request.
+  Time since last request: 198.782352 seconds.
+  path: Assets/External Assets/mecabricks/Jokerland 1.fbx
+  artifactKey: Guid(ef959cb12a387c548975a510f5b1d6d1) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/External Assets/mecabricks/Jokerland 1.fbx using Guid(ef959cb12a387c548975a510f5b1d6d1) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '1dac4517bd617b3792c2b1cce86d8da3') in 9.7540878 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 3970
+
+========================================================================
+Received Import Request.
+  Time since last request: 149.585416 seconds.
+  path: Assets/External Assets/mecabricks/Medieval Blacksmith 1.fbx
+  artifactKey: Guid(7158d0852077f074387c101caf34b8c6) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/External Assets/mecabricks/Medieval Blacksmith 1.fbx using Guid(7158d0852077f074387c101caf34b8c6) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '33c73b91c7a20a0d2c555a01d854baf9') in 15.252651 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 9718
+
+========================================================================
+Received Import Request.
+  Time since last request: 43.715541 seconds.
+  path: Assets/External Assets/mecabricks/tree house 1.fbx
+  artifactKey: Guid(c3fea8a578ec1954991eb54e5252134b) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/External Assets/mecabricks/tree house 1.fbx using Guid(c3fea8a578ec1954991eb54e5252134b) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '0807c963aa43f6ada642d25cbf26a292') in 21.892236 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 13028
+
+========================================================================
+Received Import Request.
+  Time since last request: 918.073250 seconds.
+  path: Assets/External Assets/mecabricks/Hogwarts builds1.fbx
+  artifactKey: Guid(db0327600464140448ffbe2f3cabb42d) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/External Assets/mecabricks/Hogwarts builds1.fbx using Guid(db0327600464140448ffbe2f3cabb42d) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'b9b9c29cb648e52e44ac9d66dbac840d') in 0.6589318 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 254
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000046 seconds.
+  path: Assets/External Assets/mecabricks/Hogwarts builds7.fbx
+  artifactKey: Guid(ec5257a452d39664c8a95aaa946462ef) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/External Assets/mecabricks/Hogwarts builds7.fbx using Guid(ec5257a452d39664c8a95aaa946462ef) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'adcad5eb5fd39fbf514feca86f27bc30') in 0.6325885 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 240
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000046 seconds.
+  path: Assets/External Assets/mecabricks/Hogwarts builds3.fbx
+  artifactKey: Guid(58825f266d5b0c244af0bb097abf7d30) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/External Assets/mecabricks/Hogwarts builds3.fbx using Guid(58825f266d5b0c244af0bb097abf7d30) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '0ef01ec817dc8dd5559ea604b33cc544') in 0.5734625 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 240
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000032 seconds.
+  path: Assets/External Assets/mecabricks/Hogwarts builds6.fbx
+  artifactKey: Guid(2b9b43af61ef22e42b5590cde219042c) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/External Assets/mecabricks/Hogwarts builds6.fbx using Guid(2b9b43af61ef22e42b5590cde219042c) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '009fb32e9187b40057084b7270407aa5') in 0.703235 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 250
+
+========================================================================
+Received Import Request.
+  Time since last request: 655.845242 seconds.
+  path: Assets/External Assets/mecabricks/Lego_top.fbx
+  artifactKey: Guid(a132c782a1f153f45a49412681b2c284) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/External Assets/mecabricks/Lego_top.fbx using Guid(a132c782a1f153f45a49412681b2c284) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '7c10f606d3c233d33ef85791700cfcc7') in 1.5428844 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 818
+
+========================================================================
+Received Import Request.
+  Time since last request: 960.392024 seconds.
+  path: Assets/External Assets/mecabricks/Seaside Holiday Cottage.fbx
+  artifactKey: Guid(1d555d445dd2fd14f942ba076b421578) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/External Assets/mecabricks/Seaside Holiday Cottage.fbx using Guid(1d555d445dd2fd14f942ba076b421578) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'a36fef88d1a42989bf18ec9a3d428e4f') in 1.1823276 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 542
+
+========================================================================
+Received Import Request.
+  Time since last request: 1248.663348 seconds.
+  path: Assets/External Assets/mecabricks/Wild West Store.fbx
+  artifactKey: Guid(7bfbb0c7b3bd33a4bb0b345da180b784) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/External Assets/mecabricks/Wild West Store.fbx using Guid(7bfbb0c7b3bd33a4bb0b345da180b784) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '091734bd0064a95901f1a7a8467630fc') in 9.087584 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 6080
+
+========================================================================
+Received Import Request.
+  Time since last request: 97.969672 seconds.
+  path: Assets/Materials/Store
+  artifactKey: Guid(1ae9546fd87204f4baa4df455ececfcb) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/Materials/Store using Guid(1ae9546fd87204f4baa4df455ececfcb) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'ab8708d66f3a9706c32144403baa36c8') in 0.0014785 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 0
+
+========================================================================
+Received Import Request.
+  Time since last request: 7.793651 seconds.
+  path: Assets/Materials/Store/Brown
+  artifactKey: Guid(cdb2f2a9c709f484b8f66b6f921b8cad) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/Materials/Store/Brown using Guid(cdb2f2a9c709f484b8f66b6f921b8cad) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '2dfc094d96907064842bb98f0a6ebfd0') in 0.00095 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 0
+
+========================================================================
+Received Import Request.
+  Time since last request: 13.881329 seconds.
+  path: Assets/Materials/Store/Brown.mat
+  artifactKey: Guid(112e36f25d92b6546bd44486be511117) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/Materials/Store/Brown.mat using Guid(112e36f25d92b6546bd44486be511117) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'bc72cabc78f38280aaa667e0b3744c70') in 0.0200467 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 19.460407 seconds.
+  path: Assets/Materials/Store/Brown.mat
+  artifactKey: Guid(112e36f25d92b6546bd44486be511117) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/Materials/Store/Brown.mat using Guid(112e36f25d92b6546bd44486be511117) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'ad9f09448500eb7029ea3cabbc56a436') in 0.0194784 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 39.948779 seconds.
+  path: Assets/Materials/Store/Brown2.mat
+  artifactKey: Guid(6929d4b68b826cd4f943416c6680bf11) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/Materials/Store/Brown2.mat using Guid(6929d4b68b826cd4f943416c6680bf11) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'b393b3b9fb2ec6b6edb273f3488e786c') in 0.0254503 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 69.799241 seconds.
+  path: Assets/Materials/LegoZone/Rego_Red.mat
+  artifactKey: Guid(a831ce0075aaedc49aa877e445471ae5) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/Materials/LegoZone/Rego_Red.mat using Guid(a831ce0075aaedc49aa877e445471ae5) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'c73c34bfe84c909f77638f02399b89b2') in 0.026535 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 13.161856 seconds.
+  path: Assets/Materials/LegoZone/Lego_Blue.mat
+  artifactKey: Guid(e509993bd75ec064e99ed63b0f6c2c38) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/Materials/LegoZone/Lego_Blue.mat using Guid(e509993bd75ec064e99ed63b0f6c2c38) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '49c2ef2b5fc74349aa96dc58f4505625') in 0.0165786 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 8.902738 seconds.
+  path: Assets/Materials/LegoZone/Lego_Blue.mat
+  artifactKey: Guid(e509993bd75ec064e99ed63b0f6c2c38) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/Materials/LegoZone/Lego_Blue.mat using Guid(e509993bd75ec064e99ed63b0f6c2c38) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '80f7a20655c899f77a847bfac88f1aac') in 0.0183054 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 15239.872219 seconds.
+  path: Assets/External Assets/ISAKUPOLY
+  artifactKey: Guid(c670d90e3eeee6e4fb7003e435de2279) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/External Assets/ISAKUPOLY using Guid(c670d90e3eeee6e4fb7003e435de2279) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '317cea76c393ffe27e3113df9c885fb3') in 0.0143112 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 0
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.089082 seconds.
+  path: Assets/External Assets/ISAKUPOLY/Stylized Nature Pack
+  artifactKey: Guid(b9583a33f33655b429d24be0f6def9b7) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/External Assets/ISAKUPOLY/Stylized Nature Pack using Guid(b9583a33f33655b429d24be0f6def9b7) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '69d3098784a61aca2d4b9c6c72d8be0d') in 0.0027427 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 0
+
+========================================================================
+Received Import Request.
+  Time since last request: 2.293162 seconds.
+  path: Assets/External Assets/ISAKUPOLY/Stylized Nature Pack/Prefabs
+  artifactKey: Guid(8a67166c6a9590d45992a81099c3662f) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/External Assets/ISAKUPOLY/Stylized Nature Pack/Prefabs using Guid(8a67166c6a9590d45992a81099c3662f) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '79dce06f48ee66d36582c7be0a34a2ce') in 0.0023428 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 0
+
+========================================================================
+Received Import Request.
+  Time since last request: 3.304272 seconds.
+  path: Assets/External Assets/ISAKUPOLY/Stylized Nature Pack/Prefabs/Map
+  artifactKey: Guid(48856c5bd7eb5864a8986881ca3f7f21) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/External Assets/ISAKUPOLY/Stylized Nature Pack/Prefabs/Map using Guid(48856c5bd7eb5864a8986881ca3f7f21) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '88f08faa346c84ebc12facc7711f5ce5') in 0.0025802 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 0
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.004729 seconds.
+  path: Assets/External Assets/ISAKUPOLY/Stylized Nature Pack/Prefabs/Map/Map.prefab
+  artifactKey: Guid(6d5cdd606bafd994aa7f597c757352ff) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/External Assets/ISAKUPOLY/Stylized Nature Pack/Prefabs/Map/Map.prefab using Guid(6d5cdd606bafd994aa7f597c757352ff) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'fb602e1692aee581a0b3204cdb5bdbcf') in 0.1633399 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 614
+
+========================================================================
+Received Import Request.
+  Time since last request: 4.432643 seconds.
+  path: Assets/External Assets/ISAKUPOLY/Stylized Nature Pack/Prefabs/Mushrooms
+  artifactKey: Guid(0b56ab818f1a63a4a8619b983eb90854) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/External Assets/ISAKUPOLY/Stylized Nature Pack/Prefabs/Mushrooms using Guid(0b56ab818f1a63a4a8619b983eb90854) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'ce21abc159bbd614124e284faf1ff3d7') in 0.0015065 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 0
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.106634 seconds.
+  path: Assets/External Assets/ISAKUPOLY/Stylized Nature Pack/Prefabs/Mushrooms/Mushroom 01.prefab
+  artifactKey: Guid(b867b51b4d0b3784c8ab92abd5e75e0f) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/External Assets/ISAKUPOLY/Stylized Nature Pack/Prefabs/Mushrooms/Mushroom 01.prefab using Guid(b867b51b4d0b3784c8ab92abd5e75e0f) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'dc0679a50f5d02245185fb9d7a57385a') in 0.0287593 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 614
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.042485 seconds.
+  path: Assets/External Assets/ISAKUPOLY/Stylized Nature Pack/Prefabs/Mushrooms/Mushroom 03.prefab
+  artifactKey: Guid(602023f0ab51e6f41be9164eb362f120) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/External Assets/ISAKUPOLY/Stylized Nature Pack/Prefabs/Mushrooms/Mushroom 03.prefab using Guid(602023f0ab51e6f41be9164eb362f120) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'dce472fecb2db18b75b487d31489b254') in 0.0320782 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 614
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000021 seconds.
+  path: Assets/External Assets/ISAKUPOLY/Stylized Nature Pack/Prefabs/Mushrooms/Mushroom 05.prefab
+  artifactKey: Guid(54c2b28e81e23bc468b29c07ef28cd9b) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/External Assets/ISAKUPOLY/Stylized Nature Pack/Prefabs/Mushrooms/Mushroom 05.prefab using Guid(54c2b28e81e23bc468b29c07ef28cd9b) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '67466c0bb3bb53b1bd43efdd8d2d2dbe') in 0.0220039 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 614
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000027 seconds.
+  path: Assets/External Assets/ISAKUPOLY/Stylized Nature Pack/Prefabs/Mushrooms/Mushroom 06.prefab
+  artifactKey: Guid(8205bc6dc1712ca4db4aa22b8bf37592) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/External Assets/ISAKUPOLY/Stylized Nature Pack/Prefabs/Mushrooms/Mushroom 06.prefab using Guid(8205bc6dc1712ca4db4aa22b8bf37592) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '6477237e001b3bf39896183c7f43c9ed') in 0.0277462 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 614
+
+========================================================================
+Received Import Request.
+  Time since last request: 3.034512 seconds.
+  path: Assets/External Assets/ISAKUPOLY/Stylized Nature Pack/Prefabs/Rocks
+  artifactKey: Guid(59f7ade436cd9ec4c965393fc0bd741f) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/External Assets/ISAKUPOLY/Stylized Nature Pack/Prefabs/Rocks using Guid(59f7ade436cd9ec4c965393fc0bd741f) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '01bd4ed93b2976d5a4e1cf1904f8e499') in 0.0029187 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 0
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.005026 seconds.
+  path: Assets/External Assets/ISAKUPOLY/Stylized Nature Pack/Prefabs/Rocks/Rock 01.prefab
+  artifactKey: Guid(4578d3aec266ea347942543f5fa59f90) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/External Assets/ISAKUPOLY/Stylized Nature Pack/Prefabs/Rocks/Rock 01.prefab using Guid(4578d3aec266ea347942543f5fa59f90) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'd84f5a07f17ccc1d0e65d961984bd437') in 0.0188992 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 614
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000027 seconds.
+  path: Assets/External Assets/ISAKUPOLY/Stylized Nature Pack/Prefabs/Rocks/Rock 04.prefab
+  artifactKey: Guid(944c94804809796498a51533c94d76a7) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/External Assets/ISAKUPOLY/Stylized Nature Pack/Prefabs/Rocks/Rock 04.prefab using Guid(944c94804809796498a51533c94d76a7) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '071b76f34172d6048d06e05ff26df1ae') in 0.0302397 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 614
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000027 seconds.
+  path: Assets/External Assets/ISAKUPOLY/Stylized Nature Pack/Prefabs/Rocks/Rock 07.prefab
+  artifactKey: Guid(eee55b78c1c0dbd49bfd834f8e8b8dfe) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/External Assets/ISAKUPOLY/Stylized Nature Pack/Prefabs/Rocks/Rock 07.prefab using Guid(eee55b78c1c0dbd49bfd834f8e8b8dfe) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '33531d9b4a8a178f054da3bbb25a5424') in 0.0221493 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 614
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000028 seconds.
+  path: Assets/External Assets/ISAKUPOLY/Stylized Nature Pack/Prefabs/Rocks/Rock 08.prefab
+  artifactKey: Guid(9f2dcf98684d69f48a194b7031fbdcd8) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/External Assets/ISAKUPOLY/Stylized Nature Pack/Prefabs/Rocks/Rock 08.prefab using Guid(9f2dcf98684d69f48a194b7031fbdcd8) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '8a4a6bb8d1e1b96c8a1bc4b4df8b8496') in 0.0196611 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 614
+
+Editor requested this worker to shutdown with reason: Scaling down because of idle timeout
+AssetImportWorker is now disconnected from the server
+Process exiting
+Exiting without the bug reporter. Application will terminate with return code 0
