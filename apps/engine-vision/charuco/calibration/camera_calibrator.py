@@ -1,8 +1,8 @@
 """
-Intrinsic calibration from a set of ChArUco images.
+ChArUco 이미지 세트를 이용한 카메라 내부 파라미터(intrinsic) 보정 모듈.
 
-Usage
------
+실행 방법
+---------
   python -m charuco.calibration.camera_calibrator \\
       --images data/calib/*.jpg \\
       --out    data/camera_params.npz
@@ -20,10 +20,10 @@ from .charuco_board import ARUCO_DICT, BOARD
 
 def calibrate_from_images(image_paths: list[str]) -> tuple[np.ndarray, np.ndarray, float]:
     """
-    Run ChArUco-based intrinsic calibration.
+    ChArUco 기반 내부 파라미터 보정을 실행한다.
 
-    Returns
-    -------
+    반환값
+    ------
     camera_matrix, dist_coeffs, rms_error
     """
     all_corners, all_ids = [], []

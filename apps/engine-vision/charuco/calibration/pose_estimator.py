@@ -1,11 +1,12 @@
 """
-Per-view camera pose estimation using ChArUco.
+ChArUco 기반 뷰별 카메라 포즈 추정 모듈.
 
-Each view (TOP, FRONT, BACK, LEFT, RIGHT) has an image with a visible ChArUco
-board.  This module returns the 4×4 extrinsic matrix that maps world coords
-(board origin = LEGO base origin) into each camera's coordinate frame.
+TOP / FRONT / BACK / LEFT / RIGHT 각 뷰 이미지에서
+ChArUco 보드를 검출해 카메라 외부 파라미터(extrinsic)를 계산한다.
 
-Convention: world origin = centre of ChArUco board on the LEGO base plate.
+좌표계 규약
+-----------
+  월드 원점 = 레고 베이스 플레이트 위 ChArUco 보드 중심
 """
 
 import numpy as np
@@ -29,7 +30,7 @@ class CameraPose:
 
     @property
     def extrinsic(self) -> np.ndarray:
-        """4×4 world-to-camera transform."""
+        """4×4 월드→카메라 변환 행렬."""
         T = np.eye(4)
         T[:3, :3] = self.R
         T[:3,  3] = self.tvec.ravel()
@@ -40,14 +41,10 @@ def estimate_pose(image: np.ndarray,
                   camera_matrix: np.ndarray,
                   dist_coeffs: np.ndarray,
                   view: str) -> CameraPose | None:
-    """
-    Estimate camera pose from a single view image.
-
-    Returns CameraPose or None if detection failed.
-    """
+    """단일 뷰 이미지에서 카메라 포즈를 추정한다. 실패 시 None 반환."""
     rvec, tvec, corners, ids = detect_charuco(image, camera_matrix, dist_coeffs)
     if rvec is None:
-        print(f"[pose] {view}: ChArUco detection failed")
+        print(f"[pose] {view}: ChArUco 검출 실패")
         return None
 
     R, _ = cv2.Rodrigues(rvec)
@@ -61,8 +58,8 @@ def estimate_all_poses(images: dict[str, np.ndarray],
                        camera_matrix: np.ndarray,
                        dist_coeffs: np.ndarray) -> dict[str, CameraPose]:
     """
-    images : {view_name: bgr_image}  — provide whatever views are available
-    Returns dict of successfully estimated poses.
+    images : {view_name: bgr_image} — 가용한 뷰만 전달해도 된다.
+    성공적으로 추정된 포즈 dict를 반환한다.
     """
     poses = {}
     for view, img in images.items():
