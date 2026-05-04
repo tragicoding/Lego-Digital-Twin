@@ -15,9 +15,9 @@ import numpy as np
 import os
 
 # 보드 파라미터 (인쇄 크기에 맞게 조정, 단위: 미터)
-SQUARES_X   = 7      # 열 개수
-SQUARES_Y   = 5      # 행 개수
-SQUARE_LEN  = 0.03   # 정사각형 한 변 (30 mm)
+SQUARES_X   = 6      # 열 개수 (정사각형 보드: X == Y)
+SQUARES_Y   = 6      # 행 개수
+SQUARE_LEN  = 0.03   # 정사각형 한 변 (30 mm) → 보드 전체 크기 180mm × 180mm
 MARKER_LEN  = 0.022  # ArUco 마커 한 변 (22 mm)
 
 ARUCO_DICT  = aruco.getPredefinedDictionary(aruco.DICT_4X4_100)
