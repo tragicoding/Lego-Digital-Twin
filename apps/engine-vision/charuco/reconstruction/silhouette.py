@@ -1,13 +1,13 @@
 """
-LEGO silhouette mask extraction.
+레고 실루엣 마스크 추출 모듈.
 
-Strategy
---------
-1. Remove background using HSV-based colour segmentation or GrabCut.
-2. Optionally refine with morphological ops.
-3. Return binary mask (255 = LEGO region).
+방법 선택 기준
+--------------
+background : 배경 기준 이미지(레고 없는 상태)가 있을 때 — 가장 정확
+color      : HSV 범위로 배경 색상을 제거할 때
+grabcut    : 기준 이미지 없을 때 폴백 (정확도 낮음)
 
-For the TOP view, also returns a colour-annotated version used by color_estimator.
+마스크 값: 255 = 레고 영역, 0 = 배경
 """
 
 import cv2
