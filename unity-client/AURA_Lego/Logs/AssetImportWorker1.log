@@ -1,9 +1,9 @@
 [Licensing::Module] Trying to connect to existing licensing client channel...
 Built from '6000.2/staging' branch; Version is '6000.2.2f1 (ea398eefe1c2) revision 15350158'; Using compiler version '194234433'; Build Type 'Release'
-[Licensing::IpcConnector] Successfully connected to: "LicenseClient-ym167" at "2026-05-04T07:30:13.2237342Z"
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-ym167" at "2026-05-04T20:51:39.8154265Z"
 OS: 'Windows 11  (10.0.26200) 64bit Professional' Language: 'ko' Physical Memory: 16243 MB
 BatchMode: 1, IsHumanControllingUs: 0, StartBugReporterOnCrash: 0, Is64bit: 1
-Date: 2026-05-04T07:30:13Z
+Date: 2026-05-04T20:51:39Z
 
 COMMAND LINE ARGUMENTS:
 C:\Program Files\Unity\Hub\Editor\6000.2.2f1\Editor\Unity.exe
@@ -17,7 +17,7 @@ C:/Users/ym167/Documents/GitHub/Lego-Digital-Twin/unity-client/AURA_Lego
 -logFile
 Logs/AssetImportWorker1.log
 -srvPort
-64428
+52661
 -licensingIpc
 LicenseClient-ym167
 -job-worker-count
@@ -65,24 +65,24 @@ C:/Users/ym167/Documents/GitHub/Lego-Digital-Twin/unity-client/AURA_Lego
     "memorysetup-temp-allocator-size-gi-baking-worker=262144"
     "memorysetup-temp-allocator-size-gi-baking-worker=262144"
     "memorysetup-temp-allocator-size-gfx=262144"
-Player connection [22088]  Target information:
+Player connection [41544]  Target information:
 
-Player connection [22088]  * "[IP] 172.30.1.51 [Port] 0 [Flags] 2 [Guid] 896031931 [EditorId] 896031931 [Version] 1048832 [Id] WindowsEditor(7,DESKTOP-M3M7B9U) [Debug] 1 [PackageName] WindowsEditor [ProjectName] Editor" 
+Player connection [41544]  * "[IP] 172.30.1.51 [Port] 0 [Flags] 2 [Guid] 1198903788 [EditorId] 1198903788 [Version] 1048832 [Id] WindowsEditor(7,DESKTOP-M3M7B9U) [Debug] 1 [PackageName] WindowsEditor [ProjectName] Editor" 
 
-Player connection [22088] Host joined multi-casting on [225.0.0.222:54997]...
-Player connection [22088] Host joined alternative multi-casting on [225.0.0.222:34997]...
+Player connection [41544] Host joined multi-casting on [225.0.0.222:54997]...
+Player connection [41544] Host joined alternative multi-casting on [225.0.0.222:34997]...
 JobSystem: Creating JobQueue using job-worker-count value 9
 [Licensing::Client] Code 10 while verifying Licensing Client signature (process Id: 25020, path: "C:/Program Files/Unity Hub/UnityLicensingClient_V1/Unity.Licensing.Client.exe")
 [Licensing::Module] LicensingClient has failed validation; ignoring
 [Licensing::Client] Handshaking with LicensingClient:
   Version:                 1.17.4+4293ba1
-  Session Id:              db187771ee4f4f6c94df405b9c225bca
+  Session Id:              e7e1e778667140f2aea7b0bba8801a98
   Correlation Id:          f6e4c30dd7cc0bb2bdf833244529a3a5
-  External correlation Id: 900941709577156622
+  External correlation Id: 8652846096021101535
   Machine Id:              nKW9zLnA3Cvjb+21/QgkJaxjydA=
-[Licensing::Module] Successfully connected to LicensingClient on channel: "LicenseClient-ym167" (connect: 0.00s, validation: 0.00s, handshake: 0.04s)
-[Licensing::IpcConnector] Successfully connected to: "LicenseClient-ym167-notifications" at "2026-05-04T07:30:13.2644394Z"
-[Licensing::Module] Licensing Background thread has ended after 0.04s
+[Licensing::Module] Successfully connected to LicensingClient on channel: "LicenseClient-ym167" (connect: 0.00s, validation: 0.00s, handshake: 0.03s)
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-ym167-notifications" at "2026-05-04T20:51:39.8466127Z"
+[Licensing::Module] Licensing Background thread has ended after 0.03s
 Input System module state changed to: Initialized.
 [Physics::Module] Initialized fallback backend.
 [Physics::Module] Id: 0xdecafbad
@@ -93,8 +93,8 @@ Library Redirect Path: Library/
 [Physics::Module] SDK Version: 4.1.2
 [Physics::Module] Integration Version: 1.0.0
 [Physics::Module] Threading Mode: Multi-Threaded
-Refreshing native plugins compatible for Editor in 31.49 ms, found 12 plugins.
-Preloading 1 native plugins for Editor in 0.59 ms.
+Refreshing native plugins compatible for Editor in 23.72 ms, found 12 plugins.
+Preloading 1 native plugins for Editor in 0.57 ms.
 Initialize engine version: 6000.2.2f1 (ea398eefe1c2)
 [Subsystems] Discovering subsystems at path C:/Program Files/Unity/Hub/Editor/6000.2.2f1/Editor/Data/Resources/UnitySubsystems
 [Subsystems] Discovering subsystems at path C:/Users/ym167/Documents/GitHub/Lego-Digital-Twin/unity-client/AURA_Lego/Assets
@@ -111,43 +111,43 @@ Initialize mono
 Mono path[0] = 'C:/Program Files/Unity/Hub/Editor/6000.2.2f1/Editor/Data/Managed'
 Mono path[1] = 'C:/Program Files/Unity/Hub/Editor/6000.2.2f1/Editor/Data/MonoBleedingEdge/lib/mono/unityjit-win32'
 Mono config path = 'C:/Program Files/Unity/Hub/Editor/6000.2.2f1/Editor/Data/MonoBleedingEdge/etc'
-Using monoOptions --debugger-agent=transport=dt_socket,embedding=1,server=y,suspend=n,address=127.0.0.1:56872
+Using monoOptions --debugger-agent=transport=dt_socket,embedding=1,server=y,suspend=n,address=127.0.0.1:56444
 Begin MonoManager ReloadAssembly
 Registering precompiled unity dll's ...
 Register platform support module: C:/Program Files/Unity/Hub/Editor/6000.2.2f1/Editor/Data/PlaybackEngines/WindowsStandaloneSupport/UnityEditor.WindowsStandalone.Extensions.dll
-Registered in 0.003391 seconds.
-- Loaded All Assemblies, in  0.399 seconds
+Registered in 0.001685 seconds.
+- Loaded All Assemblies, in  0.309 seconds
 Native extension for WindowsStandalone target not found
 Mono: successfully reloaded assembly
-- Finished resetting the current domain, in  0.285 seconds
-Domain Reload Profiling: 681ms
-	BeginReloadAssembly (174ms)
+- Finished resetting the current domain, in  0.254 seconds
+Domain Reload Profiling: 561ms
+	BeginReloadAssembly (106ms)
 		ExecutionOrderSort (0ms)
 		DisableScriptedObjects (0ms)
 		BackupInstance (0ms)
 		ReleaseScriptingObjects (0ms)
-		CreateAndSetChildDomain (0ms)
-	RebuildCommonClasses (35ms)
-	RebuildNativeTypeToScriptingClass (11ms)
-	initialDomainReloadingComplete (45ms)
-	LoadAllAssembliesAndSetupDomain (131ms)
-		LoadAssemblies (172ms)
+		CreateAndSetChildDomain (1ms)
+	RebuildCommonClasses (29ms)
+	RebuildNativeTypeToScriptingClass (8ms)
+	initialDomainReloadingComplete (38ms)
+	LoadAllAssembliesAndSetupDomain (126ms)
+		LoadAssemblies (104ms)
 		RebuildTransferFunctionScriptingTraits (0ms)
-		AnalyzeDomain (128ms)
-			TypeCache.Refresh (127ms)
-				TypeCache.ScanAssembly (116ms)
+		AnalyzeDomain (123ms)
+			TypeCache.Refresh (122ms)
+				TypeCache.ScanAssembly (111ms)
 			BuildScriptInfoCaches (0ms)
 			ResolveRequiredComponents (0ms)
-	FinalizeReload (285ms)
+	FinalizeReload (254ms)
 		ReleaseScriptCaches (0ms)
 		RebuildScriptCaches (0ms)
-		SetupLoadedEditorAssemblies (245ms)
+		SetupLoadedEditorAssemblies (216ms)
 			LogAssemblyErrors (0ms)
-			InitializePlatformSupportModulesInManaged (47ms)
+			InitializePlatformSupportModulesInManaged (38ms)
 			SetLoadedEditorAssemblies (3ms)
-			BeforeProcessingInitializeOnLoad (53ms)
-			ProcessInitializeOnLoadAttributes (100ms)
-			ProcessInitializeOnLoadMethodAttributes (41ms)
+			BeforeProcessingInitializeOnLoad (47ms)
+			ProcessInitializeOnLoadAttributes (91ms)
+			ProcessInitializeOnLoadMethodAttributes (38ms)
 			AfterProcessingInitializeOnLoad (0ms)
 			EditorAssembliesLoaded (0ms)
 		ExecutionOrderSort2 (0ms)
@@ -163,14 +163,14 @@ Begin MonoManager ReloadAssembly
   Type: Assigned
   Expiration: Unlimited
 Symbol file LoadedFromMemory is not a mono symbol file
-- Loaded All Assemblies, in  1.129 seconds
-Refreshing native plugins compatible for Editor in 42.49 ms, found 12 plugins.
+- Loaded All Assemblies, in  0.850 seconds
+Refreshing native plugins compatible for Editor in 18.42 ms, found 12 plugins.
 Native extension for WindowsStandalone target not found
 Package Manager log level set to [2]
 [Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
 [Package Manager] Unable to send message (not connected to server process).
 [Package Manager] Cannot connect to Unity Package Manager local server
-Refreshing native plugins compatible for Editor in 19.26 ms, found 12 plugins.
+Refreshing native plugins compatible for Editor in 16.84 ms, found 12 plugins.
 [Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
 [Package Manager] Unable to send message (not connected to server process).
 [Package Manager] Cannot connect to Unity Package Manager local server
@@ -213,39 +213,39 @@ Mono: successfully reloaded assembly
 [Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
 [Package Manager] Unable to send message (not connected to server process).
 [Package Manager] Cannot connect to Unity Package Manager local server
-- Finished resetting the current domain, in  0.968 seconds
-Domain Reload Profiling: 2087ms
-	BeginReloadAssembly (174ms)
+- Finished resetting the current domain, in  0.864 seconds
+Domain Reload Profiling: 1707ms
+	BeginReloadAssembly (145ms)
 		ExecutionOrderSort (0ms)
-		DisableScriptedObjects (6ms)
+		DisableScriptedObjects (5ms)
 		BackupInstance (0ms)
 		ReleaseScriptingObjects (0ms)
-		CreateAndSetChildDomain (27ms)
-	RebuildCommonClasses (35ms)
-	RebuildNativeTypeToScriptingClass (10ms)
-	initialDomainReloadingComplete (42ms)
-	LoadAllAssembliesAndSetupDomain (858ms)
-		LoadAssemblies (625ms)
+		CreateAndSetChildDomain (23ms)
+	RebuildCommonClasses (28ms)
+	RebuildNativeTypeToScriptingClass (9ms)
+	initialDomainReloadingComplete (33ms)
+	LoadAllAssembliesAndSetupDomain (628ms)
+		LoadAssemblies (417ms)
 		RebuildTransferFunctionScriptingTraits (0ms)
-		AnalyzeDomain (334ms)
-			TypeCache.Refresh (238ms)
-				TypeCache.ScanAssembly (216ms)
-			BuildScriptInfoCaches (81ms)
-			ResolveRequiredComponents (11ms)
-	FinalizeReload (968ms)
+		AnalyzeDomain (291ms)
+			TypeCache.Refresh (194ms)
+				TypeCache.ScanAssembly (174ms)
+			BuildScriptInfoCaches (85ms)
+			ResolveRequiredComponents (9ms)
+	FinalizeReload (864ms)
 		ReleaseScriptCaches (0ms)
 		RebuildScriptCaches (0ms)
-		SetupLoadedEditorAssemblies (767ms)
+		SetupLoadedEditorAssemblies (705ms)
 			LogAssemblyErrors (0ms)
 			InitializePlatformSupportModulesInManaged (2ms)
 			SetLoadedEditorAssemblies (5ms)
-			BeforeProcessingInitializeOnLoad (145ms)
-			ProcessInitializeOnLoadAttributes (349ms)
-			ProcessInitializeOnLoadMethodAttributes (260ms)
+			BeforeProcessingInitializeOnLoad (133ms)
+			ProcessInitializeOnLoadAttributes (315ms)
+			ProcessInitializeOnLoadMethodAttributes (244ms)
 			AfterProcessingInitializeOnLoad (5ms)
 			EditorAssembliesLoaded (0ms)
 		ExecutionOrderSort2 (0ms)
-		AwakeInstancesAfterBackupRestoration (6ms)
+		AwakeInstancesAfterBackupRestoration (5ms)
 WARNING: Shader Unsupported: 'Hidden/Simulation/URP/Synthetic' - All subshaders removed
 WARNING: Shader Did you use #pragma only_renderers and omit this platform?
 WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
@@ -282,269 +282,19 @@ WARNING: Shader If subshaders removal was intentional, you may have forgotten tu
 WARNING: Shader Unsupported: 'Simulation/URP/Lit' - All subshaders removed
 WARNING: Shader Did you use #pragma only_renderers and omit this platform?
 WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-Launched and connected shader compiler UnityShaderCompiler.exe after 0.04 seconds
-Refreshing native plugins compatible for Editor in 21.56 ms, found 12 plugins.
-Preloading 1 native plugins for Editor in 0.08 ms.
+Launched and connected shader compiler UnityShaderCompiler.exe after 0.03 seconds
+Refreshing native plugins compatible for Editor in 20.74 ms, found 12 plugins.
+Preloading 1 native plugins for Editor in 0.09 ms.
 Unloading 23 Unused Serialized files (Serialized files now loaded: 0)
-Unloading 8641 unused Assets / (7.9 MB). Loaded Objects now: 9299.
-Memory consumption went from 176.5 MB to 168.6 MB.
-Total: 11.803000 ms (FindLiveObjects: 0.662400 ms CreateObjectMapping: 0.586700 ms MarkObjects: 7.011100 ms  DeleteObjects: 3.541800 ms)
+Unloading 8641 unused Assets / (7.8 MB). Loaded Objects now: 9313.
+Memory consumption went from 176.2 MB to 168.4 MB.
+Total: 15.721200 ms (FindLiveObjects: 0.934300 ms CreateObjectMapping: 0.683600 ms MarkObjects: 9.729400 ms  DeleteObjects: 4.372200 ms)
 
 ========================================================================
 Received Import Request.
-  Time since last request: 65356.371971 seconds.
-  path: Assets/Materials/Materials/glass4.mat
-  artifactKey: Guid(a6d85b0e4ea2c134a81b4ae48d680747) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/Materials/Materials/glass4.mat using Guid(a6d85b0e4ea2c134a81b4ae48d680747) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'd6b1484aa5568175a48fed45e513753d') in 0.3728962 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+  Time since last request: 113441.191053 seconds.
+  path: Assets/External Assets/mecabricks/LEGOLAND® Park_cup 1.fbx
+  artifactKey: Guid(1d7c8c00085c7424cabfdc543cbf4d61) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/External Assets/mecabricks/LEGOLAND® Park_cup 1.fbx using Guid(1d7c8c00085c7424cabfdc543cbf4d61) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '4e126ec1508eebbc4e6a1b3f0a1808d5') in 1.8358152 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 730
 
-========================================================================
-Received Prepare
-Begin MonoManager ReloadAssembly
-[Licensing::Client] Successfully resolved entitlement details
-Symbol file LoadedFromMemory is not a mono symbol file
-- Loaded All Assemblies, in  2.271 seconds
-Refreshing native plugins compatible for Editor in 20.09 ms, found 12 plugins.
-Native extension for WindowsStandalone target not found
-[Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
-[Package Manager] Unable to send message (not connected to server process).
-[Package Manager] Cannot connect to Unity Package Manager local server
-[Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
-[Package Manager] Unable to send message (not connected to server process).
-[Package Manager] Cannot connect to Unity Package Manager local server
-[Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
-[Package Manager] Unable to send message (not connected to server process).
-[Package Manager] Cannot connect to Unity Package Manager local server
-[MODES] ModeService[none].Initialize
-[MODES] ModeService[none].LoadModes
-[Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
-[Package Manager] Unable to send message (not connected to server process).
-[Package Manager] Cannot connect to Unity Package Manager local server
-AssertionException: Error removing KTX for Unity WebGL sub-packages.. Failed fetching installed packages.
-Assertion failure. Values are not equal.
-Expected: Failure == Success
-  at UnityEngine.Assertions.Assert.Fail (System.String message, System.String userMessage) [0x00043] in <b4c8c45fec274213bfac03ee0e9a3d62>:0 
-  at UnityEngine.Assertions.Assert.AreEqual[T] (T expected, T actual, System.String message, System.Collections.Generic.IEqualityComparer`1[T] comparer) [0x0005f] in <b4c8c45fec274213bfac03ee0e9a3d62>:0 
-  at UnityEngine.Assertions.Assert.AreEqual[T] (T expected, T actual, System.String message) [0x00009] in <b4c8c45fec274213bfac03ee0e9a3d62>:0 
-  at SubPackage.SubPackageRemover.GetAllInstalledPackagesAsync (System.Double timeout) [0x000b7] in .\Library\PackageCache\com.unity.cloud.ktx@7a35f681840e\Editor\Scripts\SubPackage\SubPackageRemover.cs:81 
-  at SubPackage.SubPackageRemover.TryRemoveObsoleteSubPackagesAsync () [0x0002a] in .\Library\PackageCache\com.unity.cloud.ktx@7a35f681840e\Editor\Scripts\SubPackage\SubPackageRemover.cs:35 
-UnityEngine.DebugLogHandler:Internal_LogException_Injected(Exception, IntPtr)
-UnityEngine.DebugLogHandler:Internal_LogException(Exception, Object)
-UnityEngine.DebugLogHandler:LogException(Exception, Object)
-UnityEngine.Logger:LogException(Exception, Object)
-UnityEngine.Debug:LogException(Exception)
-SubPackage.<TryRemoveObsoleteSubPackagesAsync>d__5:MoveNext() (at .\Library\PackageCache\com.unity.cloud.ktx@7a35f681840e\Editor\Scripts\SubPackage\SubPackageRemover.cs:52)
-System.Runtime.CompilerServices.AsyncVoidMethodBuilder:Start(<TryRemoveObsoleteSubPackagesAsync>d__5&)
-SubPackage.SubPackageRemover:TryRemoveObsoleteSubPackagesAsync()
-System.Reflection.RuntimeMethodInfo:InternalInvoke(RuntimeMethodInfo, Object, Object[], Exception&)
-System.Reflection.RuntimeMethodInfo:Invoke(Object, BindingFlags, Binder, Object[], CultureInfo)
-System.Reflection.MethodBase:Invoke(Object, Object[])
-UnityEditor.EditorAssemblies:ProcessInitializeOnLoadMethodAttributes()
-
-(Filename: ./Library/PackageCache/com.unity.cloud.ktx@7a35f681840e/Editor/Scripts/SubPackage/SubPackageRemover.cs Line: 52)
-
-Mono: successfully reloaded assembly
-[Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
-[Package Manager] Unable to send message (not connected to server process).
-[Package Manager] Cannot connect to Unity Package Manager local server
-- Finished resetting the current domain, in  1.075 seconds
-Domain Reload Profiling: 3352ms
-	BeginReloadAssembly (1088ms)
-		ExecutionOrderSort (1ms)
-		DisableScriptedObjects (189ms)
-		BackupInstance (0ms)
-		ReleaseScriptingObjects (1ms)
-		CreateAndSetChildDomain (347ms)
-	RebuildCommonClasses (36ms)
-	RebuildNativeTypeToScriptingClass (10ms)
-	initialDomainReloadingComplete (41ms)
-	LoadAllAssembliesAndSetupDomain (1101ms)
-		LoadAssemblies (868ms)
-		RebuildTransferFunctionScriptingTraits (0ms)
-		AnalyzeDomain (391ms)
-			TypeCache.Refresh (28ms)
-				TypeCache.ScanAssembly (0ms)
-			BuildScriptInfoCaches (339ms)
-			ResolveRequiredComponents (14ms)
-	FinalizeReload (1076ms)
-		ReleaseScriptCaches (0ms)
-		RebuildScriptCaches (0ms)
-		SetupLoadedEditorAssemblies (892ms)
-			LogAssemblyErrors (0ms)
-			InitializePlatformSupportModulesInManaged (2ms)
-			SetLoadedEditorAssemblies (5ms)
-			BeforeProcessingInitializeOnLoad (153ms)
-			ProcessInitializeOnLoadAttributes (448ms)
-			ProcessInitializeOnLoadMethodAttributes (277ms)
-			AfterProcessingInitializeOnLoad (5ms)
-			EditorAssembliesLoaded (1ms)
-		ExecutionOrderSort2 (0ms)
-		AwakeInstancesAfterBackupRestoration (14ms)
-WARNING: Shader Unsupported: 'Hidden/Simulation/URP/Synthetic' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Hidden/Simulation/URP/Synthetic' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Simulation/Standard Lit' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Simulation/Standard Lit' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Hidden/Simulation/Synthetic Lit' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Hidden/Simulation/Synthetic Lit' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Simulation/URP/Room X-Ray' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Simulation/URP/Room X-Ray' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Simulation/Room X-Ray' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Simulation/Room X-Ray' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Simulation/URP/Lit' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Simulation/URP/Lit' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-Refreshing native plugins compatible for Editor in 20.96 ms, found 12 plugins.
-Preloading 1 native plugins for Editor in 0.11 ms.
-Unloading 37 Unused Serialized files (Serialized files now loaded: 0)
-Unloading 8654 unused Assets / (7.9 MB). Loaded Objects now: 9381.
-Memory consumption went from 221.6 MB to 213.7 MB.
-Total: 16.166900 ms (FindLiveObjects: 0.845800 ms CreateObjectMapping: 0.844400 ms MarkObjects: 10.603500 ms  DeleteObjects: 3.870800 ms)
-
-Prepare: number of updated asset objects reloaded= 0
-========================================================================
-Received Import Request.
-  Time since last request: 3569.755623 seconds.
-  path: Assets/External Assets/mecabricks/flower/box2.prefab
-  artifactKey: Guid(12bbc81dbdfdbdc499e41284ab1241be) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/External Assets/mecabricks/flower/box2.prefab using Guid(12bbc81dbdfdbdc499e41284ab1241be) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '78ac9220bfca3ed75b1bf68c38cd18ee') in 0.4814387 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 4418
-
-========================================================================
-Received Import Request.
-  Time since last request: 1673.865676 seconds.
-  path: Assets/Materials/LegoZone/Lego_Yellow.mat
-  artifactKey: Guid(f445208623040824cbd8aada91c623e4) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/Materials/LegoZone/Lego_Yellow.mat using Guid(f445208623040824cbd8aada91c623e4) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '12b05b6e5d8cf1637a4ffc37de0c5311') in 0.1578639 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
-
-========================================================================
-Received Import Request.
-  Time since last request: 44.940729 seconds.
-  path: Assets/Materials/LegoZone/Rego_Green.mat
-  artifactKey: Guid(a831ce0075aaedc49aa877e445471ae5) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/Materials/LegoZone/Rego_Green.mat using Guid(a831ce0075aaedc49aa877e445471ae5) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '7d476193f070a0fe0c44f09a99aacec8') in 0.0233735 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
-
-========================================================================
-Received Import Request.
-  Time since last request: 250.200267 seconds.
-  path: Assets/External Assets/mecabricks/Ferris Wheel 1.fbx
-  artifactKey: Guid(6146beebd5fb93348bbbd77ac8ba4475) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/External Assets/mecabricks/Ferris Wheel 1.fbx using Guid(6146beebd5fb93348bbbd77ac8ba4475) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'a7cda3f586837b605d3fdd091de71c31') in 14.6870672 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 10585
-
-========================================================================
-Received Import Request.
-  Time since last request: 1518.005345 seconds.
-  path: Assets/External Assets/mecabricks/Hogwarts builds2.fbx
-  artifactKey: Guid(501804f53bef9a74096ff55393ede196) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/External Assets/mecabricks/Hogwarts builds2.fbx using Guid(501804f53bef9a74096ff55393ede196) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '6130bd5f245246c4fa5c748490db579b') in 0.7635133 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 270
-
-========================================================================
-Received Import Request.
-  Time since last request: 0.000181 seconds.
-  path: Assets/External Assets/mecabricks/Hogwarts builds4.fbx
-  artifactKey: Guid(fe72a02eb7ac56e4fa6e416090cdbcbc) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/External Assets/mecabricks/Hogwarts builds4.fbx using Guid(fe72a02eb7ac56e4fa6e416090cdbcbc) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '737730e0287e149a5ac798dad0d7bce5') in 0.6107267 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 260
-
-========================================================================
-Received Import Request.
-  Time since last request: 0.000056 seconds.
-  path: Assets/External Assets/mecabricks/Hogwarts builds8.fbx
-  artifactKey: Guid(505548b1c85797e45bf50642de3e4aa8) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/External Assets/mecabricks/Hogwarts builds8.fbx using Guid(505548b1c85797e45bf50642de3e4aa8) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '13487b6edde0fa753158e589c5fa0052') in 0.6812506 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 258
-
-========================================================================
-Received Import Request.
-  Time since last request: 0.000049 seconds.
-  path: Assets/External Assets/mecabricks/Hogwarts builds5.fbx
-  artifactKey: Guid(3b29ebf6056405a4b975185a9f6b39b3) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/External Assets/mecabricks/Hogwarts builds5.fbx using Guid(3b29ebf6056405a4b975185a9f6b39b3) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '577b868bde053004c5764a24dd140b0a') in 0.8288667 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 280
-
-========================================================================
-Received Import Request.
-  Time since last request: 3017.458989 seconds.
-  path: Assets/Materials/Store/Brown2.mat
-  artifactKey: Guid(6929d4b68b826cd4f943416c6680bf11) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/Materials/Store/Brown2.mat using Guid(6929d4b68b826cd4f943416c6680bf11) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '1e7c492682688a4a26f00c5aed544465') in 0.0761834 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
-
-========================================================================
-Received Import Request.
-  Time since last request: 15383.558656 seconds.
-  path: Assets/External Assets/ISAKUPOLY/Stylized Nature Pack/Prefabs/Mushrooms/Mushroom 02.prefab
-  artifactKey: Guid(e9011daa772092c4c801d259df6b2c40) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/External Assets/ISAKUPOLY/Stylized Nature Pack/Prefabs/Mushrooms/Mushroom 02.prefab using Guid(e9011daa772092c4c801d259df6b2c40) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '1c79aaa819beb9ffa5338ff255ac7174') in 0.1979562 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 614
-
-========================================================================
-Received Import Request.
-  Time since last request: 0.000132 seconds.
-  path: Assets/External Assets/ISAKUPOLY/Stylized Nature Pack/Prefabs/Mushrooms/Mushroom 04.prefab
-  artifactKey: Guid(5ab605d7ea4864c479d70aab38ab0be8) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/External Assets/ISAKUPOLY/Stylized Nature Pack/Prefabs/Mushrooms/Mushroom 04.prefab using Guid(5ab605d7ea4864c479d70aab38ab0be8) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'e806f7024cfb2e0401ca3de84619bbd3') in 0.0291778 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 614
-
-========================================================================
-Received Import Request.
-  Time since last request: 3.029685 seconds.
-  path: Assets/External Assets/ISAKUPOLY/Stylized Nature Pack/Prefabs/Rocks/Rock 02.prefab
-  artifactKey: Guid(174d3ffdb0f0c6f488b6e53c9d95f670) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/External Assets/ISAKUPOLY/Stylized Nature Pack/Prefabs/Rocks/Rock 02.prefab using Guid(174d3ffdb0f0c6f488b6e53c9d95f670) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'b06c0ed4c7510a9773dd4168bd87d0e9') in 0.0327064 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 614
-
-========================================================================
-Received Import Request.
-  Time since last request: 0.000043 seconds.
-  path: Assets/External Assets/ISAKUPOLY/Stylized Nature Pack/Prefabs/Rocks/Rock 06.prefab
-  artifactKey: Guid(354f681ee3443534aaf705195bd95cee) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/External Assets/ISAKUPOLY/Stylized Nature Pack/Prefabs/Rocks/Rock 06.prefab using Guid(354f681ee3443534aaf705195bd95cee) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '40a1498c5fd24cb8ad8cf8f30609d8ac') in 0.0286453 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 614
-
-========================================================================
-Received Import Request.
-  Time since last request: 0.000037 seconds.
-  path: Assets/External Assets/ISAKUPOLY/Stylized Nature Pack/Prefabs/Rocks/Rock 03.prefab
-  artifactKey: Guid(64ecf7e7b3a2d1e47b390a9cd9508ca7) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/External Assets/ISAKUPOLY/Stylized Nature Pack/Prefabs/Rocks/Rock 03.prefab using Guid(64ecf7e7b3a2d1e47b390a9cd9508ca7) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'be1d13b9546754665b05e80de6e4468b') in 0.0263517 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 614
-
-========================================================================
-Received Import Request.
-  Time since last request: 0.000021 seconds.
-  path: Assets/External Assets/ISAKUPOLY/Stylized Nature Pack/Prefabs/Rocks/Rock 05.prefab
-  artifactKey: Guid(931de6691ea8d8747994fed509c1557a) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/External Assets/ISAKUPOLY/Stylized Nature Pack/Prefabs/Rocks/Rock 05.prefab using Guid(931de6691ea8d8747994fed509c1557a) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'febc2a5760384434fcb6adeeba9e19d0') in 0.0286747 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 614
-
-Editor requested this worker to shutdown with reason: Scaling down because of idle timeout
-AssetImportWorker is now disconnected from the server
-Process exiting
-Exiting without the bug reporter. Application will terminate with return code 0
