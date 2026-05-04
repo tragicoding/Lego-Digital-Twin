@@ -4,11 +4,60 @@ import subprocess
 import glob
 import shutil
 import sys
+import numpy as np
+from pathlib import Path
 from PIL import Image
 from watchdog.observers.polling import PollingObserver as Observer
 from watchdog.events import FileSystemEventHandler
 
-PYTHON = sys.executable  # auto_pipeline.py를 실행한 conda 환경의 python 경로
+PYTHON      = sys.executable
+BASE_DIR    = Path(__file__).parent
+WEIGHTS_PATH = BASE_DIR / "weights/RealESRGAN_x4plus.pth"
+
+
+# ── Real-ESRGAN 업스케일 ───────────────────────────────────────────────────────
+
+def _upscale_scene_images(scene_dir: str):
+    """Wonder3D가 뽑은 256×256 6장 이미지를 Real-ESRGAN으로 1024×1024로 업스케일."""
+    from basicsr.archs.rrdbnet_arch import RRDBNet
+    from realesrgan import RealESRGANer
+
+    model = RRDBNet(num_in_ch=3, num_out_ch=3, num_feat=64,
+                    num_block=23, num_grow_ch=32, scale=4)
+    upsampler = RealESRGANer(
+        scale=4,
+        model_path=str(WEIGHTS_PATH),
+        model=model,
+        tile=0,
+        tile_pad=10,
+        pre_pad=0,
+        half=True,
+    )
+
+    targets = [f for f in os.listdir(scene_dir)
+               if (f.startswith("rgb_000_") or f.startswith("normals_000_"))
+               and f.endswith(".png")]
+
+    print(f"[ESRGAN] {len(targets)}장 업스케일 중 (256→1024)...")
+    for fname in targets:
+        fpath = os.path.join(scene_dir, fname)
+        img   = Image.open(fpath).convert("RGBA")
+        rgb   = np.array(img.convert("RGB"))
+        alpha = np.array(img.split()[3])
+
+        out_rgb, _ = upsampler.enhance(rgb, outscale=4)
+
+        alpha_up = np.array(
+            Image.fromarray(alpha).resize((out_rgb.shape[1], out_rgb.shape[0]),
+                                          Image.LANCZOS)
+        )
+        out_rgba = np.dstack([out_rgb, alpha_up]).astype(np.uint8)
+        Image.fromarray(out_rgba).save(fpath)
+
+    print(f"[ESRGAN] 업스케일 완료 → 각 이미지 1024×1024")
+    # GPU 캐시 해제
+    import torch
+    torch.cuda.empty_cache()
 
 class LegoImageHandler(FileSystemEventHandler):
     def __init__(self):
@@ -95,6 +144,12 @@ class LegoImageHandler(FileSystemEventHandler):
                         
             print("[*] 투명도(Alpha) 및 폴더 구조 완벽 동기화 완료!")
             # ========================================================
+
+            # ========================================================
+            # [STEP 1.5] Real-ESRGAN: 멀티뷰 이미지 256→1024 업스케일
+            # ========================================================
+            print("\n>>> [STEP 1.5] Real-ESRGAN 텍스처 업스케일 (256×256 → 1024×1024)")
+            _upscale_scene_images(latest_scene)
 
             # 2. 3D 재구성 엔진 실행
             recon_cmd = (
