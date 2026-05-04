@@ -5,16 +5,18 @@ import glob
 import shutil
 import sys
 import json
+import numpy as np
 from datetime import datetime
 from pathlib import Path
 from PIL import Image
 from watchdog.observers.polling import PollingObserver as Observer
 from watchdog.events import FileSystemEventHandler
 
-PYTHON      = sys.executable
-BASE_DIR    = Path(__file__).parent
-LOG_FILE    = BASE_DIR / "benchmark_log.json"
-CONFIG_PATH = BASE_DIR / "instant-nsr-pl/configs/neuralangelo-ortho-wmask.yaml"
+PYTHON       = sys.executable
+BASE_DIR     = Path(__file__).parent
+LOG_FILE     = BASE_DIR / "benchmark_log.json"
+CONFIG_PATH  = BASE_DIR / "instant-nsr-pl/configs/neuralangelo-ortho-wmask.yaml"
+WEIGHTS_PATH = BASE_DIR / "weights/RealESRGAN_x4plus.pth"
 
 
 # ── 벤치마크 유틸 ──────────────────────────────────────────────────────────────
@@ -42,27 +44,22 @@ def _read_config_params() -> dict:
         geo = cfg["model"]["geometry"]
         enc = geo["xyz_encoding_config"]
         return {
-            # 메쉬 해상도
-            "resolution":            geo["isosurface"]["resolution"],
-            # 해시그리드
-            "n_levels":              enc["n_levels"],
-            "n_features_per_level":  enc["n_features_per_level"],
-            "hashmap_size":          enc["log2_hashmap_size"],
-            "base_resolution":       enc["base_resolution"],
-            # 배치 / 샘플링
-            "train_num_rays":        cfg["model"]["train_num_rays"],
-            "max_train_num_rays":    cfg["model"]["max_train_num_rays"],
-            "num_samples_per_ray":   cfg["model"]["num_samples_per_ray"],
-            "ray_chunk":             cfg["model"]["ray_chunk"],
-            # 학습
-            "max_steps":             cfg["trainer"]["max_steps"],
-            "precision":             cfg["trainer"]["precision"],
-            "lr_geometry":           cfg["system"]["optimizer"]["params"]["geometry"]["lr"],
-            "lr_texture":            cfg["system"]["optimizer"]["params"]["texture"]["lr"],
-            # MLP
-            "mlp_neurons":           geo["mlp_network_config"]["n_neurons"],
-            "mlp_hidden_layers":     geo["mlp_network_config"]["n_hidden_layers"],
-            "note":                  "auto_pipeline",
+            "resolution":           geo["isosurface"]["resolution"],
+            "n_levels":             enc["n_levels"],
+            "n_features_per_level": enc["n_features_per_level"],
+            "hashmap_size":         enc["log2_hashmap_size"],
+            "base_resolution":      enc["base_resolution"],
+            "train_num_rays":       cfg["model"]["train_num_rays"],
+            "max_train_num_rays":   cfg["model"]["max_train_num_rays"],
+            "num_samples_per_ray":  cfg["model"]["num_samples_per_ray"],
+            "ray_chunk":            cfg["model"]["ray_chunk"],
+            "max_steps":            cfg["trainer"]["max_steps"],
+            "precision":            cfg["trainer"]["precision"],
+            "lr_geometry":          cfg["system"]["optimizer"]["params"]["geometry"]["lr"],
+            "lr_texture":           cfg["system"]["optimizer"]["params"]["texture"]["lr"],
+            "mlp_neurons":          geo["mlp_network_config"]["n_neurons"],
+            "mlp_hidden_layers":    geo["mlp_network_config"]["n_hidden_layers"],
+            "note":                 "auto_pipeline",
         }
     except Exception:
         return {"note": "auto_pipeline"}
@@ -100,6 +97,50 @@ def _refresh_dashboard():
     if dashboard_script.exists():
         subprocess.run([PYTHON, str(dashboard_script)], capture_output=True)
         print(f"[BENCHMARK] 대시보드 갱신 완료 → benchmark_dashboard.html")
+
+
+# ── Real-ESRGAN 업스케일 ───────────────────────────────────────────────────────
+
+def _upscale_scene_images(scene_dir: str):
+    """Wonder3D가 뽑은 256×256 6장 이미지를 Real-ESRGAN으로 1024×1024로 업스케일."""
+    from basicsr.archs.rrdbnet_arch import RRDBNet
+    from realesrgan import RealESRGANer
+
+    model = RRDBNet(num_in_ch=3, num_out_ch=3, num_feat=64,
+                    num_block=23, num_grow_ch=32, scale=4)
+    upsampler = RealESRGANer(
+        scale=4,
+        model_path=str(WEIGHTS_PATH),
+        model=model,
+        tile=0,
+        tile_pad=10,
+        pre_pad=0,
+        half=True,
+    )
+
+    targets = [f for f in os.listdir(scene_dir)
+               if (f.startswith("rgb_000_") or f.startswith("normals_000_"))
+               and f.endswith(".png")]
+
+    print(f"[ESRGAN] {len(targets)}장 업스케일 중 (256→1024)...")
+    for fname in targets:
+        fpath = os.path.join(scene_dir, fname)
+        img   = Image.open(fpath).convert("RGBA")
+        rgb   = np.array(img.convert("RGB"))
+        alpha = np.array(img.split()[3])
+
+        out_rgb, _ = upsampler.enhance(rgb, outscale=4)
+
+        alpha_up = np.array(
+            Image.fromarray(alpha).resize((out_rgb.shape[1], out_rgb.shape[0]),
+                                          Image.LANCZOS)
+        )
+        out_rgba = np.dstack([out_rgb, alpha_up]).astype(np.uint8)
+        Image.fromarray(out_rgba).save(fpath)
+
+    print(f"[ESRGAN] 업스케일 완료 → 각 이미지 1024×1024")
+    import torch
+    torch.cuda.empty_cache()
 
 
 # ── 파이프라인 ─────────────────────────────────────────────────────────────────
@@ -188,6 +229,12 @@ class LegoImageHandler(FileSystemEventHandler):
             print("[*] 투명도(Alpha) 및 폴더 구조 완벽 동기화 완료!")
             # ──────────────────────────────────────────────────────────────
 
+            # ================================================================
+            # [STEP 1.5] Real-ESRGAN: 멀티뷰 이미지 256→1024 업스케일
+            # ================================================================
+            print("\n>>> [STEP 1.5] Real-ESRGAN 텍스처 업스케일 (256×256 → 1024×1024)")
+            _upscale_scene_images(latest_scene)
+
             recon_cmd = (
                 f"cd instant-nsr-pl && "
                 f"{PYTHON} launch.py --config configs/neuralangelo-ortho-wmask.yaml --gpu 0 "
@@ -208,9 +255,10 @@ class LegoImageHandler(FileSystemEventHandler):
             total_elapsed = time.time() - total_start
             print("\n" + "="*50)
             print(f" [SUCCESS] 디지털 트윈 자동화 파이프라인 관통 완료!")
-            print(f" - STEP 1 (멀티뷰 생성) : {step1_elapsed:.1f}초")
-            print(f" - STEP 2 (3D 재구성)   : {step2_elapsed:.1f}초")
-            print(f" - 총 소요 시간         : {total_elapsed:.1f}초 ({total_elapsed/60:.1f}분)")
+            print(f" - STEP 1   (멀티뷰 생성)  : {step1_elapsed:.1f}초")
+            print(f" - STEP 1.5 (ESRGAN 업스케일): 포함")
+            print(f" - STEP 2   (3D 재구성)    : {step2_elapsed:.1f}초")
+            print(f" - 총 소요 시간            : {total_elapsed:.1f}초 ({total_elapsed/60:.1f}분)")
             print(f" - 최종 3D 파일 : instant-nsr-pl/exp/{scene_name}/.../save/ 내의 .obj 파일")
             print("="*50 + "\n")
 
@@ -223,19 +271,19 @@ class LegoImageHandler(FileSystemEventHandler):
             mesh = _mesh_stats(scene_name) if scene_name else {}
 
             record = {
-                "timestamp":      datetime.now().isoformat(timespec="seconds"),
-                "scene":          scene_name or "unknown",
-                "input_image":    image_path,
-                "params":         params,
-                "elapsed_sec":    round(total_elapsed, 1),
-                "elapsed_min":    round(total_elapsed / 60, 2),
-                "step1_sec":      round(step1_elapsed, 1),
-                "step2_sec":      round(step2_elapsed, 1),
-                "success":        success,
-                "mesh":           {k: v for k, v in mesh.items() if k != "obj_path"},
-                "obj_path":       mesh.get("obj_path"),
-                "gpu_before":     gpu_before,
-                "gpu_after":      gpu_after,
+                "timestamp":   datetime.now().isoformat(timespec="seconds"),
+                "scene":       scene_name or "unknown",
+                "input_image": image_path,
+                "params":      params,
+                "elapsed_sec": round(total_elapsed, 1),
+                "elapsed_min": round(total_elapsed / 60, 2),
+                "step1_sec":   round(step1_elapsed, 1),
+                "step2_sec":   round(step2_elapsed, 1),
+                "success":     success,
+                "mesh":        {k: v for k, v in mesh.items() if k != "obj_path"},
+                "obj_path":    mesh.get("obj_path"),
+                "gpu_before":  gpu_before,
+                "gpu_after":   gpu_after,
             }
             _save_record(record)
             _refresh_dashboard()
