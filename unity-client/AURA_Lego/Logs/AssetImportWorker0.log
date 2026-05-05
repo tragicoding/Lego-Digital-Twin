@@ -1,9 +1,9 @@
 [Licensing::Module] Trying to connect to existing licensing client channel...
 Built from '6000.2/staging' branch; Version is '6000.2.2f1 (ea398eefe1c2) revision 15350158'; Using compiler version '194234433'; Build Type 'Release'
-[Licensing::IpcConnector] Successfully connected to: "LicenseClient-ym167" at "2026-04-28T16:59:37.0284294Z"
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-ym167" at "2026-05-05T11:54:27.4418446Z"
 OS: 'Windows 11  (10.0.26200) 64bit Professional' Language: 'ko' Physical Memory: 16243 MB
 BatchMode: 1, IsHumanControllingUs: 0, StartBugReporterOnCrash: 0, Is64bit: 1
-Date: 2026-04-28T16:59:37Z
+Date: 2026-05-05T11:54:27Z
 
 COMMAND LINE ARGUMENTS:
 C:\Program Files\Unity\Hub\Editor\6000.2.2f1\Editor\Unity.exe
@@ -17,7 +17,7 @@ C:/Users/ym167/Documents/GitHub/Lego-Digital-Twin/unity-client/AURA_Lego
 -logFile
 Logs/AssetImportWorker0.log
 -srvPort
-60110
+55474
 -licensingIpc
 LicenseClient-ym167
 -job-worker-count
@@ -65,24 +65,24 @@ C:/Users/ym167/Documents/GitHub/Lego-Digital-Twin/unity-client/AURA_Lego
     "memorysetup-temp-allocator-size-gi-baking-worker=262144"
     "memorysetup-temp-allocator-size-gi-baking-worker=262144"
     "memorysetup-temp-allocator-size-gfx=262144"
-Player connection [14108]  Target information:
+Player connection [29700]  Target information:
 
-Player connection [14108]  * "[IP] 172.30.1.75 [Port] 0 [Flags] 2 [Guid] 3295138400 [EditorId] 3295138400 [Version] 1048832 [Id] WindowsEditor(7,DESKTOP-M3M7B9U) [Debug] 1 [PackageName] WindowsEditor [ProjectName] Editor" 
+Player connection [29700]  * "[IP] 172.30.1.5 [Port] 0 [Flags] 2 [Guid] 1330218710 [EditorId] 1330218710 [Version] 1048832 [Id] WindowsEditor(7,DESKTOP-M3M7B9U) [Debug] 1 [PackageName] WindowsEditor [ProjectName] Editor" 
 
-Player connection [14108] Host joined multi-casting on [225.0.0.222:54997]...
-Player connection [14108] Host joined alternative multi-casting on [225.0.0.222:34997]...
+Player connection [29700] Host joined multi-casting on [225.0.0.222:54997]...
+Player connection [29700] Host joined alternative multi-casting on [225.0.0.222:34997]...
 JobSystem: Creating JobQueue using job-worker-count value 9
-[Licensing::Client] Code 10 while verifying Licensing Client signature (process Id: 10552, path: "C:/Program Files/Unity Hub/UnityLicensingClient_V1/Unity.Licensing.Client.exe")
+[Licensing::Client] Code 10 while verifying Licensing Client signature (process Id: 7520, path: "C:/Program Files/Unity Hub/UnityLicensingClient_V1/Unity.Licensing.Client.exe")
 [Licensing::Module] LicensingClient has failed validation; ignoring
 [Licensing::Client] Handshaking with LicensingClient:
   Version:                 1.17.4+4293ba1
-  Session Id:              36e5ca89d7da4701bd5814c15b404035
-  Correlation Id:          06a57228bae7425bae7022b07bb397c6
-  External correlation Id: 11383496468174340
-  Machine Id:              TOSAfLkeOvWc4WC2peGNR4hxloo=
-[Licensing::Module] Successfully connected to LicensingClient on channel: "LicenseClient-ym167" (connect: 0.00s, validation: 0.00s, handshake: 0.03s)
-[Licensing::IpcConnector] Successfully connected to: "LicenseClient-ym167-notifications" at "2026-04-28T16:59:37.0628397Z"
-[Licensing::Module] Licensing Background thread has ended after 0.03s
+  Session Id:              cf274b37dc094b96a45dad394f6563d4
+  Correlation Id:          8af1e90e6cd3a769f89e61612e8527c2
+  External correlation Id: 7743201588503690561
+  Machine Id:              nKW9zLnA3Cvjb+21/QgkJaxjydA=
+[Licensing::Module] Successfully connected to LicensingClient on channel: "LicenseClient-ym167" (connect: 0.00s, validation: 0.00s, handshake: 0.04s)
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-ym167-notifications" at "2026-05-05T11:54:27.4818924Z"
+[Licensing::Module] Licensing Background thread has ended after 0.04s
 Input System module state changed to: Initialized.
 [Physics::Module] Initialized fallback backend.
 [Physics::Module] Id: 0xdecafbad
@@ -93,8 +93,8 @@ Library Redirect Path: Library/
 [Physics::Module] SDK Version: 4.1.2
 [Physics::Module] Integration Version: 1.0.0
 [Physics::Module] Threading Mode: Multi-Threaded
-Refreshing native plugins compatible for Editor in 13.97 ms, found 11 plugins.
-Preloading 0 native plugins for Editor in 0.00 ms.
+Refreshing native plugins compatible for Editor in 65.83 ms, found 12 plugins.
+Preloading 1 native plugins for Editor in 1.23 ms.
 Initialize engine version: 6000.2.2f1 (ea398eefe1c2)
 [Subsystems] Discovering subsystems at path C:/Program Files/Unity/Hub/Editor/6000.2.2f1/Editor/Data/Resources/UnitySubsystems
 [Subsystems] Discovering subsystems at path C:/Users/ym167/Documents/GitHub/Lego-Digital-Twin/unity-client/AURA_Lego/Assets
@@ -111,43 +111,43 @@ Initialize mono
 Mono path[0] = 'C:/Program Files/Unity/Hub/Editor/6000.2.2f1/Editor/Data/Managed'
 Mono path[1] = 'C:/Program Files/Unity/Hub/Editor/6000.2.2f1/Editor/Data/MonoBleedingEdge/lib/mono/unityjit-win32'
 Mono config path = 'C:/Program Files/Unity/Hub/Editor/6000.2.2f1/Editor/Data/MonoBleedingEdge/etc'
-Using monoOptions --debugger-agent=transport=dt_socket,embedding=1,server=y,suspend=n,address=127.0.0.1:56940
+Using monoOptions --debugger-agent=transport=dt_socket,embedding=1,server=y,suspend=n,address=127.0.0.1:56764
 Begin MonoManager ReloadAssembly
 Registering precompiled unity dll's ...
 Register platform support module: C:/Program Files/Unity/Hub/Editor/6000.2.2f1/Editor/Data/PlaybackEngines/WindowsStandaloneSupport/UnityEditor.WindowsStandalone.Extensions.dll
-Registered in 0.001942 seconds.
-- Loaded All Assemblies, in  0.294 seconds
+Registered in 0.004738 seconds.
+- Loaded All Assemblies, in  0.473 seconds
 Native extension for WindowsStandalone target not found
 Mono: successfully reloaded assembly
-- Finished resetting the current domain, in  0.231 seconds
-Domain Reload Profiling: 524ms
-	BeginReloadAssembly (108ms)
+- Finished resetting the current domain, in  0.300 seconds
+Domain Reload Profiling: 771ms
+	BeginReloadAssembly (203ms)
 		ExecutionOrderSort (0ms)
 		DisableScriptedObjects (0ms)
 		BackupInstance (0ms)
 		ReleaseScriptingObjects (0ms)
 		CreateAndSetChildDomain (1ms)
-	RebuildCommonClasses (27ms)
-	RebuildNativeTypeToScriptingClass (9ms)
-	initialDomainReloadingComplete (37ms)
-	LoadAllAssembliesAndSetupDomain (112ms)
-		LoadAssemblies (105ms)
+	RebuildCommonClasses (47ms)
+	RebuildNativeTypeToScriptingClass (11ms)
+	initialDomainReloadingComplete (64ms)
+	LoadAllAssembliesAndSetupDomain (146ms)
+		LoadAssemblies (197ms)
 		RebuildTransferFunctionScriptingTraits (0ms)
-		AnalyzeDomain (109ms)
-			TypeCache.Refresh (108ms)
-				TypeCache.ScanAssembly (98ms)
+		AnalyzeDomain (143ms)
+			TypeCache.Refresh (141ms)
+				TypeCache.ScanAssembly (128ms)
 			BuildScriptInfoCaches (0ms)
 			ResolveRequiredComponents (0ms)
-	FinalizeReload (232ms)
+	FinalizeReload (301ms)
 		ReleaseScriptCaches (0ms)
 		RebuildScriptCaches (0ms)
-		SetupLoadedEditorAssemblies (198ms)
+		SetupLoadedEditorAssemblies (244ms)
 			LogAssemblyErrors (0ms)
-			InitializePlatformSupportModulesInManaged (35ms)
-			SetLoadedEditorAssemblies (2ms)
-			BeforeProcessingInitializeOnLoad (42ms)
-			ProcessInitializeOnLoadAttributes (83ms)
-			ProcessInitializeOnLoadMethodAttributes (35ms)
+			InitializePlatformSupportModulesInManaged (43ms)
+			SetLoadedEditorAssemblies (3ms)
+			BeforeProcessingInitializeOnLoad (52ms)
+			ProcessInitializeOnLoadAttributes (100ms)
+			ProcessInitializeOnLoadMethodAttributes (46ms)
 			AfterProcessingInitializeOnLoad (0ms)
 			EditorAssembliesLoaded (0ms)
 		ExecutionOrderSort2 (0ms)
@@ -162,17 +162,50 @@ Begin MonoManager ReloadAssembly
   Product: Unity Personal
   Type: Assigned
   Expiration: Unlimited
-- Loaded All Assemblies, in  0.695 seconds
-Refreshing native plugins compatible for Editor in 7.92 ms, found 11 plugins.
+Symbol file LoadedFromMemory is not a mono symbol file
+- Loaded All Assemblies, in  1.206 seconds
+Refreshing native plugins compatible for Editor in 30.15 ms, found 12 plugins.
 Native extension for WindowsStandalone target not found
 Package Manager log level set to [2]
 [Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
 [Package Manager] Unable to send message (not connected to server process).
 [Package Manager] Cannot connect to Unity Package Manager local server
-Refreshing native plugins compatible for Editor in 9.35 ms, found 11 plugins.
+Refreshing native plugins compatible for Editor in 24.59 ms, found 12 plugins.
 [Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
 [Package Manager] Unable to send message (not connected to server process).
 [Package Manager] Cannot connect to Unity Package Manager local server
+[Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
+[Package Manager] Unable to send message (not connected to server process).
+[Package Manager] Cannot connect to Unity Package Manager local server
+[MODES] ModeService[none].Initialize
+[MODES] ModeService[none].LoadModes
+[MODES] Loading mode Default (0) for mode-current-id-AURA_Lego
+[Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
+[Package Manager] Unable to send message (not connected to server process).
+[Package Manager] Cannot connect to Unity Package Manager local server
+AssertionException: Error removing KTX for Unity WebGL sub-packages.. Failed fetching installed packages.
+Assertion failure. Values are not equal.
+Expected: Failure == Success
+  at UnityEngine.Assertions.Assert.Fail (System.String message, System.String userMessage) [0x00043] in <b4c8c45fec274213bfac03ee0e9a3d62>:0 
+  at UnityEngine.Assertions.Assert.AreEqual[T] (T expected, T actual, System.String message, System.Collections.Generic.IEqualityComparer`1[T] comparer) [0x0005f] in <b4c8c45fec274213bfac03ee0e9a3d62>:0 
+  at UnityEngine.Assertions.Assert.AreEqual[T] (T expected, T actual, System.String message) [0x00009] in <b4c8c45fec274213bfac03ee0e9a3d62>:0 
+  at SubPackage.SubPackageRemover.GetAllInstalledPackagesAsync (System.Double timeout) [0x000b7] in .\Library\PackageCache\com.unity.cloud.ktx@7a35f681840e\Editor\Scripts\SubPackage\SubPackageRemover.cs:81 
+  at SubPackage.SubPackageRemover.TryRemoveObsoleteSubPackagesAsync () [0x0002a] in .\Library\PackageCache\com.unity.cloud.ktx@7a35f681840e\Editor\Scripts\SubPackage\SubPackageRemover.cs:35 
+UnityEngine.DebugLogHandler:Internal_LogException_Injected(Exception, IntPtr)
+UnityEngine.DebugLogHandler:Internal_LogException(Exception, Object)
+UnityEngine.DebugLogHandler:LogException(Exception, Object)
+UnityEngine.Logger:LogException(Exception, Object)
+UnityEngine.Debug:LogException(Exception)
+SubPackage.<TryRemoveObsoleteSubPackagesAsync>d__5:MoveNext() (at .\Library\PackageCache\com.unity.cloud.ktx@7a35f681840e\Editor\Scripts\SubPackage\SubPackageRemover.cs:52)
+System.Runtime.CompilerServices.AsyncVoidMethodBuilder:Start(<TryRemoveObsoleteSubPackagesAsync>d__5&)
+SubPackage.SubPackageRemover:TryRemoveObsoleteSubPackagesAsync()
+System.Reflection.RuntimeMethodInfo:InternalInvoke(RuntimeMethodInfo, Object, Object[], Exception&)
+System.Reflection.RuntimeMethodInfo:Invoke(Object, BindingFlags, Binder, Object[], CultureInfo)
+System.Reflection.MethodBase:Invoke(Object, Object[])
+UnityEditor.EditorAssemblies:ProcessInitializeOnLoadMethodAttributes()
+
+(Filename: ./Library/PackageCache/com.unity.cloud.ktx@7a35f681840e/Editor/Scripts/SubPackage/SubPackageRemover.cs Line: 52)
+
 Mono: successfully reloaded assembly
 [Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
 [Package Manager] Unable to send message (not connected to server process).
@@ -180,55 +213,55 @@ Mono: successfully reloaded assembly
 [Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
 [Package Manager] Unable to send message (not connected to server process).
 [Package Manager] Cannot connect to Unity Package Manager local server
-- Finished resetting the current domain, in  0.644 seconds
-Domain Reload Profiling: 1332ms
-	BeginReloadAssembly (142ms)
+- Finished resetting the current domain, in  1.256 seconds
+Domain Reload Profiling: 2453ms
+	BeginReloadAssembly (166ms)
 		ExecutionOrderSort (0ms)
-		DisableScriptedObjects (4ms)
+		DisableScriptedObjects (5ms)
 		BackupInstance (0ms)
 		ReleaseScriptingObjects (0ms)
-		CreateAndSetChildDomain (21ms)
-	RebuildCommonClasses (27ms)
+		CreateAndSetChildDomain (25ms)
+	RebuildCommonClasses (30ms)
 	RebuildNativeTypeToScriptingClass (9ms)
-	initialDomainReloadingComplete (32ms)
-	LoadAllAssembliesAndSetupDomain (478ms)
-		LoadAssemblies (340ms)
+	initialDomainReloadingComplete (38ms)
+	LoadAllAssembliesAndSetupDomain (954ms)
+		LoadAssemblies (702ms)
 		RebuildTransferFunctionScriptingTraits (0ms)
-		AnalyzeDomain (221ms)
-			TypeCache.Refresh (165ms)
-				TypeCache.ScanAssembly (151ms)
-			BuildScriptInfoCaches (44ms)
-			ResolveRequiredComponents (9ms)
-	FinalizeReload (645ms)
+		AnalyzeDomain (348ms)
+			TypeCache.Refresh (234ms)
+				TypeCache.ScanAssembly (214ms)
+			BuildScriptInfoCaches (97ms)
+			ResolveRequiredComponents (12ms)
+	FinalizeReload (1256ms)
 		ReleaseScriptCaches (0ms)
 		RebuildScriptCaches (0ms)
-		SetupLoadedEditorAssemblies (549ms)
+		SetupLoadedEditorAssemblies (1010ms)
 			LogAssemblyErrors (0ms)
-			InitializePlatformSupportModulesInManaged (1ms)
-			SetLoadedEditorAssemblies (4ms)
-			BeforeProcessingInitializeOnLoad (104ms)
-			ProcessInitializeOnLoadAttributes (307ms)
-			ProcessInitializeOnLoadMethodAttributes (129ms)
+			InitializePlatformSupportModulesInManaged (2ms)
+			SetLoadedEditorAssemblies (6ms)
+			BeforeProcessingInitializeOnLoad (162ms)
+			ProcessInitializeOnLoadAttributes (511ms)
+			ProcessInitializeOnLoadMethodAttributes (325ms)
 			AfterProcessingInitializeOnLoad (4ms)
 			EditorAssembliesLoaded (0ms)
 		ExecutionOrderSort2 (0ms)
-		AwakeInstancesAfterBackupRestoration (4ms)
+		AwakeInstancesAfterBackupRestoration (6ms)
 WARNING: Shader Unsupported: 'Hidden/Simulation/URP/Synthetic' - All subshaders removed
 WARNING: Shader Did you use #pragma only_renderers and omit this platform?
 WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
 WARNING: Shader Unsupported: 'Hidden/Simulation/URP/Synthetic' - All subshaders removed
 WARNING: Shader Did you use #pragma only_renderers and omit this platform?
 WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Hidden/Simulation/Synthetic Lit' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Hidden/Simulation/Synthetic Lit' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
 WARNING: Shader Unsupported: 'Simulation/Standard Lit' - All subshaders removed
 WARNING: Shader Did you use #pragma only_renderers and omit this platform?
 WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
 WARNING: Shader Unsupported: 'Simulation/Standard Lit' - All subshaders removed
+WARNING: Shader Did you use #pragma only_renderers and omit this platform?
+WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
+WARNING: Shader Unsupported: 'Hidden/Simulation/Synthetic Lit' - All subshaders removed
+WARNING: Shader Did you use #pragma only_renderers and omit this platform?
+WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
+WARNING: Shader Unsupported: 'Hidden/Simulation/Synthetic Lit' - All subshaders removed
 WARNING: Shader Did you use #pragma only_renderers and omit this platform?
 WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
 WARNING: Shader Unsupported: 'Simulation/URP/Room X-Ray' - All subshaders removed
@@ -249,219 +282,159 @@ WARNING: Shader If subshaders removal was intentional, you may have forgotten tu
 WARNING: Shader Unsupported: 'Simulation/URP/Lit' - All subshaders removed
 WARNING: Shader Did you use #pragma only_renderers and omit this platform?
 WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-Launched and connected shader compiler UnityShaderCompiler.exe after 0.03 seconds
-Refreshing native plugins compatible for Editor in 7.89 ms, found 11 plugins.
-Preloading 0 native plugins for Editor in 0.00 ms.
-Unloading 19 Unused Serialized files (Serialized files now loaded: 0)
-Unloading 6717 unused Assets / (7.2 MB). Loaded Objects now: 7474.
-Memory consumption went from 152.1 MB to 145.0 MB.
-Total: 7.817400 ms (FindLiveObjects: 1.099100 ms CreateObjectMapping: 0.423100 ms MarkObjects: 3.631400 ms  DeleteObjects: 2.663100 ms)
+Launched and connected shader compiler UnityShaderCompiler.exe after 0.04 seconds
+Refreshing native plugins compatible for Editor in 21.73 ms, found 12 plugins.
+Preloading 1 native plugins for Editor in 0.09 ms.
+Unloading 23 Unused Serialized files (Serialized files now loaded: 0)
+Unloading 8641 unused Assets / (7.2 MB). Loaded Objects now: 9317.
+Memory consumption went from 176.4 MB to 169.2 MB.
+Total: 15.819500 ms (FindLiveObjects: 0.565200 ms CreateObjectMapping: 0.555500 ms MarkObjects: 10.357700 ms  DeleteObjects: 4.339900 ms)
 
 ========================================================================
 Received Import Request.
-  Time since last request: 1446.224414 seconds.
-  path: Assets
-  artifactKey: Guid(00000000000000001000000000000000) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets using Guid(00000000000000001000000000000000) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'c391582d739b6e62a5220f35cbb167ac') in 0.0043234 seconds
+  Time since last request: 21921.026541 seconds.
+  path: Assets/External Assets/test/tripo_convert_c9b51281-fb6e-4454-b753-3f1cdbb8f5ae.fbx
+  artifactKey: Guid(1e3b8c5d71dfe0343b241ef699a5bf0c) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/External Assets/test/tripo_convert_c9b51281-fb6e-4454-b753-3f1cdbb8f5ae.fbx using Guid(1e3b8c5d71dfe0343b241ef699a5bf0c) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter)d3d12: upload buffer was too small for the requested resource! Size: 16777216. Requested: 20184000.
+ -> (artifact id: 'dc20d6a62de4086e4e34d4444dc6239e') in 0.5784181 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 8
+
+========================================================================
+Received Import Request.
+  Time since last request: 45.300864 seconds.
+  path: Assets/External Assets/test/tripo_convert_c9b51281-fb6e-4454-b753-3f1cdbb8f5ae.fbx
+  artifactKey: Guid(1e3b8c5d71dfe0343b241ef699a5bf0c) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/External Assets/test/tripo_convert_c9b51281-fb6e-4454-b753-3f1cdbb8f5ae.fbx using Guid(1e3b8c5d71dfe0343b241ef699a5bf0c) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'c957781588be36d99d6564211aa9bacc') in 0.1171007 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 10
+
+========================================================================
+Received Import Request.
+  Time since last request: 2.833547 seconds.
+  path: Assets/External Assets/test/tripo_convert_c9b51281-fb6e-4454-b753-3f1cdbb8f5ae.fbm
+  artifactKey: Guid(96232e48d26556848a0889ab54a4846b) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/External Assets/test/tripo_convert_c9b51281-fb6e-4454-b753-3f1cdbb8f5ae.fbm using Guid(96232e48d26556848a0889ab54a4846b) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'c25b6b7d1c1ca25ec70a91591c42223c') in 0.0008706 seconds
 Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 0
 
 ========================================================================
 Received Import Request.
-  Time since last request: 54.039977 seconds.
-  path: Assets/Font
-  artifactKey: Guid(91298b1742f4b30488ea3e552a3ce6cf) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/Font using Guid(91298b1742f4b30488ea3e552a3ce6cf) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'ecd0756a6683c6b2c90738fb73d7b3f8') in 0.0005441 seconds
+  Time since last request: 0.192056 seconds.
+  path: Assets/External Assets/test/tripo_convert_c9b51281-fb6e-4454-b753-3f1cdbb8f5ae.fbm/tripo_test_org_basecolor.JPEG
+  artifactKey: Guid(b77d5be983fd9f24796714d6aa5bc2d1) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/External Assets/test/tripo_convert_c9b51281-fb6e-4454-b753-3f1cdbb8f5ae.fbm/tripo_test_org_basecolor.JPEG using Guid(b77d5be983fd9f24796714d6aa5bc2d1) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '7d8124668825c4e41bb687b915dc2716') in 0.0234696 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 2
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000022 seconds.
+  path: Assets/External Assets/test/tripo_convert_c9b51281-fb6e-4454-b753-3f1cdbb8f5ae.fbm/tripo_test_org_normal.JPEG
+  artifactKey: Guid(e0d7c8828d0d4fc4ab21b8cbe039dddd) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/External Assets/test/tripo_convert_c9b51281-fb6e-4454-b753-3f1cdbb8f5ae.fbm/tripo_test_org_normal.JPEG using Guid(e0d7c8828d0d4fc4ab21b8cbe039dddd) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'be9d7a9684c6f2d0276a49050dc3e6a3') in 0.0233521 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 2
+
+========================================================================
+Received Import Request.
+  Time since last request: 13.692870 seconds.
+  path: Assets/External Assets/test/tripo_convert_c9b51281-fb6e-4454-b753-3f1cdbb8f5ae.fbx
+  artifactKey: Guid(1e3b8c5d71dfe0343b241ef699a5bf0c) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/External Assets/test/tripo_convert_c9b51281-fb6e-4454-b753-3f1cdbb8f5ae.fbx using Guid(1e3b8c5d71dfe0343b241ef699a5bf0c) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '43c5089f3e60655472cd039c9eb0ec14') in 0.0613516 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 10
+
+========================================================================
+Received Import Request.
+  Time since last request: 50.625708 seconds.
+  path: Assets/External Assets/test/lego yellow plane 3d model.glb
+  artifactKey: Guid(95e6dd856d193934aba9aeb0335b5189) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/External Assets/test/lego yellow plane 3d model.glb using Guid(95e6dd856d193934aba9aeb0335b5189) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter)d3d12: upload buffer was too small for the requested resource! Size: 20971520. Requested: 67108864.
+ -> (artifact id: '85556e9f93986250d9e336133a9d64de') in 0.346862 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 19
+
+========================================================================
+Received Import Request.
+  Time since last request: 52.199478 seconds.
+  path: Assets/External Assets/test/tripo_convert_31239552-c30b-4f99-a9cc-7eaa03b05835.fbx
+  artifactKey: Guid(405d51bd0ea9a7b4ca9ae137159d0d77) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/External Assets/test/tripo_convert_31239552-c30b-4f99-a9cc-7eaa03b05835.fbx using Guid(405d51bd0ea9a7b4ca9ae137159d0d77) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '9395d38ebc69c144f9dba32786b11029') in 0.0574742 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 10
+
+========================================================================
+Received Import Request.
+  Time since last request: 4.200220 seconds.
+  path: Assets/External Assets/test/tripo_convert_31239552-c30b-4f99-a9cc-7eaa03b05835.fbx
+  artifactKey: Guid(405d51bd0ea9a7b4ca9ae137159d0d77) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/External Assets/test/tripo_convert_31239552-c30b-4f99-a9cc-7eaa03b05835.fbx using Guid(405d51bd0ea9a7b4ca9ae137159d0d77) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '6528c75923c8fa460cb4f1abaed72a95') in 0.0506045 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 10
+
+========================================================================
+Received Import Request.
+  Time since last request: 58.177684 seconds.
+  path: Assets/External Assets/test/test_fbx.fbx
+  artifactKey: Guid(1e3b8c5d71dfe0343b241ef699a5bf0c) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/External Assets/test/test_fbx.fbx using Guid(1e3b8c5d71dfe0343b241ef699a5bf0c) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '2e417e336dab40ab972aa303dba7ca7d') in 0.0892104 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 10
+
+========================================================================
+Received Import Request.
+  Time since last request: 8.387631 seconds.
+  path: Assets/External Assets/test/test_glb.glb
+  artifactKey: Guid(95e6dd856d193934aba9aeb0335b5189) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/External Assets/test/test_glb.glb using Guid(95e6dd856d193934aba9aeb0335b5189) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '3691a7d97e724157dca6d64c6f4b3e02') in 0.1899713 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 19
+
+========================================================================
+Received Import Request.
+  Time since last request: 6.943501 seconds.
+  path: Assets/External Assets/test/tripo_convert_31239552-c30b-4f99-a9cc-7eaa03b05835.fbm
+  artifactKey: Guid(e581e23d339e8bc4c9b580b31b3503f5) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/External Assets/test/tripo_convert_31239552-c30b-4f99-a9cc-7eaa03b05835.fbm using Guid(e581e23d339e8bc4c9b580b31b3503f5) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '01424f87e929b0504e20d21249cc0b7a') in 0.0005164 seconds
 Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 0
 
 ========================================================================
 Received Import Request.
-  Time since last request: 3.533444 seconds.
-  path: Assets/Assets
-  artifactKey: Guid(6cbe89dda40794f40aab7f91b81d9fae) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/Assets using Guid(6cbe89dda40794f40aab7f91b81d9fae) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '5552895e86c70e630bd967543c55f377') in 0.0004777 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 0
+  Time since last request: 14.961082 seconds.
+  path: Assets/External Assets/test/tripo_convert_31239552-c30b-4f99-a9cc-7eaa03b05835.fbm/legoyellowplane3dmodel_basecolor.JPEG
+  artifactKey: Guid(f2c5d82546febc34595a3a94a335f53b) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/External Assets/test/tripo_convert_31239552-c30b-4f99-a9cc-7eaa03b05835.fbm/legoyellowplane3dmodel_basecolor.JPEG using Guid(f2c5d82546febc34595a3a94a335f53b) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'a482d26e55d84e97847a6c15a82b1f3b') in 0.0194745 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 2
 
 ========================================================================
 Received Import Request.
-  Time since last request: 1.118238 seconds.
-  path: Assets/Assets/capstone1
-  artifactKey: Guid(8ed80e2f96941de4993c2da0d2bb0a29) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/Assets/capstone1 using Guid(8ed80e2f96941de4993c2da0d2bb0a29) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '953b8beea094d92215ddf7a8277fb62a') in 0.0004862 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 0
+  Time since last request: 0.000026 seconds.
+  path: Assets/External Assets/test/tripo_convert_31239552-c30b-4f99-a9cc-7eaa03b05835.fbm/legoyellowplane3dmodel_roughness.JPEG
+  artifactKey: Guid(e760fed104f11be489787e8935867e90) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/External Assets/test/tripo_convert_31239552-c30b-4f99-a9cc-7eaa03b05835.fbm/legoyellowplane3dmodel_roughness.JPEG using Guid(e760fed104f11be489787e8935867e90) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '562d671f2456d62541a4ca329b3d25ab') in 0.0172724 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 2
 
 ========================================================================
 Received Import Request.
-  Time since last request: 5.935068 seconds.
-  path: Assets/Assets/capstone1/Font/static
-  artifactKey: Guid(06772831ea9f8744598b9857cff9bf0d) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/Assets/capstone1/Font/static using Guid(06772831ea9f8744598b9857cff9bf0d) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '83912f8a7b69b83bbcc922743e741af5') in 0.0005015 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 0
+  Time since last request: 1799.805570 seconds.
+  path: Assets/TerrainData_17e89c98-3788-4043-b70b-ef3c5e850a50.asset
+  artifactKey: Guid(8dc4bb6d9b8bb7d4aa7a334644f51ec3) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/TerrainData_17e89c98-3788-4043-b70b-ef3c5e850a50.asset using Guid(8dc4bb6d9b8bb7d4aa7a334644f51ec3) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '10c2473fc4c27f0050f1b6b18b1be89a') in 0.0629964 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 3
 
 ========================================================================
 Received Import Request.
-  Time since last request: 0.123073 seconds.
-  path: Assets/Assets/capstone1/Font/static/NotoSansKR-Medium SDF.asset
-  artifactKey: Guid(fad8bc2001b6d9540ad9cd5ae069d63f) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/Assets/capstone1/Font/static/NotoSansKR-Medium SDF.asset using Guid(fad8bc2001b6d9540ad9cd5ae069d63f) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '3ad017ec521fb08242bf6c8cdb6504b0') in 0.4728153 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 4
-
-========================================================================
-Received Prepare
-Begin MonoManager ReloadAssembly
-[Licensing::Client] Successfully resolved entitlement details
-- Loaded All Assemblies, in  0.665 seconds
-Refreshing native plugins compatible for Editor in 8.47 ms, found 11 plugins.
-Native extension for WindowsStandalone target not found
-[Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
-[Package Manager] Unable to send message (not connected to server process).
-[Package Manager] Cannot connect to Unity Package Manager local server
-[Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
-[Package Manager] Unable to send message (not connected to server process).
-[Package Manager] Cannot connect to Unity Package Manager local server
-Mono: successfully reloaded assembly
-[Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
-[Package Manager] Unable to send message (not connected to server process).
-[Package Manager] Cannot connect to Unity Package Manager local server
-- Finished resetting the current domain, in  0.669 seconds
-Domain Reload Profiling: 1332ms
-	BeginReloadAssembly (195ms)
-		ExecutionOrderSort (0ms)
-		DisableScriptedObjects (15ms)
-		BackupInstance (0ms)
-		ReleaseScriptingObjects (0ms)
-		CreateAndSetChildDomain (46ms)
-	RebuildCommonClasses (27ms)
-	RebuildNativeTypeToScriptingClass (10ms)
-	initialDomainReloadingComplete (23ms)
-	LoadAllAssembliesAndSetupDomain (407ms)
-		LoadAssemblies (312ms)
-		RebuildTransferFunctionScriptingTraits (0ms)
-		AnalyzeDomain (171ms)
-			TypeCache.Refresh (7ms)
-				TypeCache.ScanAssembly (0ms)
-			BuildScriptInfoCaches (151ms)
-			ResolveRequiredComponents (9ms)
-	FinalizeReload (670ms)
-		ReleaseScriptCaches (0ms)
-		RebuildScriptCaches (0ms)
-		SetupLoadedEditorAssemblies (536ms)
-			LogAssemblyErrors (0ms)
-			InitializePlatformSupportModulesInManaged (1ms)
-			SetLoadedEditorAssemblies (4ms)
-			BeforeProcessingInitializeOnLoad (110ms)
-			ProcessInitializeOnLoadAttributes (323ms)
-			ProcessInitializeOnLoadMethodAttributes (93ms)
-			AfterProcessingInitializeOnLoad (4ms)
-			EditorAssembliesLoaded (0ms)
-		ExecutionOrderSort2 (0ms)
-		AwakeInstancesAfterBackupRestoration (14ms)
-WARNING: Shader Unsupported: 'Hidden/Simulation/URP/Synthetic' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Hidden/Simulation/URP/Synthetic' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Hidden/Simulation/Synthetic Lit' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Hidden/Simulation/Synthetic Lit' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Simulation/Standard Lit' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Simulation/Standard Lit' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Simulation/URP/Room X-Ray' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Simulation/URP/Room X-Ray' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Simulation/Room X-Ray' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Simulation/Room X-Ray' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Simulation/URP/Lit' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Simulation/URP/Lit' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-Refreshing native plugins compatible for Editor in 9.44 ms, found 11 plugins.
-Preloading 0 native plugins for Editor in 0.00 ms.
-Unloading 19 Unused Serialized files (Serialized files now loaded: 0)
-Unloading 6717 unused Assets / (8.0 MB). Loaded Objects now: 7559.
-Memory consumption went from 195.4 MB to 187.4 MB.
-Total: 8.172800 ms (FindLiveObjects: 0.503600 ms CreateObjectMapping: 0.492800 ms MarkObjects: 3.859700 ms  DeleteObjects: 3.315400 ms)
-
-Prepare: number of updated asset objects reloaded= 0
-========================================================================
-Received Import Request.
-  Time since last request: 161.567287 seconds.
-  path: Assets/Material
-  artifactKey: Guid(4a65c6b8c51836a4da960762c9794152) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/Material using Guid(4a65c6b8c51836a4da960762c9794152) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'fad044675eeaffa6ffb8d9084c78245b') in 0.0019716 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 0
+  Time since last request: 0.000277 seconds.
+  path: Assets/TerrainData_ff0b1837-70de-4d7f-832f-050708b70981.asset
+  artifactKey: Guid(115c7a1fa87f0f4458193bd13fc35279) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/TerrainData_ff0b1837-70de-4d7f-832f-050708b70981.asset using Guid(115c7a1fa87f0f4458193bd13fc35279) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '1d887b37fcd223d74b7b6b5733d44e09') in 0.0167745 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 3
 
 ========================================================================
 Received Import Request.
-  Time since last request: 19.018926 seconds.
-  path: Assets/Materials
-  artifactKey: Guid(4a65c6b8c51836a4da960762c9794152) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/Materials using Guid(4a65c6b8c51836a4da960762c9794152) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '4600125bd99f6a5a744e6c29a3805414') in 0.0004628 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 0
+  Time since last request: 0.000030 seconds.
+  path: Assets/TerrainData_a4fcf002-2e74-4c07-863a-7a20db6dd399.asset
+  artifactKey: Guid(1ce49f1fca9457447b1fae95a0d8e075) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/TerrainData_a4fcf002-2e74-4c07-863a-7a20db6dd399.asset using Guid(1ce49f1fca9457447b1fae95a0d8e075) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '75a998e8ebd4805c490d69fdde122527') in 0.011815 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 3
 
 ========================================================================
 Received Import Request.
-  Time since last request: 27.990711 seconds.
-  path: Assets/Assets/mecabricks
-  artifactKey: Guid(0fa1c2258241da24fab5cc744be8fe2e) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/Assets/mecabricks using Guid(0fa1c2258241da24fab5cc744be8fe2e) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '98ff46dffd617709864576c50e03f378') in 0.0005148 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 0
-
-========================================================================
-Received Import Request.
-  Time since last request: 0.771974 seconds.
-  path: Assets/Assets/mecabricks/Baseplate.fbx
-  artifactKey: Guid(f84ebd2119424f64aaec2b2c82c7126f) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/Assets/mecabricks/Baseplate.fbx using Guid(f84ebd2119424f64aaec2b2c82c7126f) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'aa734361b1c958dc156f249120c5a3d8') in 0.7647022 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 38
-
-========================================================================
-Received Import Request.
-  Time since last request: 0.000037 seconds.
-  path: Assets/Assets/mecabricks/LEGOLAND® Park_bench.fbx
-  artifactKey: Guid(62abf30d64681024f82f12bef1eebe14) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/Assets/mecabricks/LEGOLAND® Park_bench.fbx using Guid(62abf30d64681024f82f12bef1eebe14) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '7b5daf58cdbc6532c847703df19ac5bc') in 0.9097375 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 110
-
-========================================================================
-Received Import Request.
-  Time since last request: 0.000064 seconds.
-  path: Assets/Assets/mecabricks/LEGOLAND® Park_door.fbx
-  artifactKey: Guid(4cfe211ba7bb1fa4091c61bff5b6c469) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/Assets/mecabricks/LEGOLAND® Park_door.fbx using Guid(4cfe211ba7bb1fa4091c61bff5b6c469) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '66ec70645af798365c2fe16746dd6a3c') in 1.7051264 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 684
-
-========================================================================
-Received Import Request.
-  Time since last request: 0.000067 seconds.
-  path: Assets/Assets/mecabricks/Heartlake City Amusement Pier.fbx
-  artifactKey: Guid(f2b4a8d25a1ebc34e8bd3126731a5c63) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/Assets/mecabricks/Heartlake City Amusement Pier.fbx using Guid(f2b4a8d25a1ebc34e8bd3126731a5c63) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '8390821a654d5a61e03a901004f3c2c0') in 20.1426003 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 6620
-
-========================================================================
-Received Import Request.
-  Time since last request: 0.000088 seconds.
-  path: Assets/Assets/mecabricks/Fairground Carousel.fbx
-  artifactKey: Guid(f88a788457b53ae4cb430c4aa040632a) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/Assets/mecabricks/Fairground Carousel.fbx using Guid(f88a788457b53ae4cb430c4aa040632a) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '614f9719ecda6d2e2a7ee3c4637cfb24') in 6.8743367 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 2864
+  Time since last request: 0.000033 seconds.
+  path: Assets/TerrainData_e0825003-bf83-4fa5-940c-7b7f77e47008.asset
+  artifactKey: Guid(a30c15ad3037b7748965a751c7ca1087) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/TerrainData_e0825003-bf83-4fa5-940c-7b7f77e47008.asset using Guid(a30c15ad3037b7748965a751c7ca1087) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '1183e6256ddaec23c6f7373118f525b6') in 0.0370616 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 3
 
 Editor requested this worker to shutdown with reason: Scaling down because of idle timeout
 AssetImportWorker is now disconnected from the server
