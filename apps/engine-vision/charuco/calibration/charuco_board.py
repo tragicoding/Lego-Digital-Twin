@@ -15,11 +15,10 @@ import numpy as np
 import os
 
 # 보드 파라미터 (인쇄 크기에 맞게 조정, 단위: 미터)
-# A4 기준: 10×10 격자 × 20mm = 200×200mm
-SQUARES_X   = 6      # 열 개수 (캘리브레이션용 정사각형 보드)
+SQUARES_X   = 6      # 열 개수 (정사각형 보드: X == Y)
 SQUARES_Y   = 6      # 행 개수
-SQUARE_LEN  = 0.02   # 정사각형 한 변 (20 mm)
-MARKER_LEN  = 0.014  # ArUco 마커 한 변 (14 mm, 칸 대비 70%)
+SQUARE_LEN  = 0.03   # 정사각형 한 변 (30 mm) → 보드 전체 크기 180mm × 180mm
+MARKER_LEN  = 0.022  # ArUco 마커 한 변 (22 mm)
 
 ARUCO_DICT  = aruco.getPredefinedDictionary(aruco.DICT_4X4_100)
 BOARD       = aruco.CharucoBoard((SQUARES_X, SQUARES_Y), SQUARE_LEN, MARKER_LEN, ARUCO_DICT)

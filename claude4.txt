@@ -1,0 +1,141 @@
+## 세션 4 작업 핸드오프 (2026-05-05)
+
+### 작업 목표
+Wonder3D 방식 폐기 → ChArUco + Multi-view Space Carving + LEGO Voxel Reconstruction으로 전환.
+레고 외형을 5방향 카메라로 촬영해 복셀 단위로 복원 후 Unity로 전송한다.
+
+---
+
+### 현재 브랜치 상태
+
+- **test2** (현재 작업 브랜치): charuco 파이프라인 전체 구현 완료, 미push
+- **feature/backend**: FastAPI 백엔드 서버 구현 완료, origin push 완료
+- conda 환경: `charuco` (python 3.10, opencv-contrib, fastapi, uvicorn, open3d 등 설치됨)
+
+---
+
+### 구현 완료된 모듈
+
+**apps/engine-vision/charuco/** (test2)
+```
+calibration/
+  charuco_board.py      - ChArUco 보드 생성·검출 (DICT_4X4_100, 7×5 격자, 30mm/22mm)
+  camera_calibrator.py  - 내부 파라미터 보정, data/camera_params.npz 저장
+  pose_estimator.py     - 뷰별 CameraPose(rvec, tvec, R, P) 추정
+
+reconstruction/
+  silhouette.py         - 배경차분/HSV/GrabCut 3가지 마스크 추출
+  voxel_grid.py         - VoxelGrid(16×16×10), 8mm 스터드 피치, carve_with_mask()
+  voxel_carver.py       - run_space_carving(), apply_vertical_floor_constraint()
+
+color/
+  color_estimator.py    - TOP 우선 뷰 투영 색상 샘플링, LEGO 15색 팔레트 양자화
+
+utils/
+  server.py             - 백엔드 클라이언트: upload_voxels() → POST /voxels/upload
+  json_exporter.py      - build_json() / save_json()
+  visualizer.py         - 탑뷰 점유맵, 실루엣 오버레이, Open3D 미리보기
+
+scripts/
+  generate_board.py     - 보드 PNG 생성 (인쇄용)
+  capture_calibration.py - 웹캠으로 캘리브레이션 이미지 수집
+  verify_pose.py        - 포즈 검출 결과 시각 확인
+
+pipeline.py             - 전체 파이프라인 진입점 (--images_dir --params --out --upload)
+```
+
+**apps/backend/** (feature/backend, push 완료)
+```
+main.py              - FastAPI 앱, port 8000
+core/state.py        - 공유 상태 + broadcast_to_unity()
+api/voxels.py        - POST /voxels/upload / GET /voxels/latest
+api/hardware.py      - POST /hardware/event (clap→불꽃, light→atmosphere)
+                       lux 매핑: >2000=day, 800~=cloudy, 200~=sunset, 50~=night
+ws/unity_ws.py       - WS /ws/unity, 연결 즉시 최신 상태 push
+```
+
+---
+
+### 통신 구조
+
+```
+engine-vision → POST /voxels/upload → backend:8000 → WS /ws/unity → Unity
+hardware      → POST /hardware/event → backend:8000 → WS /ws/unity → Unity
+```
+
+모든 데이터는 반드시 backend를 경유한다. charuco 파이프라인이 직접 Unity와 통신하지 않는다.
+
+---
+
+### JSON 스키마 (Python → Unity)
+
+```json
+{
+  "version": "1.0",
+  "timestamp": "...",
+  "board": { "studs_x": 16, "studs_y": 16, "stud_pitch_mm": 8.0, "brick_height_mm": 9.6 },
+  "voxels": [
+    { "x": 3, "y": 4, "z": 0, "r": 201, "g": 0, "b": 0, "color_name": "Red" }
+  ],
+  "meta": { "total_voxels": 128, "views_used": ["TOP","FRONT","RIGHT"], "method": "multi_view_space_carving" }
+}
+```
+
+---
+
+### 핵심 설계 결정 (변경 금지)
+
+1. **charuco 모듈은 직접 서버를 띄우지 않는다.** utils/server.py는 HTTP 클라이언트 전용.
+2. **좌표계**: 월드 원점 = ChArUco 보드 중심, X=열, Y=행, Z=높이, 단위 미터.
+3. **복셀 크기**: STUD_PITCH=8mm, BRICK_HEIGHT=9.6mm — 레고 물리 치수에 고정.
+4. **색상 우선순위**: TOP → FRONT → RIGHT, LEGO 15색 팔레트로 양자화.
+5. **부유 복셀**: apply_vertical_floor_constraint() 반드시 호출 (아래 복셀 없으면 제거).
+
+---
+
+### 다음 작업 (미완료)
+
+1. **Unity C# 스크립트** 작성 필요 (Unity 개발자에게 전달용 또는 직접 작성)
+   - LegoVoxelLoader.cs   : WS /ws/unity 연결, voxel JSON 수신
+   - LegoVoxelBuilder.cs  : voxel 데이터 → procedural mesh (Cube + Stud cylinder)
+   - LegoMaterial.cs      : color_name → Material 매핑
+   - BackendWebSocket.cs  : 재연결 로직 포함
+
+2. **실제 테스트 데이터 수집**
+   - scripts/generate_board.py 로 ChArUco 보드 인쇄
+   - scripts/capture_calibration.py 로 캘리브레이션 이미지 20장 수집
+   - camera_calibrator.py 로 camera_params.npz 생성
+   - 5방향(TOP/FRONT/BACK/LEFT/RIGHT) + 배경(BG_TOP 등) 촬영
+
+3. **실루엣 추출 파라미터 튜닝**
+   - 배경차분(background) 방식 우선 사용 (BG_<VIEW>.jpg 필요)
+   - 임계값(threshold=30)은 조명 환경에 맞게 조정
+
+4. **test2 브랜치 push** (아직 미push 상태)
+
+---
+
+### 실행 명령어 요약
+
+```bash
+# 백엔드 서버 시작
+conda run -n charuco uvicorn apps.backend.main:app --host 0.0.0.0 --port 8000 --reload
+
+# 보드 이미지 생성
+conda run -n charuco python apps/engine-vision/charuco/scripts/generate_board.py
+
+# 캘리브레이션 수집
+conda run -n charuco python apps/engine-vision/charuco/scripts/capture_calibration.py --out apps/engine-vision/charuco/data/calib
+
+# 파라미터 보정
+conda run -n charuco python -m charuco.calibration.camera_calibrator \
+    --images "apps/engine-vision/charuco/data/calib/*.jpg" \
+    --out apps/engine-vision/charuco/data/camera_params.npz
+
+# 전체 파이프라인 실행
+conda run -n charuco python -m charuco.pipeline \
+    --images_dir apps/engine-vision/charuco/data/capture_01 \
+    --params apps/engine-vision/charuco/data/camera_params.npz \
+    --out apps/engine-vision/charuco/output/voxels.json \
+    --upload
+```
