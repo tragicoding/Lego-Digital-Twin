@@ -1,9 +1,9 @@
 [Licensing::Module] Trying to connect to existing licensing client channel...
 Built from '6000.2/staging' branch; Version is '6000.2.2f1 (ea398eefe1c2) revision 15350158'; Using compiler version '194234433'; Build Type 'Release'
-[Licensing::IpcConnector] Successfully connected to: "LicenseClient-ym167" at "2026-04-28T16:59:37.0180385Z"
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-ym167" at "2026-05-04T20:51:39.8154265Z"
 OS: 'Windows 11  (10.0.26200) 64bit Professional' Language: 'ko' Physical Memory: 16243 MB
 BatchMode: 1, IsHumanControllingUs: 0, StartBugReporterOnCrash: 0, Is64bit: 1
-Date: 2026-04-28T16:59:37Z
+Date: 2026-05-04T20:51:39Z
 
 COMMAND LINE ARGUMENTS:
 C:\Program Files\Unity\Hub\Editor\6000.2.2f1\Editor\Unity.exe
@@ -17,7 +17,7 @@ C:/Users/ym167/Documents/GitHub/Lego-Digital-Twin/unity-client/AURA_Lego
 -logFile
 Logs/AssetImportWorker1.log
 -srvPort
-60110
+52661
 -licensingIpc
 LicenseClient-ym167
 -job-worker-count
@@ -65,23 +65,23 @@ C:/Users/ym167/Documents/GitHub/Lego-Digital-Twin/unity-client/AURA_Lego
     "memorysetup-temp-allocator-size-gi-baking-worker=262144"
     "memorysetup-temp-allocator-size-gi-baking-worker=262144"
     "memorysetup-temp-allocator-size-gfx=262144"
-Player connection [31588]  Target information:
+Player connection [41544]  Target information:
 
-Player connection [31588]  * "[IP] 172.30.1.75 [Port] 0 [Flags] 2 [Guid] 1896862243 [EditorId] 1896862243 [Version] 1048832 [Id] WindowsEditor(7,DESKTOP-M3M7B9U) [Debug] 1 [PackageName] WindowsEditor [ProjectName] Editor" 
+Player connection [41544]  * "[IP] 172.30.1.51 [Port] 0 [Flags] 2 [Guid] 1198903788 [EditorId] 1198903788 [Version] 1048832 [Id] WindowsEditor(7,DESKTOP-M3M7B9U) [Debug] 1 [PackageName] WindowsEditor [ProjectName] Editor" 
 
-Player connection [31588] Host joined multi-casting on [225.0.0.222:54997]...
-Player connection [31588] Host joined alternative multi-casting on [225.0.0.222:34997]...
+Player connection [41544] Host joined multi-casting on [225.0.0.222:54997]...
+Player connection [41544] Host joined alternative multi-casting on [225.0.0.222:34997]...
 JobSystem: Creating JobQueue using job-worker-count value 9
-[Licensing::Client] Code 10 while verifying Licensing Client signature (process Id: 10552, path: "C:/Program Files/Unity Hub/UnityLicensingClient_V1/Unity.Licensing.Client.exe")
+[Licensing::Client] Code 10 while verifying Licensing Client signature (process Id: 25020, path: "C:/Program Files/Unity Hub/UnityLicensingClient_V1/Unity.Licensing.Client.exe")
 [Licensing::Module] LicensingClient has failed validation; ignoring
 [Licensing::Client] Handshaking with LicensingClient:
   Version:                 1.17.4+4293ba1
-  Session Id:              2f84723a5e044df9b51674f0e1593fbd
-  Correlation Id:          06a57228bae7425bae7022b07bb397c6
-  External correlation Id: 6959161148712883142
-  Machine Id:              TOSAfLkeOvWc4WC2peGNR4hxloo=
+  Session Id:              e7e1e778667140f2aea7b0bba8801a98
+  Correlation Id:          f6e4c30dd7cc0bb2bdf833244529a3a5
+  External correlation Id: 8652846096021101535
+  Machine Id:              nKW9zLnA3Cvjb+21/QgkJaxjydA=
 [Licensing::Module] Successfully connected to LicensingClient on channel: "LicenseClient-ym167" (connect: 0.00s, validation: 0.00s, handshake: 0.03s)
-[Licensing::IpcConnector] Successfully connected to: "LicenseClient-ym167-notifications" at "2026-04-28T16:59:37.051355Z"
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-ym167-notifications" at "2026-05-04T20:51:39.8466127Z"
 [Licensing::Module] Licensing Background thread has ended after 0.03s
 Input System module state changed to: Initialized.
 [Physics::Module] Initialized fallback backend.
@@ -93,8 +93,8 @@ Library Redirect Path: Library/
 [Physics::Module] SDK Version: 4.1.2
 [Physics::Module] Integration Version: 1.0.0
 [Physics::Module] Threading Mode: Multi-Threaded
-Refreshing native plugins compatible for Editor in 16.33 ms, found 11 plugins.
-Preloading 0 native plugins for Editor in 0.00 ms.
+Refreshing native plugins compatible for Editor in 23.72 ms, found 12 plugins.
+Preloading 1 native plugins for Editor in 0.57 ms.
 Initialize engine version: 6000.2.2f1 (ea398eefe1c2)
 [Subsystems] Discovering subsystems at path C:/Program Files/Unity/Hub/Editor/6000.2.2f1/Editor/Data/Resources/UnitySubsystems
 [Subsystems] Discovering subsystems at path C:/Users/ym167/Documents/GitHub/Lego-Digital-Twin/unity-client/AURA_Lego/Assets
@@ -111,43 +111,43 @@ Initialize mono
 Mono path[0] = 'C:/Program Files/Unity/Hub/Editor/6000.2.2f1/Editor/Data/Managed'
 Mono path[1] = 'C:/Program Files/Unity/Hub/Editor/6000.2.2f1/Editor/Data/MonoBleedingEdge/lib/mono/unityjit-win32'
 Mono config path = 'C:/Program Files/Unity/Hub/Editor/6000.2.2f1/Editor/Data/MonoBleedingEdge/etc'
-Using monoOptions --debugger-agent=transport=dt_socket,embedding=1,server=y,suspend=n,address=127.0.0.1:56856
+Using monoOptions --debugger-agent=transport=dt_socket,embedding=1,server=y,suspend=n,address=127.0.0.1:56444
 Begin MonoManager ReloadAssembly
 Registering precompiled unity dll's ...
 Register platform support module: C:/Program Files/Unity/Hub/Editor/6000.2.2f1/Editor/Data/PlaybackEngines/WindowsStandaloneSupport/UnityEditor.WindowsStandalone.Extensions.dll
-Registered in 0.001753 seconds.
-- Loaded All Assemblies, in  0.295 seconds
+Registered in 0.001685 seconds.
+- Loaded All Assemblies, in  0.309 seconds
 Native extension for WindowsStandalone target not found
 Mono: successfully reloaded assembly
-- Finished resetting the current domain, in  0.231 seconds
-Domain Reload Profiling: 524ms
-	BeginReloadAssembly (108ms)
+- Finished resetting the current domain, in  0.254 seconds
+Domain Reload Profiling: 561ms
+	BeginReloadAssembly (106ms)
 		ExecutionOrderSort (0ms)
 		DisableScriptedObjects (0ms)
 		BackupInstance (0ms)
 		ReleaseScriptingObjects (0ms)
 		CreateAndSetChildDomain (1ms)
-	RebuildCommonClasses (28ms)
-	RebuildNativeTypeToScriptingClass (9ms)
-	initialDomainReloadingComplete (36ms)
-	LoadAllAssembliesAndSetupDomain (112ms)
-		LoadAssemblies (106ms)
+	RebuildCommonClasses (29ms)
+	RebuildNativeTypeToScriptingClass (8ms)
+	initialDomainReloadingComplete (38ms)
+	LoadAllAssembliesAndSetupDomain (126ms)
+		LoadAssemblies (104ms)
 		RebuildTransferFunctionScriptingTraits (0ms)
-		AnalyzeDomain (110ms)
-			TypeCache.Refresh (109ms)
-				TypeCache.ScanAssembly (99ms)
+		AnalyzeDomain (123ms)
+			TypeCache.Refresh (122ms)
+				TypeCache.ScanAssembly (111ms)
 			BuildScriptInfoCaches (0ms)
 			ResolveRequiredComponents (0ms)
-	FinalizeReload (231ms)
+	FinalizeReload (254ms)
 		ReleaseScriptCaches (0ms)
 		RebuildScriptCaches (0ms)
-		SetupLoadedEditorAssemblies (198ms)
+		SetupLoadedEditorAssemblies (216ms)
 			LogAssemblyErrors (0ms)
-			InitializePlatformSupportModulesInManaged (35ms)
+			InitializePlatformSupportModulesInManaged (38ms)
 			SetLoadedEditorAssemblies (3ms)
-			BeforeProcessingInitializeOnLoad (42ms)
-			ProcessInitializeOnLoadAttributes (83ms)
-			ProcessInitializeOnLoadMethodAttributes (35ms)
+			BeforeProcessingInitializeOnLoad (47ms)
+			ProcessInitializeOnLoadAttributes (91ms)
+			ProcessInitializeOnLoadMethodAttributes (38ms)
 			AfterProcessingInitializeOnLoad (0ms)
 			EditorAssembliesLoaded (0ms)
 		ExecutionOrderSort2 (0ms)
@@ -162,17 +162,50 @@ Begin MonoManager ReloadAssembly
   Product: Unity Personal
   Type: Assigned
   Expiration: Unlimited
-- Loaded All Assemblies, in  0.700 seconds
-Refreshing native plugins compatible for Editor in 8.28 ms, found 11 plugins.
+Symbol file LoadedFromMemory is not a mono symbol file
+- Loaded All Assemblies, in  0.850 seconds
+Refreshing native plugins compatible for Editor in 18.42 ms, found 12 plugins.
 Native extension for WindowsStandalone target not found
 Package Manager log level set to [2]
 [Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
 [Package Manager] Unable to send message (not connected to server process).
 [Package Manager] Cannot connect to Unity Package Manager local server
-Refreshing native plugins compatible for Editor in 9.47 ms, found 11 plugins.
+Refreshing native plugins compatible for Editor in 16.84 ms, found 12 plugins.
 [Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
 [Package Manager] Unable to send message (not connected to server process).
 [Package Manager] Cannot connect to Unity Package Manager local server
+[Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
+[Package Manager] Unable to send message (not connected to server process).
+[Package Manager] Cannot connect to Unity Package Manager local server
+[MODES] ModeService[none].Initialize
+[MODES] ModeService[none].LoadModes
+[MODES] Loading mode Default (0) for mode-current-id-AURA_Lego
+[Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
+[Package Manager] Unable to send message (not connected to server process).
+[Package Manager] Cannot connect to Unity Package Manager local server
+AssertionException: Error removing KTX for Unity WebGL sub-packages.. Failed fetching installed packages.
+Assertion failure. Values are not equal.
+Expected: Failure == Success
+  at UnityEngine.Assertions.Assert.Fail (System.String message, System.String userMessage) [0x00043] in <b4c8c45fec274213bfac03ee0e9a3d62>:0 
+  at UnityEngine.Assertions.Assert.AreEqual[T] (T expected, T actual, System.String message, System.Collections.Generic.IEqualityComparer`1[T] comparer) [0x0005f] in <b4c8c45fec274213bfac03ee0e9a3d62>:0 
+  at UnityEngine.Assertions.Assert.AreEqual[T] (T expected, T actual, System.String message) [0x00009] in <b4c8c45fec274213bfac03ee0e9a3d62>:0 
+  at SubPackage.SubPackageRemover.GetAllInstalledPackagesAsync (System.Double timeout) [0x000b7] in .\Library\PackageCache\com.unity.cloud.ktx@7a35f681840e\Editor\Scripts\SubPackage\SubPackageRemover.cs:81 
+  at SubPackage.SubPackageRemover.TryRemoveObsoleteSubPackagesAsync () [0x0002a] in .\Library\PackageCache\com.unity.cloud.ktx@7a35f681840e\Editor\Scripts\SubPackage\SubPackageRemover.cs:35 
+UnityEngine.DebugLogHandler:Internal_LogException_Injected(Exception, IntPtr)
+UnityEngine.DebugLogHandler:Internal_LogException(Exception, Object)
+UnityEngine.DebugLogHandler:LogException(Exception, Object)
+UnityEngine.Logger:LogException(Exception, Object)
+UnityEngine.Debug:LogException(Exception)
+SubPackage.<TryRemoveObsoleteSubPackagesAsync>d__5:MoveNext() (at .\Library\PackageCache\com.unity.cloud.ktx@7a35f681840e\Editor\Scripts\SubPackage\SubPackageRemover.cs:52)
+System.Runtime.CompilerServices.AsyncVoidMethodBuilder:Start(<TryRemoveObsoleteSubPackagesAsync>d__5&)
+SubPackage.SubPackageRemover:TryRemoveObsoleteSubPackagesAsync()
+System.Reflection.RuntimeMethodInfo:InternalInvoke(RuntimeMethodInfo, Object, Object[], Exception&)
+System.Reflection.RuntimeMethodInfo:Invoke(Object, BindingFlags, Binder, Object[], CultureInfo)
+System.Reflection.MethodBase:Invoke(Object, Object[])
+UnityEditor.EditorAssemblies:ProcessInitializeOnLoadMethodAttributes()
+
+(Filename: ./Library/PackageCache/com.unity.cloud.ktx@7a35f681840e/Editor/Scripts/SubPackage/SubPackageRemover.cs Line: 52)
+
 Mono: successfully reloaded assembly
 [Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
 [Package Manager] Unable to send message (not connected to server process).
@@ -180,55 +213,55 @@ Mono: successfully reloaded assembly
 [Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
 [Package Manager] Unable to send message (not connected to server process).
 [Package Manager] Cannot connect to Unity Package Manager local server
-- Finished resetting the current domain, in  0.649 seconds
-Domain Reload Profiling: 1342ms
-	BeginReloadAssembly (143ms)
+- Finished resetting the current domain, in  0.864 seconds
+Domain Reload Profiling: 1707ms
+	BeginReloadAssembly (145ms)
 		ExecutionOrderSort (0ms)
-		DisableScriptedObjects (4ms)
+		DisableScriptedObjects (5ms)
 		BackupInstance (0ms)
 		ReleaseScriptingObjects (0ms)
-		CreateAndSetChildDomain (21ms)
-	RebuildCommonClasses (27ms)
-	RebuildNativeTypeToScriptingClass (8ms)
-	initialDomainReloadingComplete (32ms)
-	LoadAllAssembliesAndSetupDomain (482ms)
-		LoadAssemblies (340ms)
+		CreateAndSetChildDomain (23ms)
+	RebuildCommonClasses (28ms)
+	RebuildNativeTypeToScriptingClass (9ms)
+	initialDomainReloadingComplete (33ms)
+	LoadAllAssembliesAndSetupDomain (628ms)
+		LoadAssemblies (417ms)
 		RebuildTransferFunctionScriptingTraits (0ms)
-		AnalyzeDomain (225ms)
-			TypeCache.Refresh (168ms)
-				TypeCache.ScanAssembly (154ms)
-			BuildScriptInfoCaches (45ms)
+		AnalyzeDomain (291ms)
+			TypeCache.Refresh (194ms)
+				TypeCache.ScanAssembly (174ms)
+			BuildScriptInfoCaches (85ms)
 			ResolveRequiredComponents (9ms)
-	FinalizeReload (649ms)
+	FinalizeReload (864ms)
 		ReleaseScriptCaches (0ms)
 		RebuildScriptCaches (0ms)
-		SetupLoadedEditorAssemblies (554ms)
+		SetupLoadedEditorAssemblies (705ms)
 			LogAssemblyErrors (0ms)
-			InitializePlatformSupportModulesInManaged (1ms)
-			SetLoadedEditorAssemblies (4ms)
-			BeforeProcessingInitializeOnLoad (102ms)
-			ProcessInitializeOnLoadAttributes (307ms)
-			ProcessInitializeOnLoadMethodAttributes (135ms)
-			AfterProcessingInitializeOnLoad (4ms)
+			InitializePlatformSupportModulesInManaged (2ms)
+			SetLoadedEditorAssemblies (5ms)
+			BeforeProcessingInitializeOnLoad (133ms)
+			ProcessInitializeOnLoadAttributes (315ms)
+			ProcessInitializeOnLoadMethodAttributes (244ms)
+			AfterProcessingInitializeOnLoad (5ms)
 			EditorAssembliesLoaded (0ms)
 		ExecutionOrderSort2 (0ms)
-		AwakeInstancesAfterBackupRestoration (4ms)
+		AwakeInstancesAfterBackupRestoration (5ms)
 WARNING: Shader Unsupported: 'Hidden/Simulation/URP/Synthetic' - All subshaders removed
 WARNING: Shader Did you use #pragma only_renderers and omit this platform?
 WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
 WARNING: Shader Unsupported: 'Hidden/Simulation/URP/Synthetic' - All subshaders removed
 WARNING: Shader Did you use #pragma only_renderers and omit this platform?
 WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Hidden/Simulation/Synthetic Lit' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Hidden/Simulation/Synthetic Lit' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
 WARNING: Shader Unsupported: 'Simulation/Standard Lit' - All subshaders removed
 WARNING: Shader Did you use #pragma only_renderers and omit this platform?
 WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
 WARNING: Shader Unsupported: 'Simulation/Standard Lit' - All subshaders removed
+WARNING: Shader Did you use #pragma only_renderers and omit this platform?
+WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
+WARNING: Shader Unsupported: 'Hidden/Simulation/Synthetic Lit' - All subshaders removed
+WARNING: Shader Did you use #pragma only_renderers and omit this platform?
+WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
+WARNING: Shader Unsupported: 'Hidden/Simulation/Synthetic Lit' - All subshaders removed
 WARNING: Shader Did you use #pragma only_renderers and omit this platform?
 WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
 WARNING: Shader Unsupported: 'Simulation/URP/Room X-Ray' - All subshaders removed
@@ -250,124 +283,18 @@ WARNING: Shader Unsupported: 'Simulation/URP/Lit' - All subshaders removed
 WARNING: Shader Did you use #pragma only_renderers and omit this platform?
 WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
 Launched and connected shader compiler UnityShaderCompiler.exe after 0.03 seconds
-Refreshing native plugins compatible for Editor in 7.83 ms, found 11 plugins.
-Preloading 0 native plugins for Editor in 0.00 ms.
-Unloading 19 Unused Serialized files (Serialized files now loaded: 0)
-Unloading 6717 unused Assets / (7.2 MB). Loaded Objects now: 7474.
-Memory consumption went from 151.8 MB to 144.6 MB.
-Total: 7.856200 ms (FindLiveObjects: 1.156800 ms CreateObjectMapping: 0.532400 ms MarkObjects: 3.474100 ms  DeleteObjects: 2.692300 ms)
-
-========================================================================
-Received Prepare
-Begin MonoManager ReloadAssembly
-[Licensing::Client] Successfully resolved entitlement details
-- Loaded All Assemblies, in  0.661 seconds
-Refreshing native plugins compatible for Editor in 8.66 ms, found 11 plugins.
-Native extension for WindowsStandalone target not found
-[Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
-[Package Manager] Unable to send message (not connected to server process).
-[Package Manager] Cannot connect to Unity Package Manager local server
-[Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
-[Package Manager] Unable to send message (not connected to server process).
-[Package Manager] Cannot connect to Unity Package Manager local server
-Mono: successfully reloaded assembly
-[Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
-[Package Manager] Unable to send message (not connected to server process).
-[Package Manager] Cannot connect to Unity Package Manager local server
-- Finished resetting the current domain, in  0.676 seconds
-Domain Reload Profiling: 1335ms
-	BeginReloadAssembly (181ms)
-		ExecutionOrderSort (0ms)
-		DisableScriptedObjects (5ms)
-		BackupInstance (0ms)
-		ReleaseScriptingObjects (0ms)
-		CreateAndSetChildDomain (43ms)
-	RebuildCommonClasses (28ms)
-	RebuildNativeTypeToScriptingClass (10ms)
-	initialDomainReloadingComplete (23ms)
-	LoadAllAssembliesAndSetupDomain (417ms)
-		LoadAssemblies (318ms)
-		RebuildTransferFunctionScriptingTraits (0ms)
-		AnalyzeDomain (177ms)
-			TypeCache.Refresh (8ms)
-				TypeCache.ScanAssembly (0ms)
-			BuildScriptInfoCaches (155ms)
-			ResolveRequiredComponents (10ms)
-	FinalizeReload (676ms)
-		ReleaseScriptCaches (0ms)
-		RebuildScriptCaches (0ms)
-		SetupLoadedEditorAssemblies (543ms)
-			LogAssemblyErrors (0ms)
-			InitializePlatformSupportModulesInManaged (1ms)
-			SetLoadedEditorAssemblies (4ms)
-			BeforeProcessingInitializeOnLoad (110ms)
-			ProcessInitializeOnLoadAttributes (330ms)
-			ProcessInitializeOnLoadMethodAttributes (93ms)
-			AfterProcessingInitializeOnLoad (6ms)
-			EditorAssembliesLoaded (0ms)
-		ExecutionOrderSort2 (0ms)
-		AwakeInstancesAfterBackupRestoration (12ms)
-WARNING: Shader Unsupported: 'Hidden/Simulation/URP/Synthetic' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Hidden/Simulation/URP/Synthetic' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Hidden/Simulation/Synthetic Lit' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Hidden/Simulation/Synthetic Lit' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Simulation/Standard Lit' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Simulation/Standard Lit' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Simulation/URP/Room X-Ray' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Simulation/URP/Room X-Ray' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Simulation/Room X-Ray' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Simulation/Room X-Ray' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Simulation/URP/Lit' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Simulation/URP/Lit' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-Refreshing native plugins compatible for Editor in 9.08 ms, found 11 plugins.
-Preloading 0 native plugins for Editor in 0.00 ms.
-Unloading 19 Unused Serialized files (Serialized files now loaded: 0)
-Unloading 6717 unused Assets / (7.7 MB). Loaded Objects now: 7490.
-Memory consumption went from 187.4 MB to 179.7 MB.
-Total: 7.751700 ms (FindLiveObjects: 0.493900 ms CreateObjectMapping: 0.484600 ms MarkObjects: 3.581700 ms  DeleteObjects: 3.190000 ms)
-
-Prepare: number of updated asset objects reloaded= 0
-========================================================================
-Received Import Request.
-  Time since last request: 1721.115823 seconds.
-  path: Assets/Assets/mecabricks/carousel.fbx
-  artifactKey: Guid(024bc762be326324f8f8d0fad35cc710) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/Assets/mecabricks/carousel.fbx using Guid(024bc762be326324f8f8d0fad35cc710) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '037a40f4df53ebafd9f1da62a47956e0') in 5.1319931 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 13816
+Refreshing native plugins compatible for Editor in 20.74 ms, found 12 plugins.
+Preloading 1 native plugins for Editor in 0.09 ms.
+Unloading 23 Unused Serialized files (Serialized files now loaded: 0)
+Unloading 8641 unused Assets / (7.8 MB). Loaded Objects now: 9313.
+Memory consumption went from 176.2 MB to 168.4 MB.
+Total: 15.721200 ms (FindLiveObjects: 0.934300 ms CreateObjectMapping: 0.683600 ms MarkObjects: 9.729400 ms  DeleteObjects: 4.372200 ms)
 
 ========================================================================
 Received Import Request.
-  Time since last request: 0.000187 seconds.
-  path: Assets/Assets/mecabricks/tree house.fbx
-  artifactKey: Guid(7494fa1772722ea4397c79d95ad33a75) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/Assets/mecabricks/tree house.fbx using Guid(7494fa1772722ea4397c79d95ad33a75) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'fe8c8a09b7745f8157c2a0cb3cc4d61b') in 28.7250074 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 13028
+  Time since last request: 113441.191053 seconds.
+  path: Assets/External Assets/mecabricks/LEGOLAND® Park_cup 1.fbx
+  artifactKey: Guid(1d7c8c00085c7424cabfdc543cbf4d61) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/External Assets/mecabricks/LEGOLAND® Park_cup 1.fbx using Guid(1d7c8c00085c7424cabfdc543cbf4d61) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '4e126ec1508eebbc4e6a1b3f0a1808d5') in 1.8358152 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 730
 
-Editor requested this worker to shutdown with reason: Scaling down because of idle timeout
-AssetImportWorker is now disconnected from the server
-Process exiting
-Exiting without the bug reporter. Application will terminate with return code 0
