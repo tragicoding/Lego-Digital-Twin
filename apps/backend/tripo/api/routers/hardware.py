@@ -19,7 +19,6 @@ from typing import Literal
 
 from ...core.config import TRIPO_API_KEY, STORAGE_CAPTURES, STORAGE_MODELS
 from ...services.tripo_service import TripoService
-from ...services.unity_service import deliver_to_unity
 from ...ws.unity_ws import manager
 
 router = APIRouter(prefix="/hardware", tags=["hardware"])
@@ -83,17 +82,13 @@ async def _run_tripo_pipeline(task_id: str, image_bytes: bytes, filename: str):
 
         glb_path = await _tripo.run(image_bytes, filename, output_path)
 
-        # Unity External Assets에 복사
-        unity_path = deliver_to_unity(glb_path)
-
         tasks[task_id] = {
             "status": "success",
             "filename": glb_path.name,
             "download_url": f"/unity/models/{glb_path.name}",
-            "unity_path": str(unity_path),
         }
 
-        # Unity에 WebSocket으로 알림
+        # Unity에 WebSocket으로 알림 → Unity가 HTTP로 직접 다운로드
         await manager.broadcast({
             "type": "model_ready",
             "filename": glb_path.name,
