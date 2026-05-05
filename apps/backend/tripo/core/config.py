@@ -7,7 +7,7 @@ load_dotenv(_BASE / ".env")
 
 TRIPO_API_KEY: str = os.environ["TRIPO_API_KEY"]
 TRIPO_BASE_URL: str = "https://api.tripo3d.ai/v2/openapi"
-TRIPO_MODEL_VERSION: str = os.getenv("TRIPO_MODEL_VERSION", "v3.0")
+TRIPO_MODEL_VERSION: str = os.getenv("TRIPO_MODEL_VERSION", "v2.5-20250123")
 
 STORAGE_CAPTURES: Path = _BASE / "storage" / "captures"
 STORAGE_MODELS: Path = _BASE / "storage" / "models"

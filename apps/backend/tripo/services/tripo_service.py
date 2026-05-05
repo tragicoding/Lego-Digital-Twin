@@ -1,5 +1,5 @@
 """
-Tripo3D API 클라이언트 — v3.0 모델 사용
+Tripo3D API 클라이언트
 https://api.tripo3d.ai/v2/openapi
 """
 
@@ -7,7 +7,7 @@ import asyncio
 import httpx
 from pathlib import Path
 
-from ..core.config import TRIPO_BASE_URL, TRIPO_MODEL_VERSION
+from ..core.config import TRIPO_BASE_URL
 
 
 class TripoService:
@@ -34,7 +34,6 @@ class TripoService:
                 headers={**self._headers, "Content-Type": "application/json"},
                 json={
                     "type": "image_to_model",
-                    "model_version": TRIPO_MODEL_VERSION,
                     "file": {
                         "type": "png",
                         "file_token": image_token,
