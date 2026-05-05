@@ -1,0 +1,50 @@
+{
+  "_comment": "설치 시 1회 측정 후 고정하는 값들. 카메라 앵글 바꾸면 재측정 필요.",
+
+  "grid_n": 32,
+  "max_z":  12,
+  "output_size": [640, 640],
+
+  "top": {
+    "corner_ids":  [0, 1, 2, 3],
+    "_comment":    "마커 ID 순서: [top-left, top-right, bottom-right, bottom-left]"
+  },
+
+  "side_views": {
+    "FRONT": {
+      "top_ids":    [4, 5],
+      "side_ids":   [6, 7],
+      "_comment":   "top_ids: [좌상단, 우상단], side_ids: [좌측, 우측]",
+      "z0_pixel_y": 480,
+      "_z0_comment": "이미지에서 z=0(바닥선)에 해당하는 픽셀 y좌표. 설치 시 측정."
+    },
+    "BACK": {
+      "top_ids":    [8, 9],
+      "side_ids":   [10, 11],
+      "z0_pixel_y": 480
+    },
+    "LEFT": {
+      "top_ids":    [12, 13],
+      "side_ids":   [14, 15],
+      "z0_pixel_y": 480
+    },
+    "RIGHT": {
+      "top_ids":    [16, 17],
+      "side_ids":   [18, 19],
+      "z0_pixel_y": 480
+    }
+  },
+
+  "z0_pixel_y": {
+    "_comment":  "load_z0_from_config() 에서 뷰별로 참조",
+    "FRONT": 480,
+    "BACK":  480,
+    "LEFT":  480,
+    "RIGHT": 480
+  },
+
+  "occupancy": {
+    "threshold":           25,
+    "saturation_threshold": 40
+  }
+}
