@@ -1,11 +1,10 @@
 # apps/
 
-서버 사이드 애플리케이션 모음. Vision Engine, Backend, Hardware Controller로 구성됩니다.
+서버 사이드 애플리케이션 모음. Backend, Hardware Controller로 구성됩니다.
 
 ```
 apps/
-├── engine-vision/   # 카메라 인식 및 3D 재구성
-├── backend/         # Unity ↔ Vision Engine 통신 미들웨어
+├── backend/tripo/   # 중앙 백엔드 서버 (카메라 → Tripo 3D → Unity)
 └── hardware/        # Arduino 하드웨어 제어
 ```
 
@@ -14,10 +13,5 @@ apps/
 ## 개발 환경 공통 사항
 
 - OS: WSL2 (Ubuntu 24.04)
-- Python: 3.9 (Conda 가상환경 권장)
-- 환경 설정: `docs/environment.yml` 참고
-
-```bash
-conda env create -f docs/environment.yml
-conda activate wonder3d
-```
+- Python: 3.11 (Conda 가상환경: `triposr`)
+- 백엔드 실행: `conda run -n triposr uvicorn apps.backend.tripo.main:app --host 0.0.0.0 --port 8000 --reload`

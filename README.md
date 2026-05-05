@@ -42,10 +42,10 @@ VR 헤드셋을 착용한 사용자는 레고 놀이공원 안에서 자신이 �
 │                     Lego Digital Twin                   │
 │                                                         │
 │  ┌──────────────┐    ┌──────────────┐    ┌───────────┐  │
-│  │ engine-vision│───▶│   backend    │───▶│unity-client│ │
-│  │  (Python)    │    │  (Server)    │    │  (Unity)  │  │
+│  │   카메라     │───▶│   backend    │───▶│unity-client│ │
+│  │  (Windows)   │    │  (FastAPI)   │    │  (Unity)  │  │
 │  └──────────────┘    └──────┬───────┘    └───────────┘  │
-│                             │                           │
+│                             │ Tripo3D API               │
 │                      ┌──────▼───────┐                   │
 │                      │  hardware    │                   │
 │                      │  (Arduino)   │                   │
@@ -55,8 +55,7 @@ VR 헤드셋을 착용한 사용자는 레고 놀이공원 안에서 자신이 �
 
 | 모듈 | 역할 | 기술 스택 |
 |---|---|---|
-| `engine-vision` | 카메라 영상 처리, 3D 재구성 | Python, Wonder3D, PyTorch, SAM |
-| `backend` | 모듈 간 통신, 데이터 중계 | (미정) |
+| `backend/tripo` | 카메라 수신, Tripo3D API 연동, Unity 전달 | Python, FastAPI, Tripo3D API |
 | `unity-client` | VR 놀이공원 렌더링, 인터랙션 | Unity, C#, XR |
 | `hardware` | 조명·박수 입력 감지 | Arduino, C++ |
 
@@ -119,8 +118,7 @@ chore(파트):    빌드, 설정 변경
 ```
 Lego-Digital-Twin/
 ├── apps/
-│   ├── engine-vision/   # Vision Engine (3D 재구성)
-│   ├── backend/         # 미들웨어 서버
+│   ├── backend/tripo/   # 중앙 백엔드 (카메라 → Tripo → Unity)
 │   └── hardware/        # Arduino 제어
 ├── unity-client/        # Unity VR 클라이언트
 ├── docs/                # 환경 설정 문서
