@@ -6,8 +6,8 @@
   "output_size": [640, 640],
 
   "top": {
-    "corner_ids":  [0, 1, 2, 3],
-    "_comment":    "마커 ID 순서: [top-left, top-right, bottom-right, bottom-left]"
+    "corner_ids":  [0, 1, 3, 5],
+    "_comment":    "마커 ID 순서: [좌상단, 우상단, 우하단, 좌하단] — generate_top_frame_markers.py 기준"
   },
 
   "side_views": {
