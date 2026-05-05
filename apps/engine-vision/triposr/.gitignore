@@ -1,0 +1,12 @@
+# 모델 가중치 및 캐시
+TripoSR/.cache/
+TripoSR/checkpoints/
+~/.cache/huggingface/
+
+# 입출력 데이터
+output/
+input/
+logs/
+
+# 빌드 임시파일
+/tmp/torchmcubes_build/
