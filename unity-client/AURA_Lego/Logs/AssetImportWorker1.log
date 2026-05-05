@@ -1,9 +1,9 @@
 [Licensing::Module] Trying to connect to existing licensing client channel...
 Built from '6000.2/staging' branch; Version is '6000.2.2f1 (ea398eefe1c2) revision 15350158'; Using compiler version '194234433'; Build Type 'Release'
-[Licensing::IpcConnector] Successfully connected to: "LicenseClient-ym167" at "2026-05-04T20:51:39.8154265Z"
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-ym167" at "2026-05-05T11:54:27.5298881Z"
 OS: 'Windows 11  (10.0.26200) 64bit Professional' Language: 'ko' Physical Memory: 16243 MB
 BatchMode: 1, IsHumanControllingUs: 0, StartBugReporterOnCrash: 0, Is64bit: 1
-Date: 2026-05-04T20:51:39Z
+Date: 2026-05-05T11:54:27Z
 
 COMMAND LINE ARGUMENTS:
 C:\Program Files\Unity\Hub\Editor\6000.2.2f1\Editor\Unity.exe
@@ -17,7 +17,7 @@ C:/Users/ym167/Documents/GitHub/Lego-Digital-Twin/unity-client/AURA_Lego
 -logFile
 Logs/AssetImportWorker1.log
 -srvPort
-52661
+55474
 -licensingIpc
 LicenseClient-ym167
 -job-worker-count
@@ -65,23 +65,23 @@ C:/Users/ym167/Documents/GitHub/Lego-Digital-Twin/unity-client/AURA_Lego
     "memorysetup-temp-allocator-size-gi-baking-worker=262144"
     "memorysetup-temp-allocator-size-gi-baking-worker=262144"
     "memorysetup-temp-allocator-size-gfx=262144"
-Player connection [41544]  Target information:
+Player connection [15536]  Target information:
 
-Player connection [41544]  * "[IP] 172.30.1.51 [Port] 0 [Flags] 2 [Guid] 1198903788 [EditorId] 1198903788 [Version] 1048832 [Id] WindowsEditor(7,DESKTOP-M3M7B9U) [Debug] 1 [PackageName] WindowsEditor [ProjectName] Editor" 
+Player connection [15536]  * "[IP] 172.30.1.5 [Port] 0 [Flags] 2 [Guid] 4082739148 [EditorId] 4082739148 [Version] 1048832 [Id] WindowsEditor(7,DESKTOP-M3M7B9U) [Debug] 1 [PackageName] WindowsEditor [ProjectName] Editor" 
 
-Player connection [41544] Host joined multi-casting on [225.0.0.222:54997]...
-Player connection [41544] Host joined alternative multi-casting on [225.0.0.222:34997]...
+Player connection [15536] Host joined multi-casting on [225.0.0.222:54997]...
+Player connection [15536] Host joined alternative multi-casting on [225.0.0.222:34997]...
 JobSystem: Creating JobQueue using job-worker-count value 9
-[Licensing::Client] Code 10 while verifying Licensing Client signature (process Id: 25020, path: "C:/Program Files/Unity Hub/UnityLicensingClient_V1/Unity.Licensing.Client.exe")
+[Licensing::Client] Code 10 while verifying Licensing Client signature (process Id: 7520, path: "C:/Program Files/Unity Hub/UnityLicensingClient_V1/Unity.Licensing.Client.exe")
 [Licensing::Module] LicensingClient has failed validation; ignoring
 [Licensing::Client] Handshaking with LicensingClient:
   Version:                 1.17.4+4293ba1
-  Session Id:              e7e1e778667140f2aea7b0bba8801a98
-  Correlation Id:          f6e4c30dd7cc0bb2bdf833244529a3a5
-  External correlation Id: 8652846096021101535
+  Session Id:              5fec0e6ebb6647cbbed07d1751c71ae9
+  Correlation Id:          8af1e90e6cd3a769f89e61612e8527c2
+  External correlation Id: 4224047423742527762
   Machine Id:              nKW9zLnA3Cvjb+21/QgkJaxjydA=
 [Licensing::Module] Successfully connected to LicensingClient on channel: "LicenseClient-ym167" (connect: 0.00s, validation: 0.00s, handshake: 0.03s)
-[Licensing::IpcConnector] Successfully connected to: "LicenseClient-ym167-notifications" at "2026-05-04T20:51:39.8466127Z"
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-ym167-notifications" at "2026-05-05T11:54:27.5623521Z"
 [Licensing::Module] Licensing Background thread has ended after 0.03s
 Input System module state changed to: Initialized.
 [Physics::Module] Initialized fallback backend.
@@ -93,8 +93,8 @@ Library Redirect Path: Library/
 [Physics::Module] SDK Version: 4.1.2
 [Physics::Module] Integration Version: 1.0.0
 [Physics::Module] Threading Mode: Multi-Threaded
-Refreshing native plugins compatible for Editor in 23.72 ms, found 12 plugins.
-Preloading 1 native plugins for Editor in 0.57 ms.
+Refreshing native plugins compatible for Editor in 31.45 ms, found 12 plugins.
+Preloading 1 native plugins for Editor in 0.59 ms.
 Initialize engine version: 6000.2.2f1 (ea398eefe1c2)
 [Subsystems] Discovering subsystems at path C:/Program Files/Unity/Hub/Editor/6000.2.2f1/Editor/Data/Resources/UnitySubsystems
 [Subsystems] Discovering subsystems at path C:/Users/ym167/Documents/GitHub/Lego-Digital-Twin/unity-client/AURA_Lego/Assets
@@ -111,43 +111,43 @@ Initialize mono
 Mono path[0] = 'C:/Program Files/Unity/Hub/Editor/6000.2.2f1/Editor/Data/Managed'
 Mono path[1] = 'C:/Program Files/Unity/Hub/Editor/6000.2.2f1/Editor/Data/MonoBleedingEdge/lib/mono/unityjit-win32'
 Mono config path = 'C:/Program Files/Unity/Hub/Editor/6000.2.2f1/Editor/Data/MonoBleedingEdge/etc'
-Using monoOptions --debugger-agent=transport=dt_socket,embedding=1,server=y,suspend=n,address=127.0.0.1:56444
+Using monoOptions --debugger-agent=transport=dt_socket,embedding=1,server=y,suspend=n,address=127.0.0.1:56548
 Begin MonoManager ReloadAssembly
 Registering precompiled unity dll's ...
 Register platform support module: C:/Program Files/Unity/Hub/Editor/6000.2.2f1/Editor/Data/PlaybackEngines/WindowsStandaloneSupport/UnityEditor.WindowsStandalone.Extensions.dll
-Registered in 0.001685 seconds.
-- Loaded All Assemblies, in  0.309 seconds
+Registered in 0.004644 seconds.
+- Loaded All Assemblies, in  0.472 seconds
 Native extension for WindowsStandalone target not found
 Mono: successfully reloaded assembly
-- Finished resetting the current domain, in  0.254 seconds
-Domain Reload Profiling: 561ms
-	BeginReloadAssembly (106ms)
+- Finished resetting the current domain, in  0.301 seconds
+Domain Reload Profiling: 771ms
+	BeginReloadAssembly (202ms)
 		ExecutionOrderSort (0ms)
 		DisableScriptedObjects (0ms)
 		BackupInstance (0ms)
 		ReleaseScriptingObjects (0ms)
 		CreateAndSetChildDomain (1ms)
-	RebuildCommonClasses (29ms)
-	RebuildNativeTypeToScriptingClass (8ms)
-	initialDomainReloadingComplete (38ms)
-	LoadAllAssembliesAndSetupDomain (126ms)
-		LoadAssemblies (104ms)
+	RebuildCommonClasses (47ms)
+	RebuildNativeTypeToScriptingClass (9ms)
+	initialDomainReloadingComplete (65ms)
+	LoadAllAssembliesAndSetupDomain (145ms)
+		LoadAssemblies (197ms)
 		RebuildTransferFunctionScriptingTraits (0ms)
-		AnalyzeDomain (123ms)
-			TypeCache.Refresh (122ms)
-				TypeCache.ScanAssembly (111ms)
+		AnalyzeDomain (142ms)
+			TypeCache.Refresh (140ms)
+				TypeCache.ScanAssembly (128ms)
 			BuildScriptInfoCaches (0ms)
 			ResolveRequiredComponents (0ms)
-	FinalizeReload (254ms)
+	FinalizeReload (302ms)
 		ReleaseScriptCaches (0ms)
 		RebuildScriptCaches (0ms)
-		SetupLoadedEditorAssemblies (216ms)
+		SetupLoadedEditorAssemblies (244ms)
 			LogAssemblyErrors (0ms)
-			InitializePlatformSupportModulesInManaged (38ms)
+			InitializePlatformSupportModulesInManaged (43ms)
 			SetLoadedEditorAssemblies (3ms)
-			BeforeProcessingInitializeOnLoad (47ms)
-			ProcessInitializeOnLoadAttributes (91ms)
-			ProcessInitializeOnLoadMethodAttributes (38ms)
+			BeforeProcessingInitializeOnLoad (52ms)
+			ProcessInitializeOnLoadAttributes (100ms)
+			ProcessInitializeOnLoadMethodAttributes (46ms)
 			AfterProcessingInitializeOnLoad (0ms)
 			EditorAssembliesLoaded (0ms)
 		ExecutionOrderSort2 (0ms)
@@ -163,14 +163,14 @@ Begin MonoManager ReloadAssembly
   Type: Assigned
   Expiration: Unlimited
 Symbol file LoadedFromMemory is not a mono symbol file
-- Loaded All Assemblies, in  0.850 seconds
-Refreshing native plugins compatible for Editor in 18.42 ms, found 12 plugins.
+- Loaded All Assemblies, in  1.202 seconds
+Refreshing native plugins compatible for Editor in 34.05 ms, found 12 plugins.
 Native extension for WindowsStandalone target not found
 Package Manager log level set to [2]
 [Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
 [Package Manager] Unable to send message (not connected to server process).
 [Package Manager] Cannot connect to Unity Package Manager local server
-Refreshing native plugins compatible for Editor in 16.84 ms, found 12 plugins.
+Refreshing native plugins compatible for Editor in 22.45 ms, found 12 plugins.
 [Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
 [Package Manager] Unable to send message (not connected to server process).
 [Package Manager] Cannot connect to Unity Package Manager local server
@@ -213,35 +213,35 @@ Mono: successfully reloaded assembly
 [Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
 [Package Manager] Unable to send message (not connected to server process).
 [Package Manager] Cannot connect to Unity Package Manager local server
-- Finished resetting the current domain, in  0.864 seconds
-Domain Reload Profiling: 1707ms
-	BeginReloadAssembly (145ms)
+- Finished resetting the current domain, in  1.279 seconds
+Domain Reload Profiling: 2474ms
+	BeginReloadAssembly (164ms)
 		ExecutionOrderSort (0ms)
 		DisableScriptedObjects (5ms)
 		BackupInstance (0ms)
 		ReleaseScriptingObjects (0ms)
-		CreateAndSetChildDomain (23ms)
-	RebuildCommonClasses (28ms)
+		CreateAndSetChildDomain (25ms)
+	RebuildCommonClasses (30ms)
 	RebuildNativeTypeToScriptingClass (9ms)
-	initialDomainReloadingComplete (33ms)
-	LoadAllAssembliesAndSetupDomain (628ms)
-		LoadAssemblies (417ms)
+	initialDomainReloadingComplete (37ms)
+	LoadAllAssembliesAndSetupDomain (954ms)
+		LoadAssemblies (702ms)
 		RebuildTransferFunctionScriptingTraits (0ms)
-		AnalyzeDomain (291ms)
-			TypeCache.Refresh (194ms)
-				TypeCache.ScanAssembly (174ms)
-			BuildScriptInfoCaches (85ms)
-			ResolveRequiredComponents (9ms)
-	FinalizeReload (864ms)
+		AnalyzeDomain (348ms)
+			TypeCache.Refresh (234ms)
+				TypeCache.ScanAssembly (214ms)
+			BuildScriptInfoCaches (97ms)
+			ResolveRequiredComponents (13ms)
+	FinalizeReload (1280ms)
 		ReleaseScriptCaches (0ms)
 		RebuildScriptCaches (0ms)
-		SetupLoadedEditorAssemblies (705ms)
+		SetupLoadedEditorAssemblies (1032ms)
 			LogAssemblyErrors (0ms)
 			InitializePlatformSupportModulesInManaged (2ms)
 			SetLoadedEditorAssemblies (5ms)
-			BeforeProcessingInitializeOnLoad (133ms)
-			ProcessInitializeOnLoadAttributes (315ms)
-			ProcessInitializeOnLoadMethodAttributes (244ms)
+			BeforeProcessingInitializeOnLoad (165ms)
+			ProcessInitializeOnLoadAttributes (508ms)
+			ProcessInitializeOnLoadMethodAttributes (347ms)
 			AfterProcessingInitializeOnLoad (5ms)
 			EditorAssembliesLoaded (0ms)
 		ExecutionOrderSort2 (0ms)
@@ -282,19 +282,79 @@ WARNING: Shader If subshaders removal was intentional, you may have forgotten tu
 WARNING: Shader Unsupported: 'Simulation/URP/Lit' - All subshaders removed
 WARNING: Shader Did you use #pragma only_renderers and omit this platform?
 WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-Launched and connected shader compiler UnityShaderCompiler.exe after 0.03 seconds
-Refreshing native plugins compatible for Editor in 20.74 ms, found 12 plugins.
-Preloading 1 native plugins for Editor in 0.09 ms.
+Launched and connected shader compiler UnityShaderCompiler.exe after 0.04 seconds
+Refreshing native plugins compatible for Editor in 24.34 ms, found 12 plugins.
+Preloading 1 native plugins for Editor in 0.07 ms.
 Unloading 23 Unused Serialized files (Serialized files now loaded: 0)
-Unloading 8641 unused Assets / (7.8 MB). Loaded Objects now: 9313.
-Memory consumption went from 176.2 MB to 168.4 MB.
-Total: 15.721200 ms (FindLiveObjects: 0.934300 ms CreateObjectMapping: 0.683600 ms MarkObjects: 9.729400 ms  DeleteObjects: 4.372200 ms)
+Unloading 8641 unused Assets / (7.3 MB). Loaded Objects now: 9317.
+Memory consumption went from 176.1 MB to 168.8 MB.
+Total: 14.227300 ms (FindLiveObjects: 0.843900 ms CreateObjectMapping: 0.673400 ms MarkObjects: 9.007800 ms  DeleteObjects: 3.701200 ms)
 
 ========================================================================
 Received Import Request.
-  Time since last request: 113441.191053 seconds.
-  path: Assets/External Assets/mecabricks/LEGOLAND® Park_cup 1.fbx
-  artifactKey: Guid(1d7c8c00085c7424cabfdc543cbf4d61) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/External Assets/mecabricks/LEGOLAND® Park_cup 1.fbx using Guid(1d7c8c00085c7424cabfdc543cbf4d61) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '4e126ec1508eebbc4e6a1b3f0a1808d5') in 1.8358152 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 730
+  Time since last request: 21970.284698 seconds.
+  path: Assets/External Assets/test/tripo_convert_c9b51281-fb6e-4454-b753-3f1cdbb8f5ae.fbm/tripo_test_org_metallic.JPEG
+  artifactKey: Guid(5ecb49ad9e9cf6d48aed5455ac6174d1) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/External Assets/test/tripo_convert_c9b51281-fb6e-4454-b753-3f1cdbb8f5ae.fbm/tripo_test_org_metallic.JPEG using Guid(5ecb49ad9e9cf6d48aed5455ac6174d1) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'b4beddafc380b3cc18762f54abca22e2') in 0.0559917 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 2
 
+========================================================================
+Received Import Request.
+  Time since last request: 0.000025 seconds.
+  path: Assets/External Assets/test/tripo_convert_c9b51281-fb6e-4454-b753-3f1cdbb8f5ae.fbm/tripo_test_org_roughness.JPEG
+  artifactKey: Guid(d93ede6d6fb710c41963d97e907fa492) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/External Assets/test/tripo_convert_c9b51281-fb6e-4454-b753-3f1cdbb8f5ae.fbm/tripo_test_org_roughness.JPEG using Guid(d93ede6d6fb710c41963d97e907fa492) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '6560996b73cca3cb577d81712f4ffe4e') in 0.0163318 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 2
+
+========================================================================
+Received Import Request.
+  Time since last request: 210.283855 seconds.
+  path: Assets/External Assets/test/tripo_convert_31239552-c30b-4f99-a9cc-7eaa03b05835.fbm/legoyellowplane3dmodel_metallic.JPEG
+  artifactKey: Guid(15ac779e11d32324b95955391749d150) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/External Assets/test/tripo_convert_31239552-c30b-4f99-a9cc-7eaa03b05835.fbm/legoyellowplane3dmodel_metallic.JPEG using Guid(15ac779e11d32324b95955391749d150) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '0780b247b74d02f1a6b2d4fea44437f1') in 0.019209 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 2
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000023 seconds.
+  path: Assets/External Assets/test/tripo_convert_31239552-c30b-4f99-a9cc-7eaa03b05835.fbm/legoyellowplane3dmodel_normal.JPEG
+  artifactKey: Guid(3f62201847e2f904485fcfbcb102dfee) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/External Assets/test/tripo_convert_31239552-c30b-4f99-a9cc-7eaa03b05835.fbm/legoyellowplane3dmodel_normal.JPEG using Guid(3f62201847e2f904485fcfbcb102dfee) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'e2d70e3f9ff1aaf23db798b524faf3e0') in 0.0411015 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 2
+
+========================================================================
+Received Import Request.
+  Time since last request: 1799.780330 seconds.
+  path: Assets/TerrainData_5418b12f-1aa0-4794-b5e5-7f3ad9e1f480.asset
+  artifactKey: Guid(4bd8149e89a11a84e8e1c887e178e80f) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/TerrainData_5418b12f-1aa0-4794-b5e5-7f3ad9e1f480.asset using Guid(4bd8149e89a11a84e8e1c887e178e80f) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'a786b07685d593c163c414d89d5dfbe1') in 0.0631613 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 3
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000170 seconds.
+  path: Assets/TerrainData_ceae8b17-4984-4fd1-b467-e663afce50cb.asset
+  artifactKey: Guid(8b59827a411fa9045870431dd68654d6) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/TerrainData_ceae8b17-4984-4fd1-b467-e663afce50cb.asset using Guid(8b59827a411fa9045870431dd68654d6) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '4105714670d4351a6b7cce0cf78d6d61') in 0.0166753 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 3
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000022 seconds.
+  path: Assets/TerrainData_f61ff459-7225-4956-aba4-4bb4ba08235d.asset
+  artifactKey: Guid(67e1eb066a298264fad2b3ea368e282d) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/TerrainData_f61ff459-7225-4956-aba4-4bb4ba08235d.asset using Guid(67e1eb066a298264fad2b3ea368e282d) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '012a76f3f88a0b4f52eec9d384b11099') in 0.0109374 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 3
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000014 seconds.
+  path: Assets/TerrainData_f0ed95bc-786a-42b9-90dd-fd8278c82f34.asset
+  artifactKey: Guid(00bddf86675756c4ea7482ed45d46d35) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/TerrainData_f0ed95bc-786a-42b9-90dd-fd8278c82f34.asset using Guid(00bddf86675756c4ea7482ed45d46d35) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'a54bf69b6e5457b844546e2f4d6ee558') in 0.0350762 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 3
+
+Editor requested this worker to shutdown with reason: Scaling down because of idle timeout
+AssetImportWorker is now disconnected from the server
+Process exiting
+Exiting without the bug reporter. Application will terminate with return code 0
