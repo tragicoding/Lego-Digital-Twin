@@ -1,0 +1,9 @@
+.env
+output/
+logs/
+storage/captures/*
+storage/models/*
+!storage/captures/.gitkeep
+!storage/models/.gitkeep
+__pycache__/
+*.pyc
