@@ -139,10 +139,20 @@ task_id 확인
 → 너무 오래 걸리면 TimeoutError'''
 
 
-#Tripo 결과에서 GLB 파일 URL을 찾아서 다운로드 하는 함수. 
+#Tripo 결과에서 GLB 파일 URL을 찾아서 다운로드 하는 함수.
+# image_to_model → "pbr_model"
+# animate_retarget → "model" 또는 "animation" 키 사용
 async def download_glb(result: dict, output_path: Path) -> Path:
     """GLB 파일을 다운로드한다."""
-    glb_url = result["output"]["pbr_model"]
+    output = result.get("output", {})
+    glb_url = (
+        output.get("pbr_model")
+        or output.get("model")
+        or output.get("animation")
+        or output.get("animated_model")
+    )
+    if not glb_url:
+        raise KeyError(f"GLB URL을 찾을 수 없습니다. output keys: {list(output.keys())}")
     async with httpx.AsyncClient() as c:
         resp = await c.get(glb_url, timeout=120, follow_redirects=True)
         resp.raise_for_status()
