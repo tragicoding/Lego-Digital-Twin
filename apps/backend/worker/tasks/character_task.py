@@ -29,7 +29,7 @@ tripo: Tripo API 호출 함수 모음"""
 # Tripo 애니메이션 preset 매핑
 ANIMATIONS = [
     {"key": "walk",  "display_name": "걷기",    "preset": "preset:walk",  "unity_function": "animation_walk"},
-    {"key": "hello", "display_name": "인사_01", "preset": "preset:wave",  "unity_function": "animation_Hello"},
+    {"key": "hello", "display_name": "인사_01", "preset": "preset:hello", "unity_function": "animation_Hello"},
 ]
 '''
 key: 내부 식별자
@@ -80,29 +80,22 @@ async def _process_character_async(asset_id: str):
         final_glb_path = rig_glb_path
         _set_stage(db, asset, "animating", 65)
 
-        # 4. 애니메이션 (걷기 + 인사_01) — 실패해도 리깅 모델로 fallback
+        # 4. 애니메이션 (걷기 + 인사_01)
         for i, anim in enumerate(ANIMATIONS):
-            try:
-                anim_task_id = await tripo.create_animation_task(rig_task_id, anim["preset"])
-                anim_result = await tripo.poll_task(anim_task_id)
+            anim_task_id = await tripo.create_animation_task(rig_task_id, anim["preset"])
+            anim_result = await tripo.poll_task(anim_task_id)
 
-                glb_path = STORAGE_MODELS / f"{asset_id}_{anim['key']}.glb"
-                await tripo.download_glb(anim_result, glb_path)
+            glb_path = STORAGE_MODELS / f"{asset_id}_{anim['key']}.glb"
+            await tripo.download_glb(anim_result, glb_path)
 
-                db.add(AssetAnimation(
-                    asset_id=asset_id,
-                    animation_key=anim["key"],
-                    display_name=anim["display_name"],
-                    file_url=f"{BACKEND_HOST}/static/models/{glb_path.name}",
-                    unity_function=anim["unity_function"],
-                ))
-                final_glb_path = glb_path
-
-            except Exception as anim_err:
-                # 애니메이션 실패 → 경고만 기록하고 다음 단계로 진행
-                asset.error_message = f"[warn] {anim['key']} 애니메이션 실패: {anim_err}"
-                db.commit()
-
+            db.add(AssetAnimation(
+                asset_id=asset_id,
+                animation_key=anim["key"],
+                display_name=anim["display_name"],
+                file_url=f"{BACKEND_HOST}/static/models/{glb_path.name}",
+                unity_function=anim["unity_function"],
+            ))
+            final_glb_path = glb_path
             _set_stage(db, asset, "animating", 65 + (i + 1) * 10)
 
         db.commit()
