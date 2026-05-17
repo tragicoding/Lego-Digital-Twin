@@ -2,10 +2,10 @@ using UnityEngine;
 
 public class BalloonTour : MonoBehaviour
 {
-    [Header("ê²½ë¡œ ì„¤ì •")]
-    public Transform[] waypoints; 
+    [Header("°æ·Î ¼³Á¤")]
+    public Transform[] waypoints;
 
-    [Header("ë¹„í–‰ ì„¤ì •")]
+    [Header("ºñÇà ¼³Á¤")]
     public float speed = 5f;
     public float rotationSpeed = 2f;
     public bool lookAtTarget = true;
@@ -18,17 +18,17 @@ public class BalloonTour : MonoBehaviour
 
         Transform targetWaypoint = waypoints[currentIndex];
 
-        // 1. ëª©í‘œ ì§€ì ì„ í–¥í•´ ì´ë™
+        // 1. ¸ñÇ¥ ÁöÁ¡À» ÇâÇØ ÀÌµ¿
         transform.position = Vector3.MoveTowards(transform.position, targetWaypoint.position, speed * Time.deltaTime);
 
-        // 2. ì´ë™í•˜ëŠ” ë°©í–¥ìœ¼ë¡œ ìì—°ìŠ¤ëŸ½ê²Œ íšŒì „ (ê¸°ìš¸ì–´ì§ ë°©ì§€ ì ìš©)
+        // 2. ÀÌµ¿ÇÏ´Â ¹æÇâÀ¸·Î ÀÚ¿¬½º·´°Ô È¸Àü (±â¿ï¾îÁü ¹æÁö Àû¿ë)
         if (lookAtTarget)
         {
             Vector3 direction = targetWaypoint.position - transform.position;
-            
-            // â˜… í•µì‹¬ í¬ì¸íŠ¸: ë°©í–¥ ë²¡í„°ì˜ Yì¶•(ë†’ë‚®ì´) ê°’ì„ 0ìœ¼ë¡œ ë§Œë“¤ì–´ë²„ë¦¼
-            // ì´ë ‡ê²Œ í•˜ë©´ ì˜¤ì§ ìˆ˜í‰ ë°©í–¥(X, Z)ìœ¼ë¡œë§Œ íšŒì „ê°ì„ ê³„ì‚°í•©ë‹ˆë‹¤.
-            direction.y = 0; 
+
+            // ¡Ú ÇÙ½É Æ÷ÀÎÆ®: ¹æÇâ º¤ÅÍÀÇ YÃà(³ô³·ÀÌ) °ªÀ» 0À¸·Î ¸¸µé¾î¹ö¸²
+            // ÀÌ·¸°Ô ÇÏ¸é ¿ÀÁ÷ ¼öÆò ¹æÇâ(X, Z)À¸·Î¸¸ È¸Àü°¢À» °è»êÇÕ´Ï´Ù.
+            direction.y = 0;
 
             if (direction != Vector3.zero)
             {
@@ -37,7 +37,7 @@ public class BalloonTour : MonoBehaviour
             }
         }
 
-        // 3. ëª©í‘œ ì§€ì ì— ë„ë‹¬í–ˆëŠ”ì§€ í™•ì¸
+        // 3. ¸ñÇ¥ ÁöÁ¡¿¡ µµ´ŞÇß´ÂÁö È®ÀÎ
         if (Vector3.Distance(transform.position, targetWaypoint.position) < 0.1f)
         {
             currentIndex = (currentIndex + 1) % waypoints.Length;
