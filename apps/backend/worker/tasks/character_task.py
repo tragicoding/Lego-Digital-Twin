@@ -27,9 +27,11 @@ tripo: Tripo API 호출 함수 모음"""
 
 
 # Tripo 애니메이션 preset 매핑
+# 실제 Tripo API에서 동작 확인된 preset만 사용
+# 성공: walk, idle, run, jump / 실패(err:1004): wave, hello, dance
 ANIMATIONS = [
-    {"key": "walk",  "display_name": "걷기",    "preset": "preset:walk",  "unity_function": "animation_walk"},
-    {"key": "hello", "display_name": "인사_01", "preset": "preset:hello", "unity_function": "animation_Hello"},
+    {"key": "walk",  "display_name": "걷기",    "preset": "preset:walk", "unity_function": "animation_walk"},
+    {"key": "hello", "display_name": "인사_01", "preset": "preset:idle", "unity_function": "animation_Hello"},
 ]
 '''
 key: 내부 식별자
