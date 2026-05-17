@@ -2,7 +2,9 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-load_dotenv()
+# 어느 디렉토리에서 실행하든 .env를 찾을 수 있도록 절대경로 사용
+_ENV_FILE = Path(__file__).parent.parent / ".env"
+load_dotenv(_ENV_FILE)
 
 DATABASE_URL: str = os.environ["DATABASE_URL"]
 REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379")
