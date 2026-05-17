@@ -4,14 +4,19 @@ from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
 import os, sys
-sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+
+# 프로젝트 루트(Lego-Digital-Twin/)를 sys.path에 추가
+_backend_dir = os.path.dirname(os.path.dirname(__file__))   # apps/backend
+_apps_dir    = os.path.dirname(_backend_dir)                 # apps/
+_project_dir = os.path.dirname(_apps_dir)                    # Lego-Digital-Twin/
+sys.path.insert(0, _project_dir)
 
 from dotenv import load_dotenv
-load_dotenv()
+load_dotenv(os.path.join(_backend_dir, ".env"))
 
 from alembic import context
-from core.database import Base
-from models import Session, Asset, AssetAnimation, PlazaObject  # noqa: F401
+from apps.backend.core.database import Base
+from apps.backend.models import Session, Asset, AssetAnimation, PlazaObject  # noqa: F401
 
 config = context.config
 
