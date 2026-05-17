@@ -75,6 +75,29 @@ def test_start(
     }
 
 
+@router.post("/sessions/{session_id}/retry/{asset_type}")
+def retry_asset(session_id: str, asset_type: str, db: DBSession = Depends(get_db)):
+    """실패한 에셋을 재시도한다 (실제 파이프라인 재실행)."""
+    from ...models.asset import Asset
+    from ...services.queue_service import enqueue_asset
+
+    asset = db.query(Asset).filter(
+        Asset.session_id == session_id,
+        Asset.asset_type == asset_type,
+    ).first()
+    if not asset:
+        return {"status": "not found"}
+
+    asset.status = "queued"
+    asset.stage = "waiting"
+    asset.progress = 0
+    asset.error_message = None
+    db.commit()
+
+    enqueue_asset(asset.id, asset_type)
+    return {"status": "requeued", "asset_id": asset.id}
+
+
 @router.delete("/sessions/{session_id}")
 def test_cleanup(session_id: str, db: DBSession = Depends(get_db)):
     """테스트 세션 삭제 (초기화용)."""
