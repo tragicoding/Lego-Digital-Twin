@@ -1,24 +1,49 @@
+/*
+캐릭터 → 건축물 → 자동차 순서로 사진을 선택/촬영하고, 
+백엔드에 업로드하는 페이지
+*/
+
+
+
+
 import { useState, useRef } from "react";
+//useState: 화면 상태 관리
+//useRef: 숨겨진 file input을 버튼으로 클릭시키기 위해 사용
 import { useNavigate } from "react-router-dom";
 import { uploadAsset } from "../api/client";
+//백엔드에 이미지 업로드하는 API 함수
 import { useSessionStore } from "../store/sessionStore";
+//sessionId, 업로드 완료 상태를 가져오기 위해 사용
+
 
 const STEPS = [
   { type: "character", label: "캐릭터", emoji: "🧍", desc: "레고 캐릭터를 조립하고 촬영하세요" },
   { type: "building",  label: "건축물", emoji: "🏰", desc: "레고 건축물을 조립하고 촬영하세요" },
   { type: "vehicle",   label: "자동차", emoji: "🚗", desc: "레고 자동차를 조립하고 촬영하세요" },
-];
+]; //촬영 단계 정의 배열 
 
 export default function CapturePage() {
   const navigate = useNavigate();
   const { sessionId, setUploaded, uploads } = useSessionStore();
-  const [current, setCurrent] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [preview, setPreview] = useState<string | null>(null);
+  //전역 store에서 세 가지를 가져온다.
+  /*
+  {
+  sessionId: "abc123",
+  uploads: {
+    character: true,
+    building: true
+  }
+}
+  */
+  const [current, setCurrent] = useState(0); //useState 상태들
+  const [loading, setLoading] = useState(false);//업로드 중인지 여부
+  const [preview, setPreview] = useState<string | null>(null); //선택한 이미지 미리보기 URL을 저장
+  //사진을 선택하면 화면에 이미지가 보이게 만드는 값
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-
-  const step = STEPS[current];
+//숨겨진 파일 선택 input을 직접 클릭시키기 위한 참조.
+//실제 input은 화면에 안 보이게 되어 있음.
+  const step = STEPS[current];//현재 단계 정보 가져옴
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -28,14 +53,22 @@ export default function CapturePage() {
   };
 
   const handleUpload = async () => {
-    if (!sessionId || !selectedFile) return;
-    setLoading(true);
+    if (!sessionId || !selectedFile) return;//세션 ID가 없거나 파일이 없으면 업로드하지 않고 종료
+
+    setLoading(true); //업로드 시작 상태로 변경
     await uploadAsset(sessionId, step.type, selectedFile);
-    setUploaded(step.type);
+    //백엔드에 이미지 업로드 요청 보낸다.
+    //sessionID, step.type,selectedFile을 보낸다. 
+    setUploaded(step.type);//업로드 끝나면 Zustand에 기록
+
+    //초기화 
     setPreview(null);
     setSelectedFile(null);
     setLoading(false);
 
+    //다음 단계로 이동. 
+    //현재 단계가 마지막 단계가 아니면 다음 단계로 이동, 마지막 단계면 프로필 페이지로 이동
+    // -> /profile 페이지로 이동.
     if (current < STEPS.length - 1) {
       setCurrent((c) => c + 1);
     } else {

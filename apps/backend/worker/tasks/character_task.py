@@ -1,8 +1,15 @@
 """
 캐릭터 처리 파이프라인 (RQ Worker에서 실행)
 이미지 → 3D 생성 → 리깅 → 걷기/인사_01 애니메이션 → GLB 저장 → DB 업데이트
+
+enqueue_asset()에서 character 작업이 큐에 들어가면,
+RQ Worker가 이 파일의 process_character()를 실행
+
+
 """
+#비동기 작업 
 import asyncio
+#파일 경로를 다루기 쉽게 해주는 Python 문법
 from pathlib import Path
 
 from ...core.config import STORAGE_MODELS, BACKEND_HOST
@@ -10,31 +17,46 @@ from ...core.database import SessionLocal
 from ...models.asset import Asset
 from ...models.asset_animation import AssetAnimation
 from ...services import tripo_service as tripo
+"""
+STORAGE_MODELS: GLB 저장 폴더 경로
+BACKEND_HOST: 파일 URL 만들 때 쓰는 서버 주소
+SessionLocal: DB 세션 생성
+Asset: 업로드된 에셋 DB 모델
+AssetAnimation: 애니메이션 메타데이터 저장용 DB 모델
+tripo: Tripo API 호출 함수 모음"""
+
 
 # Tripo 애니메이션 preset 매핑
 ANIMATIONS = [
     {"key": "walk",  "display_name": "걷기",    "preset": "preset:walk",  "unity_function": "animation_walk"},
     {"key": "hello", "display_name": "인사_01", "preset": "preset:wave",  "unity_function": "animation_Hello"},
 ]
+'''
+key: 내부 식별자
+display_name: 사용자용 이름
+preset: Tripo에 넘길 애니메이션 프리셋
+unity_function: Unity에서 호출할 함수 이름'''
 
 
+#현재 처리 단계와 진행률을 DB에 저장하는 보조함수.
 def _set_stage(db, asset: Asset, stage: str, progress: int):
     asset.stage = stage
     asset.progress = progress
     db.commit()
 
-
+#RQ Worker 진입점. RQ Worker가 직접 호출하는 진입점.
 def process_character(asset_id: str):
     """RQ Worker 진입점 — 동기 래퍼."""
     asyncio.run(_process_character_async(asset_id))
 
-
+#실제 처리 로직이 담긴 비동기 함수.
 async def _process_character_async(asset_id: str):
+    #DB 세션 열기 + asset_id로 Asset 객체 가져오기(조회)
     db = SessionLocal()
     asset = db.get(Asset, asset_id)
     if not asset:
         return
-
+    #처리 시작 상태로 변경
     try:
         asset.status = "processing"
         _set_stage(db, asset, "generating", 10)
