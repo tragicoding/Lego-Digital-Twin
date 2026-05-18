@@ -34,27 +34,41 @@ from rq import Queue
 REDIS_URL = "redis://localhost:6379/0"
 RQ_QUEUE_NAME = "lego_tasks"
 '''
-from ..core.config import REDIS_URL, RQ_QUEUE_NAME
+from ..core.config import REDIS_URL, RQ_QUEUE_CHARACTER, RQ_QUEUE_BUILDING, RQ_QUEUE_VEHICLE
 
-#Redis 서버에 연결.
 _redis = Redis.from_url(REDIS_URL)
-#queue 객체 생성.
-_queue = Queue(RQ_QUEUE_NAME, connection=_redis)
+_queues = {
+    "character": Queue(RQ_QUEUE_CHARACTER, connection=_redis),
+    "building":  Queue(RQ_QUEUE_BUILDING,  connection=_redis),
+    "vehicle":   Queue(RQ_QUEUE_VEHICLE,   connection=_redis),
+}
 
-#업로드된 에셋을 작업 큐에 등록하는 함수
-#인자는 2개
-#asset_id    → DB에 저장된 Asset의 고유 ID
-#asset_type  → character / building / vehicle
+
 def enqueue_asset(asset_id: str, asset_type: str):
-    """asset_id를 Redis Queue에 등록한다."""
+    """asset_id를 타입별 전용 큐에 등록 — 3개 큐가 병렬로 처리된다."""
     if asset_type == "character":
         from ..worker.tasks.character_task import process_character
-        _queue.enqueue(process_character, asset_id, job_timeout=600)
+        _queues["character"].enqueue(process_character, asset_id, job_timeout=600)
 
     elif asset_type == "building":
         from ..worker.tasks.building_task import process_building
-        _queue.enqueue(process_building, asset_id, job_timeout=600)
+        _queues["building"].enqueue(process_building, asset_id, job_timeout=600)
 
     elif asset_type == "vehicle":
         from ..worker.tasks.vehicle_task import process_vehicle
-        _queue.enqueue(process_vehicle, asset_id, job_timeout=600)
+        _queues["vehicle"].enqueue(process_vehicle, asset_id, job_timeout=600)
+
+
+def enqueue_mock_asset(asset_id: str, asset_type: str):
+    """Mock 파이프라인용 — 타입별 큐에 등록."""
+    if asset_type == "character":
+        from ..worker.tasks.mock_task import process_mock_character
+        _queues["character"].enqueue(process_mock_character, asset_id, job_timeout=120)
+
+    elif asset_type == "building":
+        from ..worker.tasks.mock_task import process_mock_building
+        _queues["building"].enqueue(process_mock_building, asset_id, job_timeout=120)
+
+    elif asset_type == "vehicle":
+        from ..worker.tasks.mock_task import process_mock_vehicle
+        _queues["vehicle"].enqueue(process_mock_vehicle, asset_id, job_timeout=120)

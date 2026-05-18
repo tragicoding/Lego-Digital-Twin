@@ -15,12 +15,7 @@ from sqlalchemy.orm import Session as DBSession
 from ...core.database import get_db
 from ...models.asset import Asset
 from ...models.session import Session
-from ...services.queue_service import _queue
-from ...worker.tasks.mock_task import (
-    process_mock_character,
-    process_mock_building,
-    process_mock_vehicle,
-)
+from ...services.queue_service import enqueue_mock_asset
 
 router = APIRouter(prefix="/test", tags=["test"])
 
@@ -42,14 +37,9 @@ def test_start(
     db.commit()
     db.refresh(session)
 
-    # Mock asset 3개 생성
-    asset_map = {
-        "character": process_mock_character,
-        "building":  process_mock_building,
-        "vehicle":   process_mock_vehicle,
-    }
+    # Mock asset 3개 생성 — 각 타입 전용 큐에 등록되어 병렬 처리됨
     asset_ids = {}
-    for asset_type, worker_fn in asset_map.items():
+    for asset_type in ("character", "building", "vehicle"):
         asset = Asset(
             session_id=session.id,
             asset_type=asset_type,
@@ -61,9 +51,7 @@ def test_start(
         db.commit()
         db.refresh(asset)
         asset_ids[asset_type] = asset.id
-
-        # RQ Queue에 Mock Worker 등록
-        _queue.enqueue(worker_fn, asset.id, job_timeout=120)
+        enqueue_mock_asset(asset.id, asset_type)
 
     return {
         "session_id": session.id,
