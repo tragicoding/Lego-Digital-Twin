@@ -1,5 +1,5 @@
 """
-RQ Worker 시작 스크립트 — 타입별 큐 3개를 병렬 실행.
+RQ Worker 시작 스크립트 — character / object 큐 2개 병렬 실행.
 프로젝트 루트에서 실행: conda run -n triposr python run_worker.py
 """
 import sys
@@ -12,14 +12,9 @@ sys.path.insert(0, os.path.dirname(__file__))
 from redis import Redis
 from rq import Worker, Queue
 
-from apps.backend.core.config import (
-    REDIS_URL,
-    RQ_QUEUE_CHARACTER,
-    RQ_QUEUE_BUILDING,
-    RQ_QUEUE_VEHICLE,
-)
+from apps.backend.core.config import REDIS_URL, RQ_QUEUE_CHARACTER, RQ_QUEUE_OBJECT
 
-QUEUES = [RQ_QUEUE_CHARACTER, RQ_QUEUE_BUILDING, RQ_QUEUE_VEHICLE]
+QUEUES = [RQ_QUEUE_CHARACTER, RQ_QUEUE_OBJECT]
 
 
 def run_worker(queue_name: str):

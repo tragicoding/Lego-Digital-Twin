@@ -33,11 +33,18 @@ def update_profile(
     if not session:
         raise HTTPException(404, "세션을 찾을 수 없습니다.")
 
-    session.nickname = body.nickname
+    if body.character_npc_name:
+        session.nickname = body.character_npc_name
+    elif body.nickname:
+        session.nickname = body.nickname
+
+    if body.object_name:
+        session.bubble_text = body.object_name
+    elif body.bubble_text:
+        session.bubble_text = body.bubble_text
+
     if body.phone:
         session.phone = body.phone
-    if body.bubble_text:
-        session.bubble_text = body.bubble_text
     if body.favorite_theme:
         session.favorite_theme = body.favorite_theme
 

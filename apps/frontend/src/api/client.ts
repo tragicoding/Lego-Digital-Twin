@@ -65,7 +65,9 @@ PATCH는 기존 데이터 중 일부만 수정할 때 많이 쓴다.
 nickname은 필수고, 나머지는 선택값.
 */
 export const updateProfile = (sessionId: string, data: {
-  nickname: string;
+  nickname?: string;
+  character_npc_name?: string;
+  object_name?: string;
   phone?: string;
   bubble_text?: string;
   favorite_theme?: string;

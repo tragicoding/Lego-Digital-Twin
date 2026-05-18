@@ -21,5 +21,4 @@ STORAGE_MODELS.mkdir(parents=True, exist_ok=True)
 TRIPO_BASE_URL = "https://api.tripo3d.ai/v2/openapi"
 RQ_QUEUE_NAME = "lego-queue"  # 레거시 — 하위 호환용
 RQ_QUEUE_CHARACTER = "lego-character"
-RQ_QUEUE_BUILDING = "lego-building"
-RQ_QUEUE_VEHICLE = "lego-vehicle"
+RQ_QUEUE_OBJECT = "lego-object"
