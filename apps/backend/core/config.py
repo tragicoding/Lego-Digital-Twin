@@ -2,7 +2,9 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-load_dotenv()
+# 어느 디렉토리에서 실행하든 .env를 찾을 수 있도록 절대경로 사용
+_ENV_FILE = Path(__file__).parent.parent / ".env"
+load_dotenv(_ENV_FILE)
 
 DATABASE_URL: str = os.environ["DATABASE_URL"]
 REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379")
@@ -17,4 +19,7 @@ STORAGE_IMAGES.mkdir(parents=True, exist_ok=True)
 STORAGE_MODELS.mkdir(parents=True, exist_ok=True)
 
 TRIPO_BASE_URL = "https://api.tripo3d.ai/v2/openapi"
-RQ_QUEUE_NAME = "lego-queue"
+RQ_QUEUE_NAME = "lego-queue"  # 레거시 — 하위 호환용
+RQ_QUEUE_CHARACTER = "lego-character"
+RQ_QUEUE_BUILDING = "lego-building"
+RQ_QUEUE_VEHICLE = "lego-vehicle"

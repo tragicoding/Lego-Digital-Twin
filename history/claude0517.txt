@@ -1,0 +1,699 @@
+프로젝트명: Lego-Digital-Twin
+
+나는 Unity 기반 VR 전시 프로젝트를 개발 중이다.
+이 프로젝트는 관객이 현실에서 직접 조립한 레고 캐릭터, 건축물, 자동차를 촬영하고, 이를 3D 모델로 변환하여 Unity VR 놀이공원 세계 안에 등장시키는 참여형 디지털 트윈 전시 프로젝트이다.
+
+현재 개발 상황:
+- WSL Linux 환경에서 개발 중
+- Backend는 FastAPI 사용 중
+- Tripo API 연결은 기본적으로 성공한 상태
+- 다만, 자동 리깅과 애니메이션 추가 기능은 아직 API 코드로 완전히 연결하지 않았음
+- 캐릭터 조립물 이미지를 Tripo 웹/Studio/API 흐름에서 3D 모델로 만들고, 자동 리깅 및 애니메이션 적용 테스트는 성공한 상태
+- Unity 월드는 어느 정도 완성된 상태
+- 앞으로 서버 연동, 런타임 모델 로딩, 캐릭터 NPC, 건축물 배치, 자동차 주행, 말풍선, 광장 누적 기능을 추가해야 함
+
+중요한 목표:
+전시 UX에서 관객이 Unity VR에 입장하기 전까지의 과정을 우선 구현하고 싶다.
+즉, 태블릿 UI에서 촬영 → 서버 업로드 → Redis Queue 등록 → Worker 병렬 처리 → Tripo API로 3D 모델 생성/리깅/애니메이션 처리 → 완료 상태 관리 → Unity에서 바로 사용할 수 있는 모델 파일 준비까지의 프론트엔드/백엔드/Worker 과정을 먼저 만들고 싶다.
+
+Unity 개발자가 이후에 캐릭터를 원하는 위치에 배치하고, 모션을 넣고, 런타임 흐름을 구성할 예정이다.
+따라서 지금 단계에서는 Unity 개발자가 쉽게 접근할 수 있는 준비 구조를 만들어두는 것이 중요하다.
+
+프로젝트 핵심 개념:
+관객은 전시장에 입장하면 태블릿 UI를 통해 체험을 시작한다.
+관객은 캐릭터, 건축물, 자동차 레고를 각각 조립하고 촬영한다.
+촬영된 이미지는 Tripo API를 통해 3D 모델로 변환된다.
+
+각 조립물 처리 방식:
+1. 캐릭터
+   - 이미지 촬영
+   - Tripo API로 3D 모델 생성
+   - Tripo API 또는 Tripo 웹/Studio 기능을 참고하여 자동 리깅 및 애니메이션 적용
+   - 기본 애니메이션으로 기존에 있는 "걷기"와 "인사_01"을 추가
+   - Unity에서 나중에 함수 형태로 접근할 수 있도록 준비
+   - 예:
+     animation_walk()
+     animation_Hello()
+   - Unity 안에서 가이드 NPC로 등장할 예정
+   - 관객에게 튜토리얼을 안내하고, 관객이 만든 건축물과 자동차가 있는 위치까지 안내할 예정
+   - 관객이 태블릿에서 입력한 닉네임이 이 캐릭터 NPC의 이름으로 표시됨
+
+2. 건축물
+   - 이미지 촬영
+   - Tripo API로 3D 모델 생성
+   - Unity 광장에 정적 모델로 배치
+   - 건축물 소유자 이름으로 사용자의 닉네임 표시
+
+3. 자동차
+   - 이미지 촬영
+   - Tripo API로 3D 모델 생성
+   - Unity에서 Vehicle 타입 오브젝트로 처리
+   - 자동차는 리깅하지 않음
+   - Unity에서 Vehicle Wrapper를 생성하고, VehicleController / VehiclePathFollower / VirtualWheel 등을 자동 부착할 수 있도록 준비
+   - 자동차는 자동 주행 또는 사용자가 조종 가능하도록 설계
+   - 자동차 소유자 이름도 사용자의 닉네임과 연결
+
+사용자 정보 규칙:
+- 관객이 입력한 nickname은 단순 사용자 이름이 아니라, Unity 안에서 생성되는 캐릭터 NPC의 이름이 된다.
+- nickname은 캐릭터 이름, 건축물 소유자 이름, 자동차 소유자 이름으로 모두 사용된다.
+- bubble_text는 해당 캐릭터 NPC가 다른 관객에게 보여줄 말풍선 문구로 사용된다.
+
+예:
+태블릿에서 사용자가 다음과 같이 입력하면:
+{
+  "nickname": "Jin",
+  "bubble_text": "내 레고 월드에 온 걸 환영해!"
+}
+
+Unity에서는:
+- 캐릭터 NPC 이름 = Jin
+- 건축물 소유자 이름 = Jin
+- 자동차 소유자 이름 = Jin
+- 캐릭터 말풍선 = 내 레고 월드에 온 걸 환영해!
+
+전시회 UX 흐름:
+1. 관객 입장
+2. 태블릿에서 간단한 인사말 표시
+   예: “환영합니다! 직접 만든 레고가 VR 놀이공원 안에 등장합니다. 먼저 조립물을 촬영해 주세요. 촬영 대상: 캐릭터 / 건축물 / 자동차”
+3. 캐릭터 / 건축물 / 자동차 촬영 먼저 진행
+4. 촬영 완료 즉시 FastAPI 서버로 업로드
+5. FastAPI가 각 이미지에 대해 asset_id를 생성하고 Redis Queue에 작업 등록
+6. Worker가 Redis Queue에서 작업을 가져와 Tripo API 처리를 백그라운드에서 시작
+   - character / building / vehicle 작업은 병렬 처리 가능하게 설계
+   - character는 3D 생성 후 자동 리깅 및 기본 애니메이션 걷기, 인사_01 적용
+   - building은 정적 3D 모델 생성
+   - vehicle은 3D 모델 생성 후 Unity에서 차량 오브젝트로 처리
+7. Worker가 API 처리하는 동안 관객은 태블릿에서 닉네임 / 말풍선 / 간단한 선택 정보를 입력
+8. 입력 후 로딩 화면에서 세계관 소개 영상/이미지/로딩 문구 표시
+9. Worker 작업 완료 후 모델 파일 저장, DB 상태 completed로 업데이트
+10. 모든 모델이 Unity에서 실행 가능한 상태가 되면 ready_for_unity = true
+11. 이후 Unity 개발자가 이 데이터를 받아서 VR 입장 후의 게임 흐름을 구성할 예정
+
+이번 단계에서 만들고 싶은 범위:
+전시 UX에서 Unity 입장 전까지의 전체 과정:
+- 태블릿 프론트엔드
+- FastAPI 백엔드
+- PostgreSQL DB
+- Redis/RQ Worker
+- Tripo API 처리
+- 모델 파일 저장
+- 상태 조회 API
+- Unity 개발자가 이후 사용할 수 있는 데이터 구조
+- Unity 개발자가 호출할 수 있는 캐릭터 애니메이션 접근 함수/클래스 구조 준비
+
+아직 Unity 런타임 세부 구현은 나중에 한다.
+하지만 Unity 개발자가 이후 작업하기 쉽도록 다음 정도는 준비하고 싶다:
+- 캐릭터 모델 데이터에 사용 가능한 애니메이션 목록 포함
+- 걷기 애니메이션은 animation_walk()로 접근 가능하도록 설계
+- 인사_01 애니메이션은 animation_Hello()로 접근 가능하도록 설계
+- 실제 함수 구현은 Unity C#에서 하되, 백엔드/데이터 구조에서 animation key를 명확히 제공
+- Unity C# 스크립트 구조 예시도 제안
+
+중요한 데이터 설계 원칙:
+관객이 개인정보를 입력하기 전에 이미지 촬영과 API 처리가 먼저 시작되기 때문에, 입장 즉시 session_id를 먼저 생성해야 한다.
+이 session_id가 이후 모든 데이터의 기준이 된다.
+
+즉:
+- 관객 입장 즉시 session_id 생성
+- 촬영된 캐릭터 / 건축물 / 자동차 이미지는 모두 같은 session_id에 연결
+- 각 이미지는 asset_id를 가짐
+- Redis Queue에는 이미지 자체가 아니라 asset_id를 등록
+- Worker는 asset_id를 기준으로 DB를 조회하여 session_id, asset_type, input_image_path를 확인
+- Worker가 Tripo API 처리 후 결과 model_url을 같은 asset row에 저장
+- 관객이 나중에 입력한 nickname, bubble_text 등은 같은 session_id에 업데이트
+- Unity는 session_id 기준으로 character / building / vehicle / nickname / bubble_text를 묶어서 로드
+
+데이터 관계:
+sessions 1 ─── N assets
+sessions 1 ─── N plaza_objects
+assets   1 ─── 1 generated_model
+
+예시:
+session_id = s_001
+├─ profile
+│  ├─ nickname = 캐릭터 NPC 이름
+│  ├─ phone, 필요 시
+│  └─ bubble_text = 캐릭터 말풍선
+│
+├─ assets
+│  ├─ asset_101: character
+│  ├─ asset_102: building
+│  └─ asset_103: vehicle
+│
+└─ plaza_objects
+   ├─ guide_npc
+   ├─ static_building
+   └─ driveable_vehicle
+
+추천 백엔드 기술 스택:
+- Backend: FastAPI
+- Language: Python
+- Database: PostgreSQL
+- ORM: SQLAlchemy
+- Migration: Alembic
+- Queue: Redis + RQ
+- Worker: Python Worker
+- 3D API: Tripo API
+- Realtime: WebSocket, 추후 Unity 연결용
+- File Storage: Local Storage, 추후 S3 확장 가능
+- Deployment: Docker Compose 권장
+- Frontend Tablet UI: React + Vite + TypeScript + Tailwind CSS
+- Unity 통신: REST API + WebSocket
+- Unity Runtime GLB Import: glTFast
+
+Redis/RQ/Worker 구조:
+FastAPI는 오래 걸리는 Tripo API 작업을 직접 처리하지 않고, 작업 접수만 빠르게 수행한다.
+촬영 이미지 업로드 후 FastAPI는 asset row를 만들고 Redis Queue에 asset_id를 넣는다.
+Worker는 Redis Queue에서 asset_id를 가져와 Tripo API 호출, 상태 polling, 결과 모델 다운로드, DB 업데이트를 수행한다.
+character / building / vehicle은 가능하면 병렬로 처리할 수 있게 Worker 구조를 설계한다.
+
+비유:
+FastAPI = 접수 데스크
+Redis Queue = 대기표
+Worker = 실제 작업 담당자
+Tripo API = 외부 3D 제작 공장
+Unity = 결과를 보여주는 전시장
+
+주요 API 설계 방향:
+1. 세션 생성
+POST /sessions
+응답:
+{
+  "session_id": "s_001"
+}
+
+2. 이미지 업로드
+POST /sessions/{session_id}/assets
+요청:
+- asset_type = character / building / vehicle
+- file = image
+응답:
+{
+  "asset_id": "asset_101",
+  "status": "queued"
+}
+
+3. 사용자 정보 입력
+PATCH /sessions/{session_id}/profile
+요청:
+{
+  "nickname": "Jin",
+  "phone": "01012345678",
+  "bubble_text": "내 레고 월드에 온 걸 환영해!",
+  "favorite_theme": "sunset"
+}
+
+4. 상태 조회
+GET /sessions/{session_id}/status
+응답 예시:
+{
+  "session_id": "s_001",
+  "profile_completed": true,
+  "assets": {
+    "character": {
+      "status": "processing",
+      "stage": "rigging",
+      "progress": 70
+    },
+    "building": {
+      "status": "completed",
+      "stage": "ready",
+      "progress": 100
+    },
+    "vehicle": {
+      "status": "processing",
+      "stage": "generating",
+      "progress": 50
+    }
+  },
+  "ready_for_unity": false
+}
+
+5. Unity 데이터 조회
+GET /unity/sessions/{session_id}
+
+Unity 데이터 응답 예시:
+{
+  "session_id": "s_001",
+  "nickname": "Jin",
+  "bubble_text": "내 레고 월드에 온 걸 환영해!",
+  "ready_for_unity": true,
+  "assets": {
+    "character": {
+      "asset_id": "asset_101",
+      "model_url": "/static/models/s_001_asset_101_character_animated.glb",
+      "role": "guide_npc",
+      "npc_name": "Jin",
+      "animations": {
+        "walk": {
+          "key": "walk",
+          "display_name": "걷기",
+          "unity_function": "animation_walk"
+        },
+        "hello": {
+          "key": "hello",
+          "display_name": "인사_01",
+          "unity_function": "animation_Hello"
+        }
+      }
+    },
+    "building": {
+      "asset_id": "asset_102",
+      "model_url": "/static/models/s_001_asset_102_building.glb",
+      "role": "static_building",
+      "owner_name": "Jin"
+    },
+    "vehicle": {
+      "asset_id": "asset_103",
+      "model_url": "/static/models/s_001_asset_103_vehicle.glb",
+      "role": "driveable_vehicle",
+      "owner_name": "Jin",
+      "control_mode": "auto_drive"
+    }
+  }
+}
+
+6. Unity WebSocket, 추후 사용
+/ws/unity
+
+Unity로 보내는 WebSocket 이벤트 예시:
+{
+  "event": "session_ready",
+  "session_id": "s_001"
+}
+
+추천 DB 테이블:
+1. sessions
+- id
+- nickname
+- phone
+- bubble_text
+- favorite_theme
+- status
+- created_at
+- updated_at
+
+2. assets
+- id
+- session_id
+- asset_type: character / building / vehicle
+- input_image_path
+- model_url
+- thumbnail_url
+- status: queued / processing / completed / failed
+- stage: waiting / generating / rigging / animating / downloading / ready
+- progress
+- created_at
+- updated_at
+
+3. asset_animations
+- id
+- asset_id
+- animation_key: walk / hello
+- display_name: 걷기 / 인사_01
+- file_url, 필요 시
+- unity_function: animation_walk / animation_Hello
+- created_at
+
+4. plaza_objects
+- id
+- session_id
+- asset_id
+- object_type: guide_npc / static_building / driveable_vehicle
+- position_x
+- position_y
+- position_z
+- rotation_y
+- scale
+- visible
+- created_at
+
+5. likes, 앱 확장용
+- id
+- session_id
+- asset_id
+- created_at
+
+6. chat_messages, 앱 확장용
+- id
+- session_id
+- message
+- created_at
+
+태블릿 프론트엔드 구조:
+- React + Vite + TypeScript + Tailwind CSS 사용
+- 태블릿 브라우저에서 http://서버IP:3000 접속하는 웹앱 형태 권장
+- 페이지 예시:
+  /start
+  /capture
+  /profile
+  /loading
+  /admin
+
+프론트엔드 화면 흐름:
+1. StartPage
+   - 인사말 표시
+   - POST /sessions 호출
+   - session_id 저장
+
+2. CapturePage
+   - 캐릭터 촬영
+   - 건축물 촬영
+   - 자동차 촬영
+   - 각각 POST /sessions/{session_id}/assets 업로드
+   - 업로드 완료 즉시 Queue 등록
+
+3. ProfilePage
+   - 닉네임 입력
+   - 닉네임이 캐릭터 NPC 이름이 된다는 설명 표시
+   - 전화번호 입력, 필요 시
+   - 말풍선 입력
+   - 말풍선은 캐릭터 NPC가 다른 관객에게 보여줄 문구라는 설명 표시
+   - PATCH /sessions/{session_id}/profile 호출
+
+4. LoadingPage
+   - GET /sessions/{session_id}/status polling 또는 WebSocket
+   - 상태별 문구 표시
+   - 예:
+     queued: 디지털 변환을 준비하고 있어요
+     generating: 레고 모형을 3D 모델로 만들고 있어요
+     rigging: 캐릭터에 움직임을 부여하고 있어요
+     animating: 캐릭터가 걸을 준비를 하고 있어요
+     downloading: Unity 월드로 이동 중이에요
+     completed: 준비 완료! VR 세계로 입장하세요
+   - ready_for_unity가 true가 되면 “Unity 실행 가능 상태” 표시
+
+5. AdminPage
+   - 전시 운영자용
+   - 현재 세션 목록
+   - asset 처리 상태
+   - 실패 작업 재시도
+   - fallback 모델 적용
+   - Unity용 데이터 미리보기
+
+Unity 프로젝트 현재 상태:
+현재 Unity 프로젝트에는 다음 정도의 구조가 있음:
+Assets/
+├─ External Assets
+├─ Materials
+├─ Network, 빈 폴더
+├─ ProBuilder Data
+├─ Resources
+├─ Samples
+├─ Scenes
+└─ Scripts
+   └─ BalloonTour.cs
+
+Network 폴더는 현재 빈 폴더이고, External Assets에는 외부에서 가져온 에셋들이 있는 상태.
+이제 프로젝트 규모가 커지므로 Unity 디렉토리 구조를 정리해야 한다.
+
+Unity 디렉토리 구조 최종 추천:
+Assets/
+├─ 00_Project/
+│  ├─ Scenes/
+│  │  ├─ MainPlaza.unity
+│  │  ├─ Loading.unity
+│  │  └─ Test/
+│  │     ├─ RuntimeImportTest.unity
+│  │     ├─ VehicleTest.unity
+│  │     ├─ NPCTest.unity
+│  │     └─ NetworkTest.unity
+│  │
+│  ├─ Scripts/
+│  │  ├─ Core/
+│  │  │  ├─ GameConfig.cs
+│  │  │  ├─ Constants.cs
+│  │  │  └─ AppState.cs
+│  │  │
+│  │  ├─ Data/
+│  │  │  ├─ SessionData.cs
+│  │  │  ├─ AssetData.cs
+│  │  │  ├─ CharacterData.cs
+│  │  │  ├─ BuildingData.cs
+│  │  │  ├─ VehicleData.cs
+│  │  │  ├─ PlazaObjectData.cs
+│  │  │  └─ WebSocketEventData.cs
+│  │  │
+│  │  ├─ Network/
+│  │  │  ├─ ApiClient.cs
+│  │  │  ├─ WebSocketClient.cs
+│  │  │  ├─ DownloadManager.cs
+│  │  │  └─ ServerConfig.cs
+│  │  │
+│  │  ├─ RuntimeImport/
+│  │  │  ├─ RuntimeModelImporter.cs
+│  │  │  ├─ GltfImportService.cs
+│  │  │  ├─ ModelCacheManager.cs
+│  │  │  └─ ImportedModelNormalizer.cs
+│  │  │
+│  │  ├─ Plaza/
+│  │  │  ├─ PlazaManager.cs
+│  │  │  ├─ PlazaSlotManager.cs
+│  │  │  ├─ PlazaObjectSpawner.cs
+│  │  │  ├─ PlazaObjectRegistry.cs
+│  │  │  └─ NicknameBillboard.cs
+│  │  │
+│  │  ├─ Character/
+│  │  │  ├─ GeneratedCharacterSpawner.cs
+│  │  │  ├─ GuideNPCController.cs
+│  │  │  ├─ NPCGuidePathController.cs
+│  │  │  ├─ NPCWanderController.cs
+│  │  │  ├─ CharacterAnimationController.cs
+│  │  │  └─ SpeechBubbleTrigger.cs
+│  │  │
+│  │  ├─ Building/
+│  │  │  ├─ GeneratedBuildingSpawner.cs
+│  │  │  ├─ BuildingPlacementController.cs
+│  │  │  └─ BuildingInfoDisplay.cs
+│  │  │
+│  │  ├─ Vehicle/
+│  │  │  ├─ GeneratedVehicleSpawner.cs
+│  │  │  ├─ VehicleSetupper.cs
+│  │  │  ├─ VehicleController.cs
+│  │  │  ├─ VehiclePathFollower.cs
+│  │  │  ├─ VehicleInputManager.cs
+│  │  │  ├─ VirtualWheelGenerator.cs
+│  │  │  └─ VehicleState.cs
+│  │  │
+│  │  ├─ UI/
+│  │  │  ├─ LoadingUIController.cs
+│  │  │  ├─ SpeechBubbleUI.cs
+│  │  │  ├─ NicknameLabelUI.cs
+│  │  │  ├─ InteractionPromptUI.cs
+│  │  │  └─ DebugPanelUI.cs
+│  │  │
+│  │  ├─ Interaction/
+│  │  │  ├─ ProximityTrigger.cs
+│  │  │  ├─ VehicleRideTrigger.cs
+│  │  │  ├─ LikeInteraction.cs
+│  │  │  ├─ ChatInteraction.cs
+│  │  │  └─ FireworksTrigger.cs
+│  │  │
+│  │  ├─ Managers/
+│  │  │  ├─ GameManager.cs
+│  │  │  ├─ NetworkManager.cs
+│  │  │  ├─ SessionManager.cs
+│  │  │  ├─ AssetSpawnManager.cs
+│  │  │  ├─ AtmosphereManager.cs
+│  │  │  ├─ FireworksManager.cs
+│  │  │  └─ InputModeManager.cs
+│  │  │
+│  │  └─ Utils/
+│  │     ├─ JsonUtilityWrapper.cs
+│  │     ├─ BoundsUtility.cs
+│  │     ├─ PathUtility.cs
+│  │     └─ CoroutineUtility.cs
+│  │
+│  ├─ Prefabs/
+│  │  ├─ Character/
+│  │  │  ├─ GeneratedCharacterRoot.prefab
+│  │  │  ├─ GuideNPC.prefab
+│  │  │  └─ SpeechBubbleAnchor.prefab
+│  │  │
+│  │  ├─ Building/
+│  │  │  ├─ GeneratedBuildingRoot.prefab
+│  │  │  └─ BuildingInfoPanel.prefab
+│  │  │
+│  │  ├─ Vehicle/
+│  │  │  ├─ VehicleRoot.prefab
+│  │  │  ├─ VirtualWheel.prefab
+│  │  │  └─ VehiclePath.prefab
+│  │  │
+│  │  ├─ Plaza/
+│  │  │  ├─ PlazaSlot.prefab
+│  │  │  ├─ SpawnPoint.prefab
+│  │  │  └─ NicknameBillboard.prefab
+│  │  │
+│  │  ├─ UI/
+│  │  │  ├─ SpeechBubble.prefab
+│  │  │  ├─ NicknameLabel.prefab
+│  │  │  ├─ LoadingPanel.prefab
+│  │  │  └─ InteractionPrompt.prefab
+│  │  │
+│  │  └─ Effects/
+│  │     ├─ SpawnEffect.prefab
+│  │     ├─ Fireworks.prefab
+│  │     ├─ RainEffect.prefab
+│  │     └─ SnowEffect.prefab
+│  │
+│  ├─ Materials/
+│  ├─ Models/
+│  ├─ Animations/
+│  ├─ UI/
+│  ├─ Effects/
+│  ├─ Audio/
+│  ├─ Resources/
+│  └─ StreamingAssets/
+│
+├─ 01_ExternalAssets/
+│  ├─ Mecabricks/
+│  ├─ EnvironmentAssets/
+│  ├─ CharacterAssets/
+│  ├─ VehicleAssets/
+│  ├─ PropAssets/
+│  └─ PluginAssets/
+│
+├─ ProBuilder Data/
+├─ Samples/
+└─ Settings/
+
+Unity 쪽 준비 목표:
+지금 당장 Unity 런타임 전체를 완성하는 것이 아니라, Unity 개발자가 이후에 쉽게 붙일 수 있는 구조를 준비한다.
+특히 캐릭터 애니메이션 접근 구조를 다음처럼 준비한다.
+
+CharacterAnimationController.cs 예시 방향:
+- animation_walk()
+  - 걷기 애니메이션 실행
+- animation_Hello()
+  - 인사_01 애니메이션 실행
+- PlayAnimation(string key)
+  - "walk", "hello" 같은 key 기반 실행
+- availableAnimations
+  - 서버에서 받은 animations 목록 저장
+
+예상 C# 인터페이스:
+public class CharacterAnimationController : MonoBehaviour
+{
+    public void animation_walk() { ... }
+    public void animation_Hello() { ... }
+    public void PlayAnimation(string animationKey) { ... }
+}
+
+서버에서 character asset에 포함될 animations metadata:
+"animations": {
+  "walk": {
+    "key": "walk",
+    "display_name": "걷기",
+    "unity_function": "animation_walk"
+  },
+  "hello": {
+    "key": "hello",
+    "display_name": "인사_01",
+    "unity_function": "animation_Hello"
+  }
+}
+
+전시 안정성/fallback:
+전시회에서는 외부 API, 네트워크, 모델 로딩이 실패할 수 있으므로 fallback이 필요하다.
+필수 fallback:
+- Tripo API 실패 → 사전 생성 default model 사용
+- 캐릭터 리깅/애니메이션 실패 → 기본 캐릭터 또는 리깅 없는 모델 사용
+- 걷기/인사 애니메이션 누락 → Unity 기본 idle/walk fallback
+- 건축물 생성 실패 → 기본 건축물 사용
+- 자동차 생성 실패 → 기본 자동차 prefab 사용
+- Unity 모델 다운로드 실패 → fallback model 로드
+- WebSocket 연결 실패 → 수동 refresh 또는 REST polling
+- 태블릿 입력 실패 → AdminPage에서 직접 입력
+- Queue 작업 실패 → 관리자 페이지에서 retry
+
+전시 환경:
+- 로컬 서버 PC에 FastAPI, PostgreSQL, Redis, Worker 실행
+- Unity VR PC는 같은 네트워크에서 서버 접속
+- 태블릿은 같은 Wi-Fi에서 React 웹앱 접속
+- Tripo API 호출을 위해 인터넷 필요
+- 로컬 공유기 사용 권장
+- 서버 PC 고정 IP 설정 권장
+- Docker Compose로 PostgreSQL/Redis/FastAPI 관리 권장
+- Worker는 Tripo API 처리 및 파일 저장 담당
+
+내가 원하는 답변:
+위 내용을 기준으로 이 프로젝트를 실제 구현하기 위한 최적의 설계를 제안해줘.
+
+특히 아래 내용을 중심으로 답변해줘.
+
+1. 전체 시스템 아키텍처 정리
+2. FastAPI 백엔드 디렉토리 구조 제안
+3. PostgreSQL DB 모델 설계
+4. Redis/RQ Worker 병렬 처리 구조 설계
+5. Tripo API 처리 흐름 설계
+   - 이미지 → 3D 생성
+   - 캐릭터 자동 리깅
+   - 걷기 / 인사_01 애니메이션 적용
+   - Tripo API 웹/문서 기준으로 어떤 endpoint/작업 흐름을 확인해야 하는지
+   - 아직 API 코드로 자동리깅/애니메이션 연결이 안 되어 있으므로 연결 가능하게 추상화 구조 설계
+6. React 태블릿 UI 디렉토리 구조 제안
+7. Unity 디렉토리 구조와 각 폴더 역할 검토
+8. Unity 개발자가 이후 캐릭터 위치 배치, 모션 실행, 런타임 흐름을 만들기 쉽게 준비하는 C# 클래스 구조 제안
+9. CharacterAnimationController의 함수 구조 제안
+   - animation_walk()
+   - animation_Hello()
+   - PlayAnimation(string key)
+10. 자동차 Vehicle Wrapper 자동화 구조 설계
+11. WebSocket 이벤트 설계
+12. REST API endpoint 설계
+13. 파일 저장 구조 설계
+14. 전시회 운영 시 실행 순서
+15. 개발 우선순위
+16. 실패 가능성이 높은 부분과 fallback 전략
+17. 현재 Unity 프로젝트 구조에서 어떤 폴더를 어디로 옮기면 좋은지 구체적으로 설명
+18. Claude Agent가 실제로 코드 생성을 시작한다면 어떤 파일부터 만들면 좋은지 순서 제안
+
+답변 스타일:
+- 추상적인 설명보다 실제 구현 중심
+- 디렉토리 구조, 파일명, 클래스명, 함수명까지 제안
+- FastAPI / Worker / React / Unity 각각 나눠서 설명
+- 단계별로 테스트하면서 진행할 수 있게 제안
+- 전시회 운영 안정성을 고려
+- 지금 이미 Tripo API 기본 연결은 성공했다는 점 반영
+- 캐릭터 자동 리깅과 애니메이션은 Tripo 웹에서 테스트 성공했지만, 아직 API 코드로는 완전히 연결하지 않았다는 점 반영
+- Blender 리깅이 아니라 Tripo API 기반 리깅/애니메이션으로 가정
+- 자동차는 리깅이 아니라 Unity Vehicle Wrapper로 처리하는 것으로 가정
+- 촬영 먼저 → Queue 등록 → 정보 입력 → 로딩 → ready_for_unity 상태까지 만드는 흐름을 유지
+- Unity 입장 이후의 실제 게임 진행은 나중에 Unity 개발자가 붙일 예정이므로, 지금은 Unity 개발자가 활용할 데이터 구조와 C# 함수/클래스 준비까지 설계
+
+우선순위:
+1단계:
+- FastAPI session/assets API
+- PostgreSQL sessions/assets 테이블
+- Redis/RQ Worker 기본 구조
+- Tripo API 작업 추상화
+- React 태블릿 Start/Capture/Profile/Loading UI
+- /sessions/{session_id}/status API
+
+2단계:
+- character/building/vehicle 병렬 Worker 처리
+- character animation metadata 저장
+- ready_for_unity 판단 로직
+- Unity용 /unity/sessions/{session_id} API
+
+3단계:
+- Unity C# Data 클래스
+- ApiClient/WebSocketClient/DownloadManager 기본 구조
+- CharacterAnimationController skeleton
+- Vehicle Wrapper skeleton
+
+4단계:
+- AdminPage
+- retry/fallback
+- WebSocket session_ready 이벤트
+- 전시 운영 모드
+
+이제 위 설계를 기준으로 1단계부터 실제 파일/코드 생성을 시작해줘.
+먼저 FastAPI 백엔드의 sessions/assets API, PostgreSQL 모델, Redis/RQ Worker 기본 구조, Tripo API 작업 추상화부터 만들어줘.
+이후 React 태블릿 UI의 Start/Capture/Profile/Loading 페이지를 만들고, 마지막으로 Unity 개발자가 사용할 C# 데이터 클래스와 CharacterAnimationController skeleton을 생성해줘.
+
+
+
+
+토스 스타일의 모던 미니멀 카드형 UI로 구성한다. 넓은 여백, 둥근 카드, 부드러운 그림자, 명확한 단계 안내, 파란색 포인트 컬러를 사용해 전시 관객이 직관적으로 촬영과 입력 과정을 따라갈 수 있도록 설계한다.
+UI style: Toss-inspired modern minimal card UI, clean white/light-gray background, large rounded cards, soft shadows, bold Korean typography, blue accent color, clear step-by-step flow, mobile/tablet-first layout.

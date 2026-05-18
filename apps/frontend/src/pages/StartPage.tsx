@@ -1,11 +1,32 @@
+/*
+session 생성
+StartPage 접속
+↓
+사용자가 시작하기 클릭
+↓
+createSession()으로 백엔드에 세션 생성 요청
+↓
+응답으로 session_id 받음
+↓
+Zustand store에 session_id 저장
+↓
+/capture 페이지로 이동
+
+*/
+
+
+
 import { useNavigate } from "react-router-dom";
 import { createSession } from "../api/client";
 import { useSessionStore } from "../store/sessionStore";
 
 export default function StartPage() {
+  //페이지 이동을 위함.
   const navigate = useNavigate();
   const setSessionId = useSessionStore((s) => s.setSessionId);
-
+//시작하기 버튼 클릭 시, 서버에 세션 생성 요청을 보내고
+// , 응답으로 받은 session_id를 전역 상태에 저장한 뒤,
+//  촬영 페이지로 이동한다.
   const handleStart = async () => {
     const res = await createSession();
     setSessionId(res.data.session_id);

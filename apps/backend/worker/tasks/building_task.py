@@ -44,9 +44,16 @@ async def _run(asset_id: str):
         asset.progress = 100
         db.commit()
 
+        session_id = asset.session_id
+
     except Exception as e:
         asset.status = "failed"
         asset.error_message = str(e)
         db.commit()
+        session_id = None
     finally:
         db.close()
+
+    if session_id:
+        from ...services.event_service import check_and_notify
+        check_and_notify(session_id)

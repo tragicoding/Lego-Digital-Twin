@@ -3,6 +3,7 @@ import StartPage from "./pages/StartPage";
 import CapturePage from "./pages/CapturePage";
 import ProfilePage from "./pages/ProfilePage";
 import LoadingPage from "./pages/LoadingPage";
+import TestPage from "./pages/TestPage";
 
 export default function App() {
   return (
@@ -13,6 +14,7 @@ export default function App() {
         <Route path="/capture" element={<CapturePage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/loading" element={<LoadingPage />} />
+        <Route path="/test" element={<TestPage />} />
       </Routes>
     </BrowserRouter>
   );
