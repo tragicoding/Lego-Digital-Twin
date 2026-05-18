@@ -59,16 +59,3 @@ def enqueue_asset(asset_id: str, asset_type: str):
         _queues["vehicle"].enqueue(process_vehicle, asset_id, job_timeout=600)
 
 
-def enqueue_mock_asset(asset_id: str, asset_type: str):
-    """Mock 파이프라인용 — 타입별 큐에 등록."""
-    if asset_type == "character":
-        from ..worker.tasks.mock_task import process_mock_character
-        _queues["character"].enqueue(process_mock_character, asset_id, job_timeout=120)
-
-    elif asset_type == "building":
-        from ..worker.tasks.mock_task import process_mock_building
-        _queues["building"].enqueue(process_mock_building, asset_id, job_timeout=120)
-
-    elif asset_type == "vehicle":
-        from ..worker.tasks.mock_task import process_mock_vehicle
-        _queues["vehicle"].enqueue(process_mock_vehicle, asset_id, job_timeout=120)

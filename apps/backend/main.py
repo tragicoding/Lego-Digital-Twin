@@ -18,7 +18,6 @@ from .core.config import STORAGE_MODELS
 from .api.routers.sessions import router as sessions_router
 from .api.routers.assets import router as assets_router
 from .api.routers.unity_data import router as unity_router
-from .api.routers.test_router import router as test_router
 from .api.routers.ws_router import router as ws_router
 from .services.ws_manager import manager
 from .services.event_service import redis_subscriber
@@ -52,7 +51,6 @@ app.mount("/static/models", StaticFiles(directory=str(STORAGE_MODELS)), name="mo
 app.include_router(sessions_router)
 app.include_router(assets_router)
 app.include_router(unity_router)
-app.include_router(test_router)
 app.include_router(ws_router)
 
 
