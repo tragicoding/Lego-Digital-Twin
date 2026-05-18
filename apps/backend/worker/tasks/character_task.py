@@ -7,13 +7,26 @@ GLB 파일명: npc_{순서번호}_rigged.glb / npc_{순서번호}_walk.glb / npc
 실패 preset (error_code 1004): hello ❌  wave ❌  dance ❌
 """
 import asyncio
+import time
 from pathlib import Path
 
-from ...core.config import STORAGE_MODELS, BACKEND_HOST
+from redis import Redis
+
+from ...core.config import STORAGE_MODELS, BACKEND_HOST, REDIS_URL
 from ...core.database import SessionLocal
 from ...models.asset import Asset
 from ...models.asset_animation import AssetAnimation
 from ...services import tripo_service as tripo
+
+ACTIVE_SESSION_KEY = "lego:active_session"
+
+
+def _is_cancelled(session_id: str) -> bool:
+    """현재 세션이 active session이 아니면 True (새 세션이 시작된 것)."""
+    r = Redis.from_url(REDIS_URL)
+    active = r.get(ACTIVE_SESSION_KEY)
+    r.close()
+    return active is not None and active.decode() != session_id
 
 ANIMATIONS = [
     {"key": "walk",  "display_name": "걷기",    "preset": "preset:walk", "unity_function": "animation_walk"},
@@ -46,6 +59,7 @@ async def _process_character_async(asset_id: str):
     if not asset:
         return
 
+    cur_session_id = asset.session_id
     session_id = None
     try:
         asset.status = "processing"
@@ -56,30 +70,43 @@ async def _process_character_async(asset_id: str):
 
         # 1. 이미지 업로드
         token = await tripo.upload_image(Path(asset.input_image_path))
+        if _is_cancelled(cur_session_id):
+            return
 
         # 2. 3D 모델 생성
         model_task_id = await tripo.create_model_task(token)
         _set_stage(db, asset, "generating", 30)
         await tripo.poll_task(model_task_id)
+        if _is_cancelled(cur_session_id):
+            return
         _set_stage(db, asset, "rigging", 50)
+
+        t_rig_start = time.time()
+        print(f"[char] model 완료 → rig 요청", flush=True)
 
         # 3. 리깅
         rig_task_id = await tripo.create_rig_task(model_task_id)
-        rig_result = await tripo.poll_task(rig_task_id)
+        print(f"[char] rig task 등록 완료 (+{time.time()-t_rig_start:.1f}s)", flush=True)
+        await tripo.poll_task(rig_task_id)
+        if _is_cancelled(cur_session_id):
+            return
 
-        rig_glb_path = STORAGE_MODELS / f"{prefix}_rigged.glb"
-        await tripo.download_glb(rig_result, rig_glb_path)
-        final_glb_path = rig_glb_path
+        t_anim_start = time.time()
+        print(f"[char] rig 완료 → retarget 요청", flush=True)
         _set_stage(db, asset, "animating", 65)
 
-        # 4. 애니메이션 (걷기 + 인사_01)
-        for i, anim in enumerate(ANIMATIONS):
-            anim_task_id = await tripo.create_animation_task(rig_task_id, anim["preset"])
-            anim_result = await tripo.poll_task(anim_task_id)
-
+        # 4. 애니메이션 — walk / idle 병렬 실행 (같은 rig_task_id 입력, 독립 출력)
+        async def _run_anim(anim: dict) -> tuple[dict, Path]:
+            task_id = await tripo.create_animation_task(rig_task_id, anim["preset"])
+            print(f"[char] {anim['key']} task 등록 완료 (+{time.time()-t_anim_start:.1f}s)", flush=True)
+            result  = await tripo.poll_task(task_id)
             glb_path = STORAGE_MODELS / f"{prefix}_{anim['key']}.glb"
-            await tripo.download_glb(anim_result, glb_path)
+            await tripo.download_glb(result, glb_path)
+            return anim, glb_path
 
+        results = await asyncio.gather(*[_run_anim(anim) for anim in ANIMATIONS])
+
+        for anim, glb_path in results:
             db.add(AssetAnimation(
                 asset_id=asset_id,
                 animation_key=anim["key"],
@@ -88,7 +115,6 @@ async def _process_character_async(asset_id: str):
                 unity_function=anim["unity_function"],
             ))
             final_glb_path = glb_path
-            _set_stage(db, asset, "animating", 65 + (i + 1) * 10)
 
         db.commit()
         _set_stage(db, asset, "downloading", 90)

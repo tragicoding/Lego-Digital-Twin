@@ -7,14 +7,24 @@ GLB 파일명: object_{순서번호}.glb
 import asyncio
 from pathlib import Path
 
-from ...core.config import STORAGE_MODELS, BACKEND_HOST
+from redis import Redis
+
+from ...core.config import STORAGE_MODELS, BACKEND_HOST, REDIS_URL
 from ...core.database import SessionLocal
 from ...models.asset import Asset
 from ...services import tripo_service as tripo
 
+ACTIVE_SESSION_KEY = "lego:active_session"
+
+
+def _is_cancelled(session_id: str) -> bool:
+    r = Redis.from_url(REDIS_URL)
+    active = r.get(ACTIVE_SESSION_KEY)
+    r.close()
+    return active is not None and active.decode() != session_id
+
 
 def _seq_num(db, asset: Asset) -> int:
-    """같은 asset_type 중 생성 순서 번호를 반환한다."""
     count = db.query(Asset).filter(
         Asset.asset_type == asset.asset_type,
         Asset.created_at < asset.created_at,
@@ -32,6 +42,7 @@ async def _run(asset_id: str):
     if not asset:
         return
 
+    cur_session_id = asset.session_id
     session_id = None
     try:
         asset.status = "processing"
@@ -43,12 +54,16 @@ async def _run(asset_id: str):
         prefix = f"object_{seq}"
 
         token = await tripo.upload_image(Path(asset.input_image_path))
-        task_id = await tripo.create_model_task(token)
+        if _is_cancelled(cur_session_id):
+            return
 
+        task_id = await tripo.create_model_task(token)
         asset.progress = 40
         db.commit()
 
         result = await tripo.poll_task(task_id)
+        if _is_cancelled(cur_session_id):
+            return
 
         asset.stage = "downloading"
         asset.progress = 80

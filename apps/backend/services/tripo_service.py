@@ -31,6 +31,7 @@ httpx: Python에서 HTTP 요청을 보내는 라이브러리
 Path: 파일 경로를 객체처럼 다루기 위한 클래스
 httpx.AsyncClient()를 쓰기 때문에 전체 함수들이 async def'''
 import asyncio
+import time
 import httpx
 from pathlib import Path
 
@@ -117,13 +118,14 @@ async def create_animation_task(rig_task_id: str, animation: str) -> str:
 #Tripo task가 끝났는지 계속 확인하는 함수. 
 #interval = 3초마다 확인
 #timout = 최대 300초까지 대기. 
-async def poll_task(task_id: str, interval: float = 3.0, timeout: float = 600.0) -> dict:
-    """태스크 완료까지 polling하고 result dict를 반환한다.
+async def poll_task(task_id: str, interval: float = 1.0, timeout: float = 600.0) -> dict:
+    """태스크 완료까지 polling하고 result dict를 반환한다."""
+    start = time.time()
+    short_id = task_id[:8]
+    print(f"[poll] {short_id} 시작", flush=True)
 
-    요청마다 새 클라이언트를 생성해 WSL2 장시간 커넥션 드롭 문제를 방지한다.
-    transient 네트워크 에러는 최대 3회 retry한다.
-    """
     elapsed = 0.0
+    prev_status = None
     while elapsed < timeout:
         retry = 0
         while retry < 3:
@@ -135,7 +137,7 @@ async def poll_task(task_id: str, interval: float = 3.0, timeout: float = 600.0)
                         timeout=60,
                     )
                 resp.raise_for_status()
-                break  # 성공 시 retry 루프 탈출
+                break
             except httpx.TransportError as net_err:
                 retry += 1
                 if retry >= 3:
@@ -143,12 +145,18 @@ async def poll_task(task_id: str, interval: float = 3.0, timeout: float = 600.0)
                         f"Tripo 네트워크 에러 (3회 재시도 실패): {repr(net_err)} "
                         f"(task_id={task_id})"
                     )
-                await asyncio.sleep(2 * retry)  # 2s, 4s 대기 후 재시도
+                await asyncio.sleep(2 * retry)
 
         data = resp.json()["data"]
         status = data["status"]
 
+        # 상태 변경 시에만 로그
+        if status != prev_status:
+            print(f"[poll] {short_id} {prev_status} → {status} (+{time.time()-start:.1f}s)", flush=True)
+            prev_status = status
+
         if status.upper() in ("SUCCESS", "FINISHED"):
+            print(f"[poll] {short_id} 완료 (총 {time.time()-start:.1f}s)", flush=True)
             return data
         if status.upper() in ("FAILED", "CANCELLED", "UNKNOWN"):
             raise RuntimeError(f"Tripo 태스크 실패: {status} (task_id={task_id})")

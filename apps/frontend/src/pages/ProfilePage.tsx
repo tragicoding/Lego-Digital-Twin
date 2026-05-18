@@ -77,7 +77,7 @@ export default function ProfilePage() {
         {step === 0 ? (
           <NameStep
             key="char"
-            title={"캐릭터 NPC의\n이름을 지어주세요!"}
+            title={"당신의 캐릭터\n이름을 지어주세요!"}
             placeholder="예) 몽글이"
             value={charName}
             onChange={setCharName}
@@ -88,7 +88,7 @@ export default function ProfilePage() {
         ) : (
           <NameStep
             key="obj"
-            title={"오브제의\n이름을 지어주세요!"}
+            title={"당신의 오브제\n이름을 지어주세요!"}
             placeholder="예) 하늘탑"
             value={objName}
             onChange={setObjName}

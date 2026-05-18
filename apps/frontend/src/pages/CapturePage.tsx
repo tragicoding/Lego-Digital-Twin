@@ -11,7 +11,7 @@ type Step = GuideStep | CaptureStep;
 
 const STEPS: Step[] = [
   { type: "guide",   text: "안녕하세요!" },
-  { type: "guide",   text: "MINIVERSE 레고 세상에\n오신걸 환영해요!" },
+  { type: "guide",   text: "MINIVERSE에 오신걸 환영합니다!" },
   { type: "guide",   text: "먼저 여러분의 NPC가 될\n캐릭터를 촬영할게요!" },
   { type: "guide",   text: "캐릭터를 앞에 표시된\n곳에 올려주세요!" },
   { type: "guide",   text: "캐릭터 촬영을\n시작합니다" },
