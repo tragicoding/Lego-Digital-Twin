@@ -46,7 +46,7 @@ namespace LegoTwin.Managers
 
             // ApiClient 자동 연결
             if (_apiClient == null)
-                _apiClient = FindObjectOfType<ApiClient>();
+                _apiClient = FindAnyObjectByType<ApiClient>();
         }
 
         private void Start()
