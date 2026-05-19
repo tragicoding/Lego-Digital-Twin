@@ -1,0 +1,24 @@
+1. Docker exec로 psql 직접 접속 (가장 빠름)
+
+
+docker exec -it lego_db psql -U lego -d lego_twin
+접속 후 주요 명령어:
+
+
+\dt                          -- 테이블 목록
+SELECT * FROM sessions;      -- 세션 전체 조회
+SELECT * FROM assets;        -- 에셋 전체 조회
+SELECT id, nickname, status FROM sessions ORDER BY created_at DESC;
+\q                           -- 종료
+
+
+2. GUI 툴 (TablePlus / DBeaver / pgAdmin)
+TablePlus
+Windows에서 아래 정보로 접속:
+
+항목	값
+Host	localhost
+Port	5432
+Database	lego_twin
+User	lego
+Password	legopass

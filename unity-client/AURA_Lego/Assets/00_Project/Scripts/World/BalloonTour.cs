@@ -2,10 +2,10 @@ using UnityEngine;
 
 public class BalloonTour : MonoBehaviour
 {
-    [Header("°æ·Î ¼³Á¤")]
+    [Header("ì›¨ì´í¬ì¸íŠ¸ ë°°ì—´")]
     public Transform[] waypoints;
 
-    [Header("ºñÇà ¼³Á¤")]
+    [Header("ì´ë™ ì„¤ì •")]
     public float speed = 5f;
     public float rotationSpeed = 2f;
     public bool lookAtTarget = true;
@@ -18,26 +18,24 @@ public class BalloonTour : MonoBehaviour
 
         Transform targetWaypoint = waypoints[currentIndex];
 
-        // 1. ¸ñÇ¥ ÁöÁ¡À» ÇâÇØ ÀÌµ¿
-        transform.position = Vector3.MoveTowards(transform.position, targetWaypoint.position, speed * Time.deltaTime);
+        // 1. ëª©í‘œ ì›¨ì´í¬ì¸íŠ¸ ë°©í–¥ ì´ë™
+        transform.position = Vector3.MoveTowards(
+            transform.position, targetWaypoint.position, speed * Time.deltaTime);
 
-        // 2. ÀÌµ¿ÇÏ´Â ¹æÇâÀ¸·Î ÀÚ¿¬½º·´°Ô È¸Àü (±â¿ï¾îÁü ¹æÁö Àû¿ë)
+        // 2. ì´ë™í•˜ëŠ” ë°©í–¥ìœ¼ë¡œ ìì—°ìŠ¤ëŸ½ê²Œ íšŒì „ (ìœ„ì•„ë˜ íšŒì „ ì—†ìŒ)
         if (lookAtTarget)
         {
             Vector3 direction = targetWaypoint.position - transform.position;
-
-            // ¡Ú ÇÙ½É Æ÷ÀÎÆ®: ¹æÇâ º¤ÅÍÀÇ YÃà(³ô³·ÀÌ) °ªÀ» 0À¸·Î ¸¸µé¾î¹ö¸²
-            // ÀÌ·¸°Ô ÇÏ¸é ¿ÀÁ÷ ¼öÆò ¹æÇâ(X, Z)À¸·Î¸¸ È¸Àü°¢À» °è»êÇÕ´Ï´Ù.
-            direction.y = 0;
-
+            direction.y = 0; // Yì¶•(ìˆ˜ì§) íšŒì „ ê³ ì • â€” ì¢Œìš° ë°©í–¥ìœ¼ë¡œë§Œ íšŒì „
             if (direction != Vector3.zero)
             {
                 Quaternion targetRotation = Quaternion.LookRotation(direction);
-                transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
+                transform.rotation = Quaternion.Slerp(
+                    transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
             }
         }
 
-        // 3. ¸ñÇ¥ ÁöÁ¡¿¡ µµ´ŞÇß´ÂÁö È®ÀÎ
+        // 3. ëª©í‘œ ì›¨ì´í¬ì¸íŠ¸ ë„ë‹¬ í™•ì¸
         if (Vector3.Distance(transform.position, targetWaypoint.position) < 0.1f)
         {
             currentIndex = (currentIndex + 1) % waypoints.Length;

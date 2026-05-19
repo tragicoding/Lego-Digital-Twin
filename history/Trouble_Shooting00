@@ -1,0 +1,46 @@
+1. Worker 병렬 처리
+문제: character → building → vehicle 순차 처리로 5~6분 소요
+
+원인: 큐 1개(lego-queue) + Worker 1개
+
+해결: 큐 3개 분리 + multiprocessing으로 Worker 3개 동시 실행
+
+2. 캐릭터 애니메이션 실패 (빈 error_message)
+문제: rigging/animating 단계에서 error_message = "" 로 failed
+
+원인: httpx.ConnectTimeout이 retry 예외 목록에 누락. str(ConnectTimeout()) == ""
+
+해결: 예외를 httpx.TransportError(기반 클래스)로 통합, 3회 retry 추가
+
+3. RQ job_timeout 초과
+문제: walk 성공 후 idle 도중 worker가 조용히 종료, DB는 processing으로 방치
+
+원인: job_timeout=600s(10분) — 전체 파이프라인이 최대 18분 소요
+
+해결: character → 1800s(30분), object → 900s(15분)으로 증가
+
+4. rigging → retargeting 50초 대기
+문제: rigging 완료 후 retargeting 시작까지 50초 공백
+
+원인: rigging GLB 파일을 서버로 다운로드하는 코드가 불필요하게 블로킹
+
+해결: download_glb(rig_result) 제거. rig_task_id만으로 retargeting 호출 가능
+
+5. walk/idle 직렬 처리
+문제: walk 완료 후 idle 순차 실행으로 35분 추가 소요
+
+원인: for 루프로 순차 처리
+
+해결: asyncio.gather(walk, idle) 병렬 실행
+
+6. 새 세션 시작 시 이전 job 미중단
+문제: 시작하기 버튼 누를 때마다 이전 job이 계속 실행되며 꼬임
+
+해결: POST /sessions 시 Redis 큐 플러시 + lego:active_session 설정. Worker가 각 단계 후 취소 여부 체크
+
+7. feature/unity 머지 충돌
+문제: feature/unity에 없던 C# 파일들(CharacterAnimationController 등)이 test_app에 있어 "modify/delete" 충돌
+
+원인: 두 브랜치의 Unity 디렉토리 구조가 달랐음
+
+해결: test_app 버전 채택(--theirs)으로 충돌 해결
