@@ -1,23 +1,22 @@
-using System.Collections.Generic;
 using UnityEngine;
 using LegoTwin.Data;
 
 namespace LegoTwin.Character
 {
     /// <summary>
-    /// 서버에서 받은 캐릭터 데이터 기반 애니메이션 컨트롤러.
-    /// Unity 개발자는 이 컴포넌트를 캐릭터 루트 GameObject에 추가하고
-    /// animation_walk() / animation_Hello() 를 호출한다.
+    /// 캐릭터 애니메이션 컨트롤러.
+    /// 캐릭터 루트 GameObject에 추가한다.
+    ///
+    /// 팀원 사용 예:
+    ///   npc.Animation.animation_walk();
+    ///   npc.Animation.animation_idle();
+    ///   npc.Animation.PlayAnimation("walk");
     /// </summary>
     public class CharacterAnimationController : MonoBehaviour
     {
-        [Header("Character Info")]
+        [Header("NPC Info")]
         public string npcName;
         public string bubbleText;
-
-        // 서버에서 받은 애니메이션 메타데이터 (key → AnimationInfo)
-        public Dictionary<string, AnimationInfo> availableAnimations
-            = new Dictionary<string, AnimationInfo>();
 
         private Animator _animator;
 
@@ -26,19 +25,15 @@ namespace LegoTwin.Character
             _animator = GetComponentInChildren<Animator>();
         }
 
-        /// <summary>걷기 애니메이션 실행</summary>
-        public void animation_walk()
-        {
-            PlayAnimation("walk");
-        }
+        // ── 공개 애니메이션 함수 ─────────────────────────────────────
 
-        /// <summary>인사_01 애니메이션 실행</summary>
-        public void animation_Hello()
-        {
-            PlayAnimation("hello");
-        }
+        /// <summary>걷기 애니메이션</summary>
+        public void animation_walk() => PlayAnimation("walk");
 
-        /// <summary>animation key 기반 실행 ("walk", "hello" 등)</summary>
+        /// <summary>idle(대기) 애니메이션</summary>
+        public void animation_idle() => PlayAnimation("idle");
+
+        /// <summary>animation key 기반 실행 ("walk", "idle" 등)</summary>
         public void PlayAnimation(string animationKey)
         {
             if (_animator == null)
@@ -46,24 +41,17 @@ namespace LegoTwin.Character
                 Debug.LogWarning($"[CharacterAnimationController] Animator 없음: {gameObject.name}");
                 return;
             }
-
-            if (!availableAnimations.ContainsKey(animationKey))
-            {
-                Debug.LogWarning($"[CharacterAnimationController] 알 수 없는 animation key: {animationKey}");
-                return;
-            }
-
             _animator.SetTrigger(animationKey);
-            Debug.Log($"[CharacterAnimationController] {npcName}: {animationKey} 실행");
+            Debug.Log($"[CharacterAnimationController] {npcName}: {animationKey}");
         }
 
-        /// <summary>서버 CharacterAssetData로 초기화</summary>
-        public void Initialize(CharacterAssetData data, string bubble)
+        // ── 초기화 ───────────────────────────────────────────────────
+
+        /// <summary>CharacterAssetData로 NPC 정보를 초기화한다.</summary>
+        public void Initialize(CharacterAssetData data, string bubble = "")
         {
-            npcName = data.npc_name;
+            npcName    = data.npc_name;
             bubbleText = bubble;
-            if (data.animations != null)
-                availableAnimations = data.animations;
         }
     }
 }

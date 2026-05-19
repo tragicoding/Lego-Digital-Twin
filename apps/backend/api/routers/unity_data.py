@@ -42,28 +42,20 @@ def get_unity_session(session_id: str, db: DBSession = Depends(get_db)):
                 "animations": animations,
             }
 
-        elif asset.asset_type == "building":
-            assets_out["building"] = {
+        elif asset.asset_type in ("object", "building"):
+            assets_out["object"] = {
                 "asset_id": asset.id,
                 "model_url": asset.model_url,
-                "role": "static_building",
-                "owner_name": session.nickname,
-            }
-
-        elif asset.asset_type == "vehicle":
-            assets_out["vehicle"] = {
-                "asset_id": asset.id,
-                "model_url": asset.model_url,
-                "role": "driveable_vehicle",
-                "owner_name": session.nickname,
-                "control_mode": "auto_drive",
+                "role": "static_object",
+                "object_name": session.bubble_text,  # bubble_text에 object_name이 저장됨
             }
 
     ready = all_completed and bool(session.nickname) and len(assets_out) > 0
 
     return UnitySessionResponse(
         session_id=session_id,
-        nickname=session.nickname,
+        character_npc_name=session.nickname,
+        object_name=session.bubble_text,
         bubble_text=session.bubble_text,
         ready_for_unity=ready,
         assets=assets_out,

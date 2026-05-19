@@ -1,115 +1,65 @@
-# Lego Digital Twin
+# Lego Digital Twin / MINIVERSE
 
-> 물리 세계에서 조립한 레고 모형을 카메라로 인식하고, VR 레고 놀이공원 안에 그대로 재현하는 디지털 트윈 시스템
+> 관객이 현실에서 조립한 레고 캐릭터와 오브제를 촬영하면,
+> 3D 모델로 변환되어 Unity VR 월드에 등장하는 디지털 트윈 전시 프로젝트
 
 ---
 
 ## 프로젝트 개요
 
-사용자가 물리 보드 위에서 레고를 조립하면, 카메라가 이를 3D로 인식하여 Unity VR 환경에 실시간으로 재현합니다.
-VR 헤드셋을 착용한 사용자는 레고 놀이공원 안에서 자신이 직접 만든 모형이 살아 숨쉬는 것을 경험하게 됩니다.
+관객이 태블릿 UI를 통해 자신의 레고 **캐릭터**와 **오브제**를 촬영합니다.
+촬영된 이미지는 Tripo3D API로 3D 모델로 변환됩니다.
+
+- **character**: 3D 변환 + walk/idle 애니메이션 적용 → Unity VR 월드에서 NPC로 등장
+- **object**: 3D 변환만 수행 → Unity VR 월드에 정적 3D 오브제로 배치
 
 ```
-[물리 세계]                        [가상 세계 (VR)]
- 사용자 레고 조립
+[관객]
+  촬영 (태블릿 UI)
       │
       ▼
- 카메라 촬영 → Vision Engine → 3D 모델 생성
-                                    │
-                                    ▼
-                             Unity 놀이공원에 배치
-                                    │
-                                    ▼
-                          VR 헤드셋으로 경험
+[Frontend]  →  POST /sessions/{id}/assets
+      │
+      ▼
+[Backend / FastAPI]
+  - Redis Queue 등록
+  - Tripo3D API: image_to_model → rig → retarget (walk + idle 병렬)
+  - GLB 저장
+      │
+      ▼
+[Unity VR 월드 (Windows)]
+  - WebSocket session_ready 이벤트 수신
+  - GLB 다운로드 및 로드
+  - 캐릭터 NPC + 오브제 배치
 ```
 
 ---
 
-## 주요 인터랙션
+## 팀 구성
 
-| 물리 세계 입력 | 가상 세계 반응 |
-|---|---|
-| 레고 모형 조립 | Unity 공원 내 동일 모형 생성 |
-| 조명 밝기 조절 | 대기 변화 (낮 / 노을 / 밤 / 흐림 / 눈 / 비) |
-| VR 착용 중 박수 | 불꽃 축제 시작 |
-
----
-
-## 시스템 아키텍처
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                     Lego Digital Twin                   │
-│                                                         │
-│  ┌──────────────┐    ┌──────────────┐    ┌───────────┐  │
-│  │   카메라     │───▶│   backend    │───▶│unity-client│ │
-│  │  (Windows)   │    │  (FastAPI)   │    │  (Unity)  │  │
-│  └──────────────┘    └──────┬───────┘    └───────────┘  │
-│                             │ Tripo3D API               │
-│                      ┌──────▼───────┐                   │
-│                      │  hardware    │                   │
-│                      │  (Arduino)   │                   │
-│                      └──────────────┘                   │
-└─────────────────────────────────────────────────────────┘
-```
-
-| 모듈 | 역할 | 기술 스택 |
+| 이름 | 소속 | 역할 |
 |---|---|---|
-| `backend/tripo` | 카메라 수신, Tripo3D API 연동, Unity 전달 | Python, FastAPI, Tripo3D API |
-| `unity-client` | VR 놀이공원 렌더링, 인터랙션 | Unity, C#, XR |
-| `hardware` | 조명·박수 입력 감지 | Arduino, C++ |
+| 김예진 | 중앙대학교 | Project Manager / Team Leader |
+| 김진서 | 중앙대학교 | Software Engineer / Lead Developer |
+| 김유민 | 중앙대학교 | Unity Developer / Lead Designer |
+| 이서연 | 중앙대학교 | Animator / Sub Project Manager |
+
+**Develop Role:**
+- System Architect · Backend · Frontend · System Automation: **김진서**
+- Unity Design · Unity Script: **김유민**
 
 ---
 
 ## 개발 환경
 
-| 항목 | 사양 |
-|---|---|
-| GPU | NVIDIA RTX 4070 Laptop (Ada Lovelace) |
-| OS | Windows + WSL2 (Ubuntu 24.04) |
-| Python | 3.9 (Conda) |
-| CUDA | 11.8 |
-| Unity | 6000.x |
+| 파트 | OS | 주요 도구 |
+|---|---|---|
+| Backend / Frontend | Linux / WSL Ubuntu | Python 3.11, FastAPI, Node.js, Docker |
+| Unity | **Windows** | Unity Hub, Unity Editor 6000.2.2f1 |
+| Git 협업 | 공통 | GitHub, feature branch + PR |
 
----
-
-## 브랜치 전략
-
-```
-main                  ← 최종 배포 (직접 커밋 금지)
-└── develop           ← 통합 브랜치 (모든 PR의 대상)
-    ├── feature/unity     ← Unity 클라이언트
-    ├── feature/vision    ← Vision Engine
-    ├── feature/backend   ← 백엔드 서버
-    ├── feature/hardware  ← 하드웨어 제어
-    └── feature/test      ← 통합 테스트
-```
-
-### 기본 워크플로우
-
-```bash
-# 1. 작업 시작 전: develop 최신 내용 반영
-git checkout feature/본인브랜치
-git fetch origin
-git merge origin/develop
-
-# 2. 작업 후 push
-git add .
-git commit -m "feat(파트): 작업 내용"
-git push origin feature/본인브랜치
-
-# 3. GitHub에서 feature/* → develop PR 생성
-```
-
-### 커밋 메시지 규칙
-
-```
-feat(파트):     새 기능 추가
-fix(파트):      버그 수정
-refactor(파트): 리팩토링
-docs(파트):     문서 수정
-chore(파트):    빌드, 설정 변경
-```
+> **중요**: Unity는 반드시 **Windows**에서 실행한다.
+> WSL/Linux에서 Unity 실행을 시도하지 않는다.
 
 ---
 
@@ -118,20 +68,116 @@ chore(파트):    빌드, 설정 변경
 ```
 Lego-Digital-Twin/
 ├── apps/
-│   ├── backend/tripo/   # 중앙 백엔드 (카메라 → Tripo → Unity)
-│   └── hardware/        # Arduino 제어
-├── unity-client/        # Unity VR 클라이언트
-├── docs/                # 환경 설정 문서
-└── .gitignore
+│   ├── backend/        # FastAPI 서버, PostgreSQL, Redis/RQ Worker, Tripo API
+│   ├── frontend/       # 태블릿 UI (React + Vite + TypeScript)
+│   └── hardware/       # Arduino 제어 (예비)
+├── unity-client/       # Unity VR 월드 (C#, XR, Mock/Server Mode)
+├── docs/               # 환경 설정 문서
+├── scripts/            # 자동화 스크립트
+├── history/            # 작업 기록 · Trouble Shooting
+├── docker-compose.yml  # PostgreSQL 16 + Redis 7
+├── run_worker.py       # RQ Worker 시작 스크립트 (character + object 병렬)
+├── README.md
+├── git.md              # Git 전략 (Single Source of Truth)
+└── CLAUDE.md           # Claude Code 설정
 ```
 
 ---
 
-## 팀 구성
+## 실행 방법 (Backend + Frontend)
 
-| 역할 | 담당 브랜치 |
-|---|---|
-| Vision Engine | `feature/vision` |
-| Unity 클라이언트 | `feature/unity` |
-| 백엔드 | `feature/backend` |
-| 하드웨어 | `feature/hardware` |
+> Linux / WSL Ubuntu 기준. conda 환경: `triposr`
+
+### 1. 의존성 설치
+
+```bash
+# Backend
+conda activate triposr
+pip install -r apps/backend/requirements.txt
+
+# Frontend
+cd apps/frontend && npm install
+```
+
+### 2. 환경 변수 설정
+
+```bash
+cp apps/backend/.env.example apps/backend/.env
+# .env 파일에 TRIPO_API_KEY, DATABASE_URL, REDIS_URL 입력
+```
+
+### 3. Docker (PostgreSQL + Redis) 실행
+
+```bash
+docker compose up -d db redis
+```
+
+### 4. FastAPI 서버 실행
+
+```bash
+conda run -n triposr uvicorn apps.backend.main:app --host 0.0.0.0 --port 8000
+```
+
+### 5. RQ Worker 실행
+
+```bash
+conda run -n triposr python run_worker.py
+```
+
+### 6. Frontend 실행
+
+```bash
+cd apps/frontend && npm run dev -- --host 0.0.0.0 --port 3000
+```
+
+### 7. Unity 실행 (Windows)
+
+Windows에서 별도 진행. [unity-client/README.md](unity-client/README.md) 참고.
+
+---
+
+## Backend Developer가 Unity 테스트할 때
+
+최초 1회:
+```bash
+# Windows PowerShell / Git Bash
+git clone https://github.com/tragicoding/Lego-Digital-Twin.git
+cd Lego-Digital-Twin
+git checkout feature/unity
+```
+
+이후:
+```bash
+git checkout develop && git pull origin develop
+git checkout feature/unity && git pull origin feature/unity
+```
+
+Unity Hub → Add project from disk → `unity-client/AURA_Lego/` 선택
+
+---
+
+## 브랜치 전략
+
+```
+main                    ← 최종 안정 버전 (직접 push 금지)
+└── develop             ← 통합 브랜치 (모든 PR 대상)
+    ├── feature/unity       ← Unity 개발 (Windows)
+    ├── feature/backend     ← Backend 개발 (Linux/WSL)
+    ├── feature/frontend    ← Frontend 개발 (Linux/WSL)
+    ├── feature/system      ← System 자동화
+    └── test_app            ← 실험·기획 검증
+```
+
+자세한 규칙은 [git.md](git.md) 참고.
+
+---
+
+## 협업 원칙
+
+- `develop`은 통합 브랜치다. 직접 push하지 않는다.
+- 모든 기능 작업은 feature 브랜치에서 진행한다.
+- 작업 전 `develop` 최신 내용을 pull한다.
+- PR 생성 후 리뷰를 거쳐 merge한다.
+- `.env` 파일은 커밋하지 않는다.
+- Unity의 `Library/`, `Temp/`, `obj/`, `Logs/`는 커밋하지 않는다.
+- Unity 파일 이동 시 `.meta` 파일을 반드시 함께 관리한다.
