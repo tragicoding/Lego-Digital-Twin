@@ -16,24 +16,17 @@ class CharacterAsset(BaseModel):
     animations: dict[str, AnimationInfo]
 
 
-class BuildingAsset(BaseModel):
+class ObjectAsset(BaseModel):
     asset_id: str
     model_url: str
-    role: str = "static_building"
-    owner_name: Optional[str] = None
-
-
-class VehicleAsset(BaseModel):
-    asset_id: str
-    model_url: str
-    role: str = "driveable_vehicle"
-    owner_name: Optional[str] = None
-    control_mode: str = "auto_drive"
+    role: str = "static_object"
+    object_name: Optional[str] = None
 
 
 class UnitySessionResponse(BaseModel):
     session_id: str
-    nickname: Optional[str]
+    character_npc_name: Optional[str]   # 캐릭터 NPC 이름
+    object_name: Optional[str]          # 오브제 이름
     bubble_text: Optional[str]
     ready_for_unity: bool
-    assets: dict  # character / building / vehicle
+    assets: dict  # character / object

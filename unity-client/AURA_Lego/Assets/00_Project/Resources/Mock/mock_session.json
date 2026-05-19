@@ -1,0 +1,33 @@
+{
+  "session_id": "mock_001",
+  "character_npc_name": "몽글이",
+  "object_name": "하늘탑",
+  "bubble_text": "MINIVERSE에 온 걸 환영해!",
+  "ready_for_unity": true,
+  "assets": {
+    "character": {
+      "asset_id": "mock_character_001",
+      "model_url": "",
+      "role": "guide_npc",
+      "npc_name": "몽글이",
+      "animations": {
+        "walk": {
+          "key": "walk",
+          "display_name": "걷기",
+          "unity_function": "animation_walk"
+        },
+        "idle": {
+          "key": "idle",
+          "display_name": "idle",
+          "unity_function": "animation_idle"
+        }
+      }
+    },
+    "object": {
+      "asset_id": "mock_object_001",
+      "model_url": "",
+      "role": "static_object",
+      "object_name": "하늘탑"
+    }
+  }
+}
