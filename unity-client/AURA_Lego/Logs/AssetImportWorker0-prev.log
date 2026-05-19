@@ -1,9 +1,9 @@
 [Licensing::Module] Trying to connect to existing licensing client channel...
 Built from '6000.2/staging' branch; Version is '6000.2.2f1 (ea398eefe1c2) revision 15350158'; Using compiler version '194234433'; Build Type 'Release'
-[Licensing::IpcConnector] Successfully connected to: "LicenseClient-ym167" at "2026-05-15T06:26:22.8868066Z"
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-ym167" at "2026-05-19T05:06:08.4974652Z"
 OS: 'Windows 11  (10.0.26200) 64bit Professional' Language: 'ko' Physical Memory: 16243 MB
 BatchMode: 1, IsHumanControllingUs: 0, StartBugReporterOnCrash: 0, Is64bit: 1
-Date: 2026-05-15T06:26:22Z
+Date: 2026-05-19T05:06:08Z
 
 COMMAND LINE ARGUMENTS:
 C:\Program Files\Unity\Hub\Editor\6000.2.2f1\Editor\Unity.exe
@@ -17,7 +17,7 @@ C:/Users/ym167/Documents/GitHub/Lego-Digital-Twin/unity-client/AURA_Lego
 -logFile
 Logs/AssetImportWorker0.log
 -srvPort
-54054
+61850
 -licensingIpc
 LicenseClient-ym167
 -job-worker-count
@@ -65,27 +65,27 @@ C:/Users/ym167/Documents/GitHub/Lego-Digital-Twin/unity-client/AURA_Lego
     "memorysetup-temp-allocator-size-gi-baking-worker=262144"
     "memorysetup-temp-allocator-size-gi-baking-worker=262144"
     "memorysetup-temp-allocator-size-gfx=262144"
-Player connection [23596]  Target information:
+Player connection [22996]  Target information:
 
-Player connection [23596]  * "[IP] 172.30.1.2 [Port] 0 [Flags] 2 [Guid] 2884887120 [EditorId] 2884887120 [Version] 1048832 [Id] WindowsEditor(7,DESKTOP-M3M7B9U) [Debug] 1 [PackageName] WindowsEditor [ProjectName] Editor" 
+Player connection [22996]  * "[IP] 172.30.1.68 [Port] 0 [Flags] 2 [Guid] 574898919 [EditorId] 574898919 [Version] 1048832 [Id] WindowsEditor(7,DESKTOP-M3M7B9U) [Debug] 1 [PackageName] WindowsEditor [ProjectName] Editor" 
 
-Player connection [23596] Host joined multi-casting on [225.0.0.222:54997]...
-Player connection [23596] Host joined alternative multi-casting on [225.0.0.222:34997]...
+Player connection [22996] Host joined multi-casting on [225.0.0.222:54997]...
+Player connection [22996] Host joined alternative multi-casting on [225.0.0.222:34997]...
 JobSystem: Creating JobQueue using job-worker-count value 9
 Input System module state changed to: Initialized.
 [Physics::Module] Initialized fallback backend.
 [Physics::Module] Id: 0xdecafbad
-[Licensing::Client] Code 10 while verifying Licensing Client signature (process Id: 29304, path: "C:/Program Files/Unity Hub/UnityLicensingClient_V1/Unity.Licensing.Client.exe")
+[Licensing::Client] Code 10 while verifying Licensing Client signature (process Id: 31268, path: "C:/Program Files/Unity Hub/UnityLicensingClient_V1/Unity.Licensing.Client.exe")
 [Licensing::Module] LicensingClient has failed validation; ignoring
 [Licensing::Client] Handshaking with LicensingClient:
   Version:                 1.17.4+4293ba1
-  Session Id:              3a1090c5076f412e94ec4ff8f2ee23e0
-  Correlation Id:          42129a7c49391af7ee08e3534d40d253
-  External correlation Id: 2061595299935678679
+  Session Id:              15abe5fd95a54b119d6ba158df135965
+  Correlation Id:          73f008d2642c4767dd2bb0a19a9b1ad6
+  External correlation Id: 4383804880844757220
   Machine Id:              nKW9zLnA3Cvjb+21/QgkJaxjydA=
-[Licensing::Module] Successfully connected to LicensingClient on channel: "LicenseClient-ym167" (connect: 0.00s, validation: 0.00s, handshake: 0.07s)
-[Licensing::IpcConnector] Successfully connected to: "LicenseClient-ym167-notifications" at "2026-05-15T06:26:22.9543053Z"
-[Licensing::Module] Licensing Background thread has ended after 0.07s
+[Licensing::Module] Successfully connected to LicensingClient on channel: "LicenseClient-ym167" (connect: 0.00s, validation: 0.00s, handshake: 0.08s)
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-ym167-notifications" at "2026-05-19T05:06:08.5757182Z"
+[Licensing::Module] Licensing Background thread has ended after 0.08s
 Library Redirect Path: Library/
 [Physics::Module] Selected backend.
 [Physics::Module] Name: PhysX
@@ -99,8 +99,8 @@ Library Redirect Path: Library/
   Product: Unity Personal
   Type: Assigned
   Expiration: Unlimited
-Refreshing native plugins compatible for Editor in 96.81 ms, found 19 plugins.
-Preloading 2 native plugins for Editor in 2.29 ms.
+Refreshing native plugins compatible for Editor in 63.89 ms, found 19 plugins.
+Preloading 2 native plugins for Editor in 2.00 ms.
 Initialize engine version: 6000.2.2f1 (ea398eefe1c2)
 [Subsystems] Discovering subsystems at path C:/Program Files/Unity/Hub/Editor/6000.2.2f1/Editor/Data/Resources/UnitySubsystems
 [Subsystems] Discovering subsystems at path C:/Users/ym167/Documents/GitHub/Lego-Digital-Twin/unity-client/AURA_Lego/Assets
@@ -115,46 +115,63 @@ Initialize mono
 Mono path[0] = 'C:/Program Files/Unity/Hub/Editor/6000.2.2f1/Editor/Data/Managed'
 Mono path[1] = 'C:/Program Files/Unity/Hub/Editor/6000.2.2f1/Editor/Data/MonoBleedingEdge/lib/mono/unityjit-win32'
 Mono config path = 'C:/Program Files/Unity/Hub/Editor/6000.2.2f1/Editor/Data/MonoBleedingEdge/etc'
-Using monoOptions --debugger-agent=transport=dt_socket,embedding=1,server=y,suspend=n,address=127.0.0.1:56952
+Using monoOptions --debugger-agent=transport=dt_socket,embedding=1,server=y,suspend=n,address=127.0.0.1:56488
 Begin MonoManager ReloadAssembly
 Registering precompiled unity dll's ...
 Register platform support module: C:/Program Files/Unity/Hub/Editor/6000.2.2f1/Editor/Data/PlaybackEngines/WindowsStandaloneSupport/UnityEditor.WindowsStandalone.Extensions.dll
 Register platform support module: C:/Program Files/Unity/Hub/Editor/6000.2.2f1/Editor/Data/PlaybackEngines/AndroidPlayer/UnityEditor.Android.Extensions.dll
-Registered in 0.004249 seconds.
-- Loaded All Assemblies, in  0.363 seconds
+Registered in 0.003439 seconds.
+- Loaded All Assemblies, in  0.355 seconds
 Native extension for Android target not found
-Android Extension - Scanning For ADB Devices 2382 ms
+CommandWithNoStdoutInvokationFailure: Unable to start ADB server. Please make sure the Android SDK is installed and is properly configured in the Editor. See the Console for more details.
+  at UnityEditor.Android.Command.RunWithShellExecute (System.String command, System.String args, System.String workingdir, System.String errorMsg) [0x0005a] in /home/bokken/build/output/unity/unity/PlatformDependent/AndroidPlayer/Editor/Managed/Android/Command.cs:148 
+  at UnityEditor.Android.ADB.StartServer () [0x00008] in /home/bokken/build/output/unity/unity/PlatformDependent/AndroidPlayer/Editor/Managed/Android/ADB.cs:176 
+  at UnityEditor.Android.ADB.Run (System.String[] command, UnityEditor.Android.Command+WaitingForProcessToExit waitingForProcessToExit, System.String errorMsg) [0x0000b] in /home/bokken/build/output/unity/unity/PlatformDependent/AndroidPlayer/Editor/Managed/Android/ADB.cs:214 
+  at UnityEditor.Android.AndroidDeploymentTargetsExtension.GetKnownTargets (UnityEditor.DeploymentTargets.IDeploymentTargetsMainThreadContext context, UnityEditor.ProgressHandler progressHandler) [0x002a7] in /home/bokken/build/output/unity/unity/PlatformDependent/AndroidPlayer/Editor/Managed/DeploymentTargets/AndroidDeploymentTargetsExtension.cs:391 
+  at UnityEditor.Android.TargetScanWorker.ScanSync () [0x00049] in /home/bokken/build/output/unity/unity/PlatformDependent/AndroidPlayer/Editor/Managed/TargetScanWorker.cs:164 
+  at UnityEditor.Android.TargetExtension.OnUsbDevicesChanged (UnityEditor.Hardware.UsbDevice[] usbDevices) [0x00087] in /home/bokken/build/output/unity/unity/PlatformDependent/AndroidPlayer/Editor/Managed/ExtensionModule.cs:114 
+  at UnityEditor.Android.TargetExtension.OnLoad () [0x000af] in /home/bokken/build/output/unity/unity/PlatformDependent/AndroidPlayer/Editor/Managed/ExtensionModule.cs:75 
+  at UnityEditor.Modules.ModuleManager.InitializePlatformSupportModules () [0x000ba] in <1acad9deef3549c4b9617dfa169c6659>:0 
+UnityEngine.DebugLogHandler:Internal_LogException_Injected(Exception, IntPtr)
+UnityEngine.DebugLogHandler:Internal_LogException(Exception, Object)
+UnityEngine.DebugLogHandler:LogException(Exception, Object)
+UnityEngine.Logger:LogException(Exception, Object)
+UnityEngine.Debug:LogException(Exception)
+UnityEditor.Modules.ModuleManager:InitializePlatformSupportModules()
+
+(Filename: /home/bokken/build/output/unity/unity/PlatformDependent/AndroidPlayer/Editor/Managed/Android/Command.cs Line: 148)
+
 Native extension for WindowsStandalone target not found
 Mono: successfully reloaded assembly
-- Finished resetting the current domain, in  2.684 seconds
-Domain Reload Profiling: 3043ms
-	BeginReloadAssembly (133ms)
+- Finished resetting the current domain, in  7.268 seconds
+Domain Reload Profiling: 7620ms
+	BeginReloadAssembly (128ms)
 		ExecutionOrderSort (0ms)
 		DisableScriptedObjects (0ms)
 		BackupInstance (0ms)
 		ReleaseScriptingObjects (0ms)
 		CreateAndSetChildDomain (1ms)
-	RebuildCommonClasses (31ms)
-	RebuildNativeTypeToScriptingClass (9ms)
-	initialDomainReloadingComplete (49ms)
-	LoadAllAssembliesAndSetupDomain (138ms)
-		LoadAssemblies (130ms)
+	RebuildCommonClasses (30ms)
+	RebuildNativeTypeToScriptingClass (12ms)
+	initialDomainReloadingComplete (44ms)
+	LoadAllAssembliesAndSetupDomain (136ms)
+		LoadAssemblies (125ms)
 		RebuildTransferFunctionScriptingTraits (0ms)
-		AnalyzeDomain (134ms)
-			TypeCache.Refresh (133ms)
+		AnalyzeDomain (133ms)
+			TypeCache.Refresh (131ms)
 				TypeCache.ScanAssembly (120ms)
 			BuildScriptInfoCaches (0ms)
 			ResolveRequiredComponents (0ms)
-	FinalizeReload (2684ms)
+	FinalizeReload (7269ms)
 		ReleaseScriptCaches (0ms)
 		RebuildScriptCaches (0ms)
-		SetupLoadedEditorAssemblies (2644ms)
+		SetupLoadedEditorAssemblies (7228ms)
 			LogAssemblyErrors (0ms)
-			InitializePlatformSupportModulesInManaged (2458ms)
+			InitializePlatformSupportModulesInManaged (7030ms)
 			SetLoadedEditorAssemblies (3ms)
-			BeforeProcessingInitializeOnLoad (46ms)
-			ProcessInitializeOnLoadAttributes (89ms)
-			ProcessInitializeOnLoadMethodAttributes (49ms)
+			BeforeProcessingInitializeOnLoad (45ms)
+			ProcessInitializeOnLoadAttributes (96ms)
+			ProcessInitializeOnLoadMethodAttributes (54ms)
 			AfterProcessingInitializeOnLoad (0ms)
 			EditorAssembliesLoaded (0ms)
 		ExecutionOrderSort2 (0ms)
@@ -165,15 +182,15 @@ Import Worker Mode flag is 0x00
 Begin MonoManager ReloadAssembly
 [Licensing::Client] Successfully resolved entitlement details
 Symbol file LoadedFromMemory is not a mono symbol file
-- Loaded All Assemblies, in  1.071 seconds
-Refreshing native plugins compatible for Editor in 30.86 ms, found 19 plugins.
+- Loaded All Assemblies, in  1.101 seconds
+Refreshing native plugins compatible for Editor in 31.04 ms, found 19 plugins.
 Native extension for Android target not found
 Native extension for WindowsStandalone target not found
 Package Manager log level set to [2]
 [Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
 [Package Manager] Unable to send message (not connected to server process).
 [Package Manager] Cannot connect to Unity Package Manager local server
-Refreshing native plugins compatible for Editor in 25.58 ms, found 19 plugins.
+Refreshing native plugins compatible for Editor in 41.21 ms, found 19 plugins.
 [Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
 [Package Manager] Unable to send message (not connected to server process).
 [Package Manager] Cannot connect to Unity Package Manager local server
@@ -233,36 +250,36 @@ Mono: successfully reloaded assembly
 [Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
 [Package Manager] Unable to send message (not connected to server process).
 [Package Manager] Cannot connect to Unity Package Manager local server
-- Finished resetting the current domain, in  0.950 seconds
-Domain Reload Profiling: 2012ms
-	BeginReloadAssembly (166ms)
+- Finished resetting the current domain, in  1.292 seconds
+Domain Reload Profiling: 2385ms
+	BeginReloadAssembly (181ms)
 		ExecutionOrderSort (0ms)
 		DisableScriptedObjects (5ms)
 		BackupInstance (0ms)
 		ReleaseScriptingObjects (0ms)
-		CreateAndSetChildDomain (22ms)
-	RebuildCommonClasses (31ms)
+		CreateAndSetChildDomain (23ms)
+	RebuildCommonClasses (29ms)
 	RebuildNativeTypeToScriptingClass (9ms)
-	initialDomainReloadingComplete (46ms)
-	LoadAllAssembliesAndSetupDomain (810ms)
-		LoadAssemblies (603ms)
+	initialDomainReloadingComplete (34ms)
+	LoadAllAssembliesAndSetupDomain (839ms)
+		LoadAssemblies (581ms)
 		RebuildTransferFunctionScriptingTraits (0ms)
-		AnalyzeDomain (310ms)
-			TypeCache.Refresh (216ms)
-				TypeCache.ScanAssembly (198ms)
-			BuildScriptInfoCaches (80ms)
+		AnalyzeDomain (359ms)
+			TypeCache.Refresh (266ms)
+				TypeCache.ScanAssembly (242ms)
+			BuildScriptInfoCaches (79ms)
 			ResolveRequiredComponents (10ms)
-	FinalizeReload (950ms)
+	FinalizeReload (1293ms)
 		ReleaseScriptCaches (0ms)
 		RebuildScriptCaches (0ms)
-		SetupLoadedEditorAssemblies (750ms)
+		SetupLoadedEditorAssemblies (1064ms)
 			LogAssemblyErrors (0ms)
-			InitializePlatformSupportModulesInManaged (9ms)
-			SetLoadedEditorAssemblies (3ms)
-			BeforeProcessingInitializeOnLoad (141ms)
-			ProcessInitializeOnLoadAttributes (335ms)
-			ProcessInitializeOnLoadMethodAttributes (253ms)
-			AfterProcessingInitializeOnLoad (9ms)
+			InitializePlatformSupportModulesInManaged (13ms)
+			SetLoadedEditorAssemblies (4ms)
+			BeforeProcessingInitializeOnLoad (198ms)
+			ProcessInitializeOnLoadAttributes (481ms)
+			ProcessInitializeOnLoadMethodAttributes (362ms)
+			AfterProcessingInitializeOnLoad (6ms)
 			EditorAssembliesLoaded (0ms)
 		ExecutionOrderSort2 (0ms)
 		AwakeInstancesAfterBackupRestoration (9ms)
@@ -302,109 +319,13 @@ WARNING: Shader If subshaders removal was intentional, you may have forgotten tu
 WARNING: Shader Unsupported: 'Simulation/URP/Lit' - All subshaders removed
 WARNING: Shader Did you use #pragma only_renderers and omit this platform?
 WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-Launched and connected shader compiler UnityShaderCompiler.exe after 0.03 seconds
-Refreshing native plugins compatible for Editor in 24.36 ms, found 19 plugins.
-Preloading 2 native plugins for Editor in 0.21 ms.
+Launched and connected shader compiler UnityShaderCompiler.exe after 0.05 seconds
+Refreshing native plugins compatible for Editor in 47.46 ms, found 19 plugins.
+Preloading 2 native plugins for Editor in 0.22 ms.
 Unloading 23 Unused Serialized files (Serialized files now loaded: 0)
-Unloading 8830 unused Assets / (7.5 MB). Loaded Objects now: 9549.
-Memory consumption went from 175.1 MB to 167.7 MB.
-Total: 11.778400 ms (FindLiveObjects: 1.471100 ms CreateObjectMapping: 0.555000 ms MarkObjects: 6.990500 ms  DeleteObjects: 2.761100 ms)
-
-========================================================================
-Received Import Request.
-  Time since last request: 20058.701281 seconds.
-  path: Assets/External Assets/Network
-  artifactKey: Guid(41ed6d578d31ec44cb3883f4b275ea1d) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/External Assets/Network using Guid(41ed6d578d31ec44cb3883f4b275ea1d) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '12459e5e06175ce94c2a6fe1a6d798f2') in 0.0051888 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 0
-
-========================================================================
-Received Import Request.
-  Time since last request: 10.665502 seconds.
-  path: Assets/External Assets/mecabricks/Arendelle Castle Village_org.fbx
-  artifactKey: Guid(70a82b57fafa38a45a899c4ceb687397) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/External Assets/mecabricks/Arendelle Castle Village_org.fbx using Guid(70a82b57fafa38a45a899c4ceb687397) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '46976d6755cf8ffc97d7b9c2b23a30be') in 3.999872 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 2168
-
-========================================================================
-Received Import Request.
-  Time since last request: 0.000058 seconds.
-  path: Assets/External Assets/mecabricks/Hogwarts builds7.fbx
-  artifactKey: Guid(ec5257a452d39664c8a95aaa946462ef) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/External Assets/mecabricks/Hogwarts builds7.fbx using Guid(ec5257a452d39664c8a95aaa946462ef) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'c647f824bbdeefe6d3471f608279397d') in 0.4004186 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 240
-
-========================================================================
-Received Import Request.
-  Time since last request: 0.000082 seconds.
-  path: Assets/External Assets/mecabricks/LEGOLAND® Park_notice 1.fbx
-  artifactKey: Guid(2f1cf43c72d6d6845be0f68d1fcf982e) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/External Assets/mecabricks/LEGOLAND® Park_notice 1.fbx using Guid(2f1cf43c72d6d6845be0f68d1fcf982e) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'eae1bf9b435eb96bd4055175ae2b669f') in 0.3638534 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 182
-
-========================================================================
-Received Import Request.
-  Time since last request: 0.000131 seconds.
-  path: Assets/External Assets/mecabricks/Hogwarts builds1.fbx
-  artifactKey: Guid(db0327600464140448ffbe2f3cabb42d) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/External Assets/mecabricks/Hogwarts builds1.fbx using Guid(db0327600464140448ffbe2f3cabb42d) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'e6ffadbf5b105dee990af286471da75a') in 0.5987812 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 254
-
-========================================================================
-Received Import Request.
-  Time since last request: 0.000067 seconds.
-  path: Assets/External Assets/mecabricks/Lego_top.fbx
-  artifactKey: Guid(a132c782a1f153f45a49412681b2c284) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/External Assets/mecabricks/Lego_top.fbx using Guid(a132c782a1f153f45a49412681b2c284) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'a0fe52ab11e8084fef3f3f21f4435e4c') in 1.3308564 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 818
-
-========================================================================
-Received Import Request.
-  Time since last request: 0.000037 seconds.
-  path: Assets/External Assets/mecabricks/Hogwarts builds4.fbx
-  artifactKey: Guid(fe72a02eb7ac56e4fa6e416090cdbcbc) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/External Assets/mecabricks/Hogwarts builds4.fbx using Guid(fe72a02eb7ac56e4fa6e416090cdbcbc) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '1d9db6a40231c72b217a0a30eafc98a4') in 0.4518605 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 260
-
-========================================================================
-Received Import Request.
-  Time since last request: 0.000044 seconds.
-  path: Assets/External Assets/mecabricks/LEGOLAND® Park_coster 1.fbx
-  artifactKey: Guid(09995389f17fdaf4f86f136e50e5f3c9) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/External Assets/mecabricks/LEGOLAND® Park_coster 1.fbx using Guid(09995389f17fdaf4f86f136e50e5f3c9) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'daa0878b54fddaf174eef059e8d7ea0e') in 2.4774716 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1326
-
-========================================================================
-Received Import Request.
-  Time since last request: 0.000037 seconds.
-  path: Assets/External Assets/mecabricks/Seaside Holiday Cottage.fbx
-  artifactKey: Guid(1d555d445dd2fd14f942ba076b421578) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/External Assets/mecabricks/Seaside Holiday Cottage.fbx using Guid(1d555d445dd2fd14f942ba076b421578) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '11c63f01ed2ea0e8e8cc0120be3b1385') in 1.081381 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 542
-
-========================================================================
-Received Import Request.
-  Time since last request: 0.000040 seconds.
-  path: Assets/External Assets/mecabricks/carousel 1.fbx
-  artifactKey: Guid(64553c98894d2aa4fbcbd0b90c67edfd) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/External Assets/mecabricks/carousel 1.fbx using Guid(64553c98894d2aa4fbcbd0b90c67edfd) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'ad61eec96941b23cec317e34a860af02') in 3.0887268 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 13816
-
-========================================================================
-Received Import Request.
-  Time since last request: 0.000044 seconds.
-  path: Assets/External Assets/mecabricks/LEGOLAND® Park_coster.fbx
-  artifactKey: Guid(98cda514968992c468b430fd37ba92f3) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/External Assets/mecabricks/LEGOLAND® Park_coster.fbx using Guid(98cda514968992c468b430fd37ba92f3) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'd7b0f941fb8eab6377cdd48cc4534812') in 2.2078809 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1326
-
-========================================================================
-Received Import Request.
-  Time since last request: 0.000054 seconds.
-  path: Assets/External Assets/mecabricks/Hogwarts builds5.fbx
-  artifactKey: Guid(3b29ebf6056405a4b975185a9f6b39b3) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/External Assets/mecabricks/Hogwarts builds5.fbx using Guid(3b29ebf6056405a4b975185a9f6b39b3) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '580030b7784fad2637f9450d1ca7bc40') in 0.4770573 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 280
+Unloading 8832 unused Assets / (8.4 MB). Loaded Objects now: 9553.
+Memory consumption went from 177.5 MB to 169.1 MB.
+Total: 17.647100 ms (FindLiveObjects: 0.848900 ms CreateObjectMapping: 0.834600 ms MarkObjects: 8.967000 ms  DeleteObjects: 6.994500 ms)
 
 Editor requested this worker to shutdown with reason: Scaling down because of idle timeout
 AssetImportWorker is now disconnected from the server
