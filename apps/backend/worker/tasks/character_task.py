@@ -1,114 +1,140 @@
 """
 캐릭터 처리 파이프라인 (RQ Worker에서 실행)
-이미지 → 3D 생성 → 리깅 → 걷기/인사_01 애니메이션 → GLB 저장 → DB 업데이트
+이미지 → 3D 생성 → 리깅 → 걷기/idle 애니메이션 → GLB 저장 → DB 업데이트
 
-enqueue_asset()에서 character 작업이 큐에 들어가면,
-RQ Worker가 이 파일의 process_character()를 실행
-
-
+GLB 파일명: npc_{순서번호}_rigged.glb / npc_{순서번호}_walk.glb / npc_{순서번호}_idle.glb
+검증된 preset: walk ✅  idle ✅  run ✅  jump ✅
+실패 preset (error_code 1004): hello ❌  wave ❌  dance ❌
 """
-#비동기 작업 
 import asyncio
-#파일 경로를 다루기 쉽게 해주는 Python 문법
+import time
 from pathlib import Path
 
-from ...core.config import STORAGE_MODELS, BACKEND_HOST
+from redis import Redis
+
+from ...core.config import STORAGE_MODELS, BACKEND_HOST, REDIS_URL
 from ...core.database import SessionLocal
 from ...models.asset import Asset
 from ...models.asset_animation import AssetAnimation
 from ...services import tripo_service as tripo
-"""
-STORAGE_MODELS: GLB 저장 폴더 경로
-BACKEND_HOST: 파일 URL 만들 때 쓰는 서버 주소
-SessionLocal: DB 세션 생성
-Asset: 업로드된 에셋 DB 모델
-AssetAnimation: 애니메이션 메타데이터 저장용 DB 모델
-tripo: Tripo API 호출 함수 모음"""
+
+ACTIVE_SESSION_KEY = "lego:active_session"
 
 
-# Tripo 애니메이션 preset 매핑
+def _is_cancelled(session_id: str) -> bool:
+    """현재 세션이 active session이 아니면 True (새 세션이 시작된 것)."""
+    r = Redis.from_url(REDIS_URL)
+    active = r.get(ACTIVE_SESSION_KEY)
+    r.close()
+    return active is not None and active.decode() != session_id
+
 ANIMATIONS = [
-    {"key": "walk",  "display_name": "걷기",    "preset": "preset:walk",  "unity_function": "animation_walk"},
-    {"key": "hello", "display_name": "인사_01", "preset": "preset:wave",  "unity_function": "animation_Hello"},
+    {"key": "walk",  "display_name": "걷기",    "preset": "preset:walk", "unity_function": "animation_walk"},
+    {"key": "idle", "display_name": "idle", "preset": "preset:idle", "unity_function": "animation_idle"},
 ]
-'''
-key: 내부 식별자
-display_name: 사용자용 이름
-preset: Tripo에 넘길 애니메이션 프리셋
-unity_function: Unity에서 호출할 함수 이름'''
 
 
-#현재 처리 단계와 진행률을 DB에 저장하는 보조함수.
 def _set_stage(db, asset: Asset, stage: str, progress: int):
     asset.stage = stage
     asset.progress = progress
     db.commit()
 
-#RQ Worker 진입점. RQ Worker가 직접 호출하는 진입점.
+
+def _seq_num(db, asset: Asset) -> int:
+    """같은 asset_type 중 생성 순서 번호를 반환한다."""
+    count = db.query(Asset).filter(
+        Asset.asset_type == asset.asset_type,
+        Asset.created_at < asset.created_at,
+    ).count()
+    return count + 1
+
+
 def process_character(asset_id: str):
-    """RQ Worker 진입점 — 동기 래퍼."""
     asyncio.run(_process_character_async(asset_id))
 
-#실제 처리 로직이 담긴 비동기 함수.
+
 async def _process_character_async(asset_id: str):
-    #DB 세션 열기 + asset_id로 Asset 객체 가져오기(조회)
     db = SessionLocal()
     asset = db.get(Asset, asset_id)
     if not asset:
         return
-    #처리 시작 상태로 변경
+
+    cur_session_id = asset.session_id
+    session_id = None
     try:
         asset.status = "processing"
         _set_stage(db, asset, "generating", 10)
 
+        seq = _seq_num(db, asset)
+        prefix = f"npc_{seq}"
+
         # 1. 이미지 업로드
         token = await tripo.upload_image(Path(asset.input_image_path))
+        if _is_cancelled(cur_session_id):
+            return
 
         # 2. 3D 모델 생성
         model_task_id = await tripo.create_model_task(token)
         _set_stage(db, asset, "generating", 30)
-        model_result = await tripo.poll_task(model_task_id)
+        await tripo.poll_task(model_task_id)
+        if _is_cancelled(cur_session_id):
+            return
         _set_stage(db, asset, "rigging", 50)
+
+        t_rig_start = time.time()
+        print(f"[char] model 완료 → rig 요청", flush=True)
 
         # 3. 리깅
         rig_task_id = await tripo.create_rig_task(model_task_id)
-        rig_result = await tripo.poll_task(rig_task_id)
+        print(f"[char] rig task 등록 완료 (+{time.time()-t_rig_start:.1f}s)", flush=True)
+        await tripo.poll_task(rig_task_id)
+        if _is_cancelled(cur_session_id):
+            return
+
+        t_anim_start = time.time()
+        print(f"[char] rig 완료 → retarget 요청", flush=True)
         _set_stage(db, asset, "animating", 65)
 
-        # 4. 애니메이션 (걷기 + 인사_01) — 기본은 마지막 애니메이션 GLB 사용
-        final_glb_path = None
-        for i, anim in enumerate(ANIMATIONS):
-            anim_task_id = await tripo.create_animation_task(rig_task_id, anim["preset"])
-            anim_result = await tripo.poll_task(anim_task_id)
+        # 4. 애니메이션 — walk / idle 병렬 실행 (같은 rig_task_id 입력, 독립 출력)
+        async def _run_anim(anim: dict) -> tuple[dict, Path]:
+            task_id = await tripo.create_animation_task(rig_task_id, anim["preset"])
+            print(f"[char] {anim['key']} task 등록 완료 (+{time.time()-t_anim_start:.1f}s)", flush=True)
+            result  = await tripo.poll_task(task_id)
+            glb_path = STORAGE_MODELS / f"{prefix}_{anim['key']}.glb"
+            await tripo.download_glb(result, glb_path)
+            return anim, glb_path
 
-            glb_path = STORAGE_MODELS / f"{asset_id}_{anim['key']}.glb"
-            await tripo.download_glb(anim_result, glb_path)
+        results = await asyncio.gather(*[_run_anim(anim) for anim in ANIMATIONS])
 
-            # animation 메타데이터 DB 저장
-            db_anim = AssetAnimation(
+        for anim, glb_path in results:
+            db.add(AssetAnimation(
                 asset_id=asset_id,
                 animation_key=anim["key"],
                 display_name=anim["display_name"],
                 file_url=f"{BACKEND_HOST}/static/models/{glb_path.name}",
                 unity_function=anim["unity_function"],
-            )
-            db.add(db_anim)
+            ))
             final_glb_path = glb_path
-            _set_stage(db, asset, "animating", 65 + (i + 1) * 10)
 
         db.commit()
         _set_stage(db, asset, "downloading", 90)
 
-        # 5. 최종 GLB (마지막 애니메이션 포함 파일 사용)
+        # 5. 완료
         asset.model_url = f"{BACKEND_HOST}/static/models/{final_glb_path.name}"
         asset.status = "completed"
         asset.stage = "ready"
         asset.progress = 100
         db.commit()
 
+        session_id = asset.session_id
+
     except Exception as e:
         asset.status = "failed"
-        asset.error_message = str(e)
+        asset.error_message = str(e) or repr(e)
         db.commit()
     finally:
         db.close()
+
+    if session_id:
+        from ...services.event_service import check_and_notify
+        check_and_notify(session_id)

@@ -72,7 +72,7 @@ form.append("file", file);
 @router.post("/{session_id}/assets", response_model=AssetUploadResponse, status_code=201)
 async def upload_asset(
     session_id: str,
-    asset_type: Literal["character", "building", "vehicle"] = Form(...),
+    asset_type: Literal["character", "building", "vehicle", "object"] = Form(...),
     file: UploadFile = File(...),
     db: DBSession = Depends(get_db),
 ):  

@@ -31,6 +31,7 @@ httpx: Python에서 HTTP 요청을 보내는 라이브러리
 Path: 파일 경로를 객체처럼 다루기 위한 클래스
 httpx.AsyncClient()를 쓰기 때문에 전체 함수들이 async def'''
 import asyncio
+import time
 import httpx
 from pathlib import Path
 
@@ -42,15 +43,17 @@ _HEADERS = {"Authorization": f"Bearer {TRIPO_API_KEY}"}
 #이미지 파일을 Tipo에 업로드 → file_token 반환
 async def upload_image(image_path: Path) -> str:
     """이미지를 업로드하고 file_token을 반환한다."""
+    if not image_path.exists():
+        raise FileNotFoundError(f"이미지 파일 없음: {image_path}")
     ext = image_path.suffix.lower().lstrip(".")
     mime = "image/png" if ext == "png" else "image/jpeg"
     async with httpx.AsyncClient() as c:
-        with open(image_path, "rb") as f: #rb는 read binary
+        with open(image_path, "rb") as f:
             resp = await c.post(
                 f"{TRIPO_BASE_URL}/upload/sts",
                 headers=_HEADERS,
                 files={"file": (image_path.name, f, mime)},
-                timeout=60,
+                timeout=120,
             )
         resp.raise_for_status()
         return resp.json()["data"]["image_token"]
@@ -63,7 +66,7 @@ async def create_model_task(file_token: str) -> str:
             f"{TRIPO_BASE_URL}/task",
             headers={**_HEADERS, "Content-Type": "application/json"},
             json={"type": "image_to_model", "file": {"type": "png", "file_token": file_token}},
-            timeout=30,
+            timeout=60,
         )
         resp.raise_for_status()
         return resp.json()["data"]["task_id"]
@@ -72,62 +75,94 @@ async def create_model_task(file_token: str) -> str:
 #이미 생성된 3D 모델에 리깅 작업을 요청하는 함수.
 async def create_rig_task(model_task_id: str) -> str:
     """리깅 태스크를 생성하고 task_id를 반환한다."""
-    async with httpx.AsyncClient() as c:
-        resp = await c.post(
-            f"{TRIPO_BASE_URL}/task",
-            headers={**_HEADERS, "Content-Type": "application/json"},
-            json={"type": "animate_rig", "original_model_task_id": model_task_id},
-            timeout=30,
-        )
-        resp.raise_for_status()
-        return resp.json()["data"]["task_id"]
+    for attempt in range(3):
+        try:
+            async with httpx.AsyncClient() as c:
+                resp = await c.post(
+                    f"{TRIPO_BASE_URL}/task",
+                    headers={**_HEADERS, "Content-Type": "application/json"},
+                    json={"type": "animate_rig", "original_model_task_id": model_task_id},
+                    timeout=60,
+                )
+            resp.raise_for_status()
+            return resp.json()["data"]["task_id"]
+        except httpx.TransportError as e:
+            if attempt >= 2:
+                raise RuntimeError(f"create_rig_task 네트워크 에러: {repr(e)}")
+            await asyncio.sleep(2 * (attempt + 1))
 
 #리깅된 모델에 애니메이션을 적용하는 task를 생성하는 함수.
 async def create_animation_task(rig_task_id: str, animation: str) -> str:
-    """
-    애니메이션 태스크 생성.
-    animation: "preset:walk" | "preset:wave" 등 Tripo 지원 preset
-    """
-    async with httpx.AsyncClient() as c:
-        resp = await c.post(
-            f"{TRIPO_BASE_URL}/task",
-            headers={**_HEADERS, "Content-Type": "application/json"},
-            json={
-                "type": "animate_retarget",
-                "original_model_task_id": rig_task_id,
-                "animation": animation,
-                "out_format": "glb",
-            },
-            timeout=30,
-        )
-        resp.raise_for_status()
-        return resp.json()["data"]["task_id"]
+    """애니메이션 태스크 생성."""
+    for attempt in range(3):
+        try:
+            async with httpx.AsyncClient() as c:
+                resp = await c.post(
+                    f"{TRIPO_BASE_URL}/task",
+                    headers={**_HEADERS, "Content-Type": "application/json"},
+                    json={
+                        "type": "animate_retarget",
+                        "original_model_task_id": rig_task_id,
+                        "animation": animation,
+                        "out_format": "glb",
+                    },
+                    timeout=60,
+                )
+            resp.raise_for_status()
+            return resp.json()["data"]["task_id"]
+        except httpx.TransportError as e:
+            if attempt >= 2:
+                raise RuntimeError(f"create_animation_task 네트워크 에러: {repr(e)}")
+            await asyncio.sleep(2 * (attempt + 1))
 
 #Tripo task가 끝났는지 계속 확인하는 함수. 
 #interval = 3초마다 확인
 #timout = 최대 300초까지 대기. 
-async def poll_task(task_id: str, interval: float = 3.0, timeout: float = 300.0) -> dict:
+async def poll_task(task_id: str, interval: float = 1.0, timeout: float = 600.0) -> dict:
     """태스크 완료까지 polling하고 result dict를 반환한다."""
+    start = time.time()
+    short_id = task_id[:8]
+    print(f"[poll] {short_id} 시작", flush=True)
+
     elapsed = 0.0
-    async with httpx.AsyncClient() as c:
-        while elapsed < timeout:
-            resp = await c.get(
-                f"{TRIPO_BASE_URL}/task/{task_id}",
-                headers=_HEADERS,
-                timeout=30,
-            ) #현재 task의 현재 상태를 Tripo API에서 조회
-            resp.raise_for_status()
-            data = resp.json()["data"]
-            status = data["status"] #status는 "processing", "success", "failed" 등 작업 상태를 나타냄
-            #현재 task 상태를 꺼낸다.
+    prev_status = None
+    while elapsed < timeout:
+        retry = 0
+        while retry < 3:
+            try:
+                async with httpx.AsyncClient() as c:
+                    resp = await c.get(
+                        f"{TRIPO_BASE_URL}/task/{task_id}",
+                        headers=_HEADERS,
+                        timeout=60,
+                    )
+                resp.raise_for_status()
+                break
+            except httpx.TransportError as net_err:
+                retry += 1
+                if retry >= 3:
+                    raise RuntimeError(
+                        f"Tripo 네트워크 에러 (3회 재시도 실패): {repr(net_err)} "
+                        f"(task_id={task_id})"
+                    )
+                await asyncio.sleep(2 * retry)
 
-            if status in ("success", "FINISHED"):
-                return data
-            if status in ("failed", "FAILED", "cancelled", "unknown"):
-                raise RuntimeError(f"Tripo 태스크 실패: {status} (task_id={task_id})")
+        data = resp.json()["data"]
+        status = data["status"]
 
-            await asyncio.sleep(interval)
-            elapsed += interval
+        # 상태 변경 시에만 로그
+        if status != prev_status:
+            print(f"[poll] {short_id} {prev_status} → {status} (+{time.time()-start:.1f}s)", flush=True)
+            prev_status = status
+
+        if status.upper() in ("SUCCESS", "FINISHED"):
+            print(f"[poll] {short_id} 완료 (총 {time.time()-start:.1f}s)", flush=True)
+            return data
+        if status.upper() in ("FAILED", "CANCELLED", "UNKNOWN"):
+            raise RuntimeError(f"Tripo 태스크 실패: {status} (task_id={task_id})")
+
+        await asyncio.sleep(interval)
+        elapsed += interval
 
     raise TimeoutError(f"Tripo 태스크 타임아웃 ({timeout}s): {task_id}")
 '''
@@ -139,10 +174,20 @@ task_id 확인
 → 너무 오래 걸리면 TimeoutError'''
 
 
-#Tripo 결과에서 GLB 파일 URL을 찾아서 다운로드 하는 함수. 
+#Tripo 결과에서 GLB 파일 URL을 찾아서 다운로드 하는 함수.
+# image_to_model → "pbr_model"
+# animate_retarget → "model" 또는 "animation" 키 사용
 async def download_glb(result: dict, output_path: Path) -> Path:
     """GLB 파일을 다운로드한다."""
-    glb_url = result["output"]["pbr_model"]
+    output = result.get("output", {})
+    glb_url = (
+        output.get("pbr_model")
+        or output.get("model")
+        or output.get("animation")
+        or output.get("animated_model")
+    )
+    if not glb_url:
+        raise KeyError(f"GLB URL을 찾을 수 없습니다. output keys: {list(output.keys())}")
     async with httpx.AsyncClient() as c:
         resp = await c.get(glb_url, timeout=120, follow_redirects=True)
         resp.raise_for_status()
