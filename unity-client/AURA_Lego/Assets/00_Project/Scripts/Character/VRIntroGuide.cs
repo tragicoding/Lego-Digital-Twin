@@ -1,82 +1,139 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.XR.Interaction.Toolkit.Locomotion;
 
-public class VRIntroGuide : MonoBehaviour
+namespace LegoTwin.Character
 {
-    [Header("이동 및 대기 설정")]
-    [Tooltip("출발 전 출발 위치에서 대기하는 시간 (초)")]
-    public float waitTimeBeforeStart = 5.0f;
-    
-    [Tooltip("가이드가 시작될 위치 (비워두면 현재 XR Origin의 위치를 시작점으로 사용합니다)")]
-    public Transform startPoint;
-    
-    [Tooltip("가이드가 도착할 최종 목표 위치")]
-    public Transform targetPoint;
-    
-    [Tooltip("이동하는 데 걸리는 시간 (초)")]
-    public float guideDuration = 5.0f;
-
-    [Header("제어할 이동 스크립트 (선택 사항)")]
-    [Tooltip("대기 및 가이드 중에는 비활성화하고, 도착 후 활성화할 플레이어 이동 스크립트")]
-    public MonoBehaviour playerMovementScript;
-
-    private void Start()
+    /// <summary>
+    /// VR 인트로 가이드 — XR Origin을 시작 위치에서 목표 위치까지 자동 이동시킨다.
+    ///
+    /// 인트로 전 과정(대기 + 이동)에서 LocomotionProvider를 비활성화해
+    /// 컨트롤러 이동/회전을 차단한다. HMD 시선 추적은 항상 유지된다.
+    ///
+    /// Inspector 설정:
+    ///   1. XR Origin 필드에 XR Origin GameObject를 연결한다.
+    ///   2. Start Point / Target Point Transform을 씬에서 지정한다.
+    ///   3. Wait Duration / Move Duration(초)을 조정한다.
+    ///   4. Locomotion Providers 배열이 비어있으면 XR Origin 하위에서 자동 탐색한다.
+    /// </summary>
+    public class VRIntroGuide : MonoBehaviour
     {
-        if (targetPoint == null)
+        [Header("XR Origin")]
+        [Tooltip("이동 대상 XR Origin. 비워두면 이 GameObject를 사용.")]
+        public Transform xrOrigin;
+
+        [Header("위치 설정")]
+        [Tooltip("인트로 시작 위치. 비워두면 씬 로드 시 현재 위치를 시작점으로 사용.")]
+        public Transform startPoint;
+
+        [Tooltip("인트로 종료 후 도달할 목표 위치. (필수)")]
+        public Transform targetPoint;
+
+        [Header("시간 설정 (초)")]
+        [Tooltip("이동 전 시작 위치에서 대기하는 시간")]
+        public float waitDuration = 5f;
+
+        [Tooltip("목표 위치까지 이동하는 데 걸리는 시간")]
+        public float moveDuration = 15f;
+
+        [Header("이동 잠금 (XR Locomotion Providers)")]
+        [Tooltip("인트로 동안 비활성화할 LocomotionProvider 목록.\n" +
+                 "비워두면 xrOrigin 하위 컴포넌트를 자동 탐색한다.\n" +
+                 "HMD 시선 추적은 LocomotionProvider와 무관하므로 항상 유지된다.")]
+        public LocomotionProvider[] locomotionProviders;
+
+        private Transform _moveTarget;
+        private LocomotionProvider[] _resolvedProviders;
+        private bool[] _savedStates;
+
+        private void Start()
         {
-            Debug.LogError("목표 위치(Target Point)가 설정되지 않았습니다!");
-            return;
+            _moveTarget = xrOrigin != null ? xrOrigin : transform;
+
+            if (targetPoint == null)
+            {
+                Debug.LogError("[VRIntroGuide] targetPoint가 설정되지 않았습니다.");
+                return;
+            }
+
+            StartCoroutine(IntroRoutine());
         }
 
-        // 씬 시작과 동시에 가이드 코루틴 실행
-        StartCoroutine(GuidePlayerCoroutine());
-    }
-
-    private IEnumerator GuidePlayerCoroutine()
-    {
-        // 1. 코루틴이 시작되자마자 플레이어의 수동 조작 방지
-        if (playerMovementScript != null)
+        private IEnumerator IntroRoutine()
         {
-            playerMovementScript.enabled = false;
+            // 1. 시작 위치 설정
+            if (startPoint != null)
+                _moveTarget.SetPositionAndRotation(startPoint.position, startPoint.rotation);
+
+            // 2. 컨트롤러 이동/회전 잠금 (HMD 시선 추적은 유지됨)
+            SetLocomotionEnabled(false);
+
+            // 3. 대기
+            Debug.Log($"[VRIntroGuide] 대기 시작 ({waitDuration}초)");
+            yield return new WaitForSeconds(waitDuration);
+
+            // 4. 이동
+            Vector3 fromPos = _moveTarget.position;
+            Quaternion fromRot = _moveTarget.rotation;
+            float elapsed = 0f;
+
+            Debug.Log($"[VRIntroGuide] 이동 시작 → {targetPoint.name} ({moveDuration}초)");
+
+            while (elapsed < moveDuration)
+            {
+                float t = Mathf.SmoothStep(0f, 1f, elapsed / moveDuration);
+                _moveTarget.SetPositionAndRotation(
+                    Vector3.Lerp(fromPos, targetPoint.position, t),
+                    Quaternion.Slerp(fromRot, targetPoint.rotation, t)
+                );
+                elapsed += Time.deltaTime;
+                yield return null;
+            }
+
+            // 5. 목표 위치 정확히 안착
+            _moveTarget.SetPositionAndRotation(targetPoint.position, targetPoint.rotation);
+
+            // 6. 이동 잠금 해제 (원래 활성화 상태로 복원)
+            SetLocomotionEnabled(true);
+
+            Debug.Log("[VRIntroGuide] 인트로 가이드 완료.");
         }
 
-        // 시작 지점이 지정되어 있다면 해당 위치로 즉시 이동
-        if (startPoint != null)
+        private void SetLocomotionEnabled(bool enable)
         {
-            transform.position = startPoint.position;
-            transform.rotation = startPoint.rotation;
+            if (enable)
+            {
+                // 인트로 전 원래 상태 복원
+                if (_resolvedProviders == null) return;
+
+                for (int i = 0; i < _resolvedProviders.Length; i++)
+                {
+                    if (_resolvedProviders[i] != null)
+                        _resolvedProviders[i].enabled = _savedStates[i];
+                }
+
+                Debug.Log($"[VRIntroGuide] LocomotionProvider 복원 ({_resolvedProviders.Length}개)");
+            }
+            else
+            {
+                // 현재 활성화 상태를 저장한 뒤 비활성화
+                _resolvedProviders = (locomotionProviders != null && locomotionProviders.Length > 0)
+                    ? locomotionProviders
+                    : _moveTarget.GetComponentsInChildren<LocomotionProvider>(includeInactive: true);
+
+                _savedStates = new bool[_resolvedProviders.Length];
+
+                for (int i = 0; i < _resolvedProviders.Length; i++)
+                {
+                    if (_resolvedProviders[i] != null)
+                    {
+                        _savedStates[i] = _resolvedProviders[i].enabled;
+                        _resolvedProviders[i].enabled = false;
+                    }
+                }
+
+                Debug.Log($"[VRIntroGuide] LocomotionProvider 비활성화 ({_resolvedProviders.Length}개)");
+            }
         }
-
-        // 2. 지정된 시간(waitTimeBeforeStart)만큼 출발 위치에서 대기
-        yield return new WaitForSeconds(waitTimeBeforeStart);
-
-        // 대기가 끝난 시점의 위치와 회전값을 이동 시작점으로 저장
-        Vector3 initialPosition = transform.position;
-        Quaternion initialRotation = transform.rotation;
-
-        float elapsedTime = 0f;
-
-        // 3. 지정된 시간(guideDuration) 동안 부드럽게 이동 (Lerp 사용)
-        while (elapsedTime < guideDuration)
-        {
-            // 시간에 따른 위치 및 회전 보간
-            transform.position = Vector3.Lerp(initialPosition, targetPoint.position, elapsedTime / guideDuration);
-            transform.rotation = Quaternion.Lerp(initialRotation, targetPoint.rotation, elapsedTime / guideDuration);
-            
-            elapsedTime += Time.deltaTime;
-            yield return null; // 다음 프레임까지 대기
-        }
-
-        // 4. 목표 지점에 오차 없이 정확히 안착
-        transform.position = targetPoint.position;
-        transform.rotation = targetPoint.rotation;
-
-        // 5. 도착 후 플레이어의 수동 조작 권한 복구
-        if (playerMovementScript != null)
-        {
-            playerMovementScript.enabled = true;
-        }
-
-        Debug.Log("인트로 대기 및 가이드 이동이 완료되었습니다.");
     }
 }
