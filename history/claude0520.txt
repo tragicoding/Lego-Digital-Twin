@@ -1,0 +1,704 @@
+프로젝트명: Lego-Digital-Twin / MINIVERSE
+
+이번 작업의 목적은 기능 구현이 아니라, 팀 협업과 개발 일관성을 위한 문서 정리이다.
+
+현재 프로젝트는 Unity 기반 VR 전시 프로젝트이며, backend / frontend / unity-client / apps / history 등의 디렉토리로 구성되어 있다.
+
+이번 작업에서 수정하거나 생성해야 할 문서는 다음과 같다.
+
+수정 또는 생성 대상:
+1. 최상위 README.md
+2. apps/README.md
+3. backend/README.md
+4. frontend/README.md
+5. unity-client/README.md
+6. 최상위 git.md
+7. 최상위 CLAUDE.md
+8. history/ 폴더 내 Trouble Shooting 기록 규칙 반영
+
+중요 원칙:
+- 실제 프로젝트 디렉토리 구조를 먼저 확인한 뒤 문서에 반영한다.
+- 존재하지 않는 폴더나 명령어를 임의로 작성하지 않는다.
+- 확실하지 않은 실행 명령어는 TODO로 표시한다.
+- 기존 README가 있으면 무조건 삭제하지 말고 현재 구조에 맞게 보완한다.
+- 이번 작업은 문서 정리 작업이므로 기능 코드는 수정하지 않는다.
+- 작업 완료 후 commit/push는 하지 말고, 변경 파일 목록과 요약을 보고한다.
+- commit/push가 필요하면 반드시 개발자에게 먼저 질문한다.
+
+==================================================
+[1] 최상위 README.md 수정사항
+==================================================
+
+최상위 README.md에는 다음 내용을 포함해줘.
+
+--------------------------------------------------
+1. 프로젝트 개요
+--------------------------------------------------
+
+Lego-Digital-Twin / MINIVERSE 프로젝트 소개를 작성한다.
+
+내용:
+- 관객이 현실에서 조립한 레고 캐릭터와 오브제를 촬영한다.
+- 촬영된 이미지는 3D 모델로 변환된다.
+- 캐릭터는 애니메이션이 적용되어 Unity VR 월드에서 NPC로 등장한다.
+- 오브제는 정적 3D 모델로 Unity VR 월드에 배치된다.
+- 현재 전시 버전의 3D 전환 대상은 character와 object 두 가지다.
+
+정리:
+- character: 3D 변환 + 애니메이션 적용
+- object: 3D 변환만 수행
+
+--------------------------------------------------
+2. 팀 구성
+--------------------------------------------------
+
+최상위 README.md에만 팀 구성을 포함한다.
+하위 README에는 팀 구성 전체를 반복 작성하지 않는다.
+
+Team:
+- Project Manager / Team Leader: 김예진 (중앙대학교)
+- Software Engineer / Lead Developer: 김진서 (중앙대학교)
+- Unity Developer / Lead Designer: 김유민 (중앙대학교)
+- Animator / Sub Project Manager: 이서연 (중앙대학교)
+
+Develop Role:
+- System Architect: 김진서 (Lead Developer)
+- Unity Design: 김유민
+- Unity Script: 김유민
+- Backend: 김진서
+- Frontend: 김진서
+- System Automation: 김진서
+
+--------------------------------------------------
+3. 개발 환경
+--------------------------------------------------
+
+개발 환경 구분을 명확히 작성한다.
+
+필수 내용:
+- backend / frontend 개발자는 Linux 또는 WSL/Linux 환경에서 개발한다.
+- Unity 개발자는 Windows 환경에서 개발한다.
+- Unity 실행은 반드시 Windows에서 실행한다.
+- Backend 개발자가 Unity를 테스트로 열어볼 때도 Windows에서 Unity를 실행한다.
+- WSL/Linux에서 Unity 실행을 시도하지 않는다.
+
+개발환경 예시:
+- Backend: Linux / WSL Ubuntu, Python, FastAPI, PostgreSQL, Redis, RQ Worker, Docker
+- Frontend: Linux / WSL Ubuntu, Node.js, React, Vite, TypeScript, Tailwind CSS
+- Unity: Windows, Unity Hub, Unity Editor
+- Git: GitHub feature branch + Pull Request 기반 협업
+
+실제 버전 정보는 프로젝트 파일에서 확인 가능하면 작성하고, 확실하지 않으면 TODO로 표시한다.
+
+--------------------------------------------------
+4. 최상위 디렉토리 구조
+--------------------------------------------------
+
+현재 실제 최상위 디렉토리 구조를 확인한 뒤 README에 반영한다.
+
+예시 형식:
+Lego-Digital-Twin/
+├─ apps/
+├─ backend/
+├─ frontend/
+├─ unity-client/
+├─ history/
+├─ README.md
+├─ git.md
+└─ CLAUDE.md
+
+단, 실제 구조와 다르면 실제 구조를 우선한다.
+
+각 폴더 역할도 간단히 설명한다.
+
+예:
+- apps/: 실험 앱, 통합 실행, 보조 도구 또는 현재 프로젝트 구조에 맞는 역할
+- backend/: FastAPI 서버, DB, Redis/RQ Worker, Tripo API 연동
+- frontend/: 태블릿 UI, 촬영/입력/로딩 화면
+- unity-client/: Unity VR 월드, 캐릭터 NPC, 오브제 배치
+- history/: 작업 기록, 프롬프트 기록, Trouble Shooting 기록
+
+--------------------------------------------------
+5. 빌드 및 실행 과정
+--------------------------------------------------
+
+README에 전체 실행 흐름을 명시한다.
+
+반드시 포함할 내용:
+1. 의존성 설치
+2. Docker 또는 Docker Compose 사용 여부
+3. Python requirements 설치
+4. .env 설정
+5. PostgreSQL / Redis 실행
+6. FastAPI 서버 실행
+7. RQ Worker 실행
+8. Frontend 실행
+9. Windows에서 Unity 실행
+
+예시 흐름:
+1. backend 의존성 설치
+2. .env 설정
+3. Docker로 PostgreSQL / Redis 실행
+4. FastAPI 서버 실행
+5. Worker 실행
+6. frontend 실행
+7. Windows에서 Unity 실행
+
+실제 명령어는 현재 프로젝트 파일을 확인해서 작성한다.
+명령어가 불확실하면 TODO로 남긴다.
+
+--------------------------------------------------
+6. Backend Developer가 Unity 실행할 때의 순서
+--------------------------------------------------
+
+Backend developer가 Unity를 테스트로 실행할 때는 다음 순서를 따른다.
+
+0. 최초 1회 Windows 터미널에서 git clone
+1. develop 브랜치에서 최신 내용 pull
+2. Windows에서 feature/unity 브랜치로 checkout
+3. Unity Hub에서 unity-client 내부 Unity 프로젝트 열기
+4. Unity는 반드시 Windows에서 실행
+
+예시 명령어:
+git checkout develop
+git pull origin develop
+git checkout feature/unity
+git pull origin feature/unity
+
+주의:
+- Backend 개발자는 Linux/WSL에서 서버와 프론트엔드를 개발하더라도 Unity 실행은 Windows에서 한다.
+- Unity 프로젝트는 feature/unity 기준으로 확인한다.
+
+--------------------------------------------------
+7. Unity Developer Git 전략
+--------------------------------------------------
+
+Unity developer는 다음 방식으로 작업한다.
+
+1. develop에서 최신 내용 pull
+2. feature/unity 브랜치로 이동
+3. Unity 작업 진행
+4. feature/unity에 commit / push
+5. develop으로 Pull Request 생성
+6. 리뷰 후 develop에 merge
+
+규칙:
+- Unity 개발자는 feature/unity 브랜치를 기준으로 작업한다.
+- Unity 관련 파일 이동 시 .meta 파일을 반드시 함께 관리한다.
+- Library, Temp, obj, Logs 폴더는 커밋하지 않는다.
+- Unity 실행은 반드시 Windows에서 한다.
+
+--------------------------------------------------
+8. Backend / Frontend / System Developer Git 전략
+--------------------------------------------------
+
+Backend / Frontend / System developer는 다음 방식으로 작업한다.
+
+1. develop에서 최신 내용 pull
+2. 작업 성격에 맞는 브랜치로 이동
+3. 작업 후 각자의 브랜치에 commit / push
+4. develop으로 Pull Request 생성
+5. 리뷰 후 develop에 merge
+
+브랜치 정책:
+- 새로운 프레임워크 실험 또는 바뀐 기획 검증: test_app 또는 feature/test-app
+- Frontend 개발: frontend 또는 feature/frontend
+- Backend 개발: backend 또는 feature/backend
+- System 자동화: system 또는 feature/system
+- Unity 개발: feature/unity
+
+현업 스타일에 맞춰 다음 원칙을 반영한다.
+- develop은 통합 브랜치다.
+- main 또는 master는 최종 안정 버전 또는 배포 버전으로 사용한다.
+- 직접 develop에 push하지 않는다.
+- 모든 기능 작업은 기능 브랜치에서 진행한다.
+- Pull Request 기반으로 develop에 병합한다.
+- 작업 전 항상 develop 최신 내용을 pull한다.
+- 충돌 발생 시 담당자와 확인 후 해결한다.
+
+이미 저장소에 frontend, backend, system, test_app과 같은 기존 브랜치명이 사용 중이면 기존 브랜치명을 존중하되, README에서 명확히 정리한다.
+
+--------------------------------------------------
+9. 협업 원칙
+--------------------------------------------------
+
+다음 내용을 README에 추가한다.
+
+- develop은 통합 브랜치다.
+- main/master는 최종 안정 버전 또는 배포 버전으로만 사용한다.
+- 직접 develop에 push하지 않는다.
+- 모든 기능 작업은 feature 또는 역할별 브랜치에서 진행한다.
+- 작업 전 develop 최신 내용을 pull한다.
+- 충돌이 발생하면 관련 담당자와 확인 후 해결한다.
+- Unity 관련 변경은 .meta 파일을 반드시 함께 커밋한다.
+- Unity의 Library, Temp, obj, Logs 폴더는 커밋하지 않는다.
+- .env 파일은 커밋하지 않는다.
+- .env.example은 커밋한다.
+- 대용량 모델/생성 결과물은 필요 시 Git LFS 또는 별도 storage 정책을 따른다.
+
+==================================================
+[2] 하위 README.md 수정사항
+==================================================
+
+다음 하위 폴더의 README.md를 각 폴더 목적에 맞게 수정하거나 생성한다.
+
+대상:
+- apps/README.md
+- backend/README.md
+- frontend/README.md
+- unity-client/README.md
+
+각 README에는 다음 내용을 포함한다.
+
+--------------------------------------------------
+1. 해당 폴더의 역할
+--------------------------------------------------
+
+예시:
+- backend/: FastAPI 서버, PostgreSQL, Redis/RQ Worker, Tripo API 연동
+- frontend/: 태블릿 UI, 촬영 화면, 캐릭터/오브제 이름 입력, 로딩 UX
+- unity-client/: Unity VR 월드, 캐릭터 NPC, 오브제 배치, Mock/Server Mode
+- apps/: 실제 프로젝트 구조를 확인한 뒤 역할 작성
+
+--------------------------------------------------
+2. 개발 환경
+--------------------------------------------------
+
+- backend/frontend: Linux 또는 WSL/Linux 기준
+- unity-client: Windows Unity Editor 기준
+- Unity 실행은 Windows에서만 진행
+- apps: 실제 역할에 맞게 작성
+
+--------------------------------------------------
+3. 실행 방법
+--------------------------------------------------
+
+각 폴더에서 필요한 실행 방법을 작성한다.
+
+backend README:
+- Python 환경
+- requirements 설치
+- .env 설정
+- Docker/PostgreSQL/Redis 실행
+- FastAPI 서버 실행
+- RQ Worker 실행
+
+frontend README:
+- Node.js 환경
+- package 설치
+- Vite dev server 실행
+- API 서버 주소 설정
+
+unity-client README:
+- Windows에서 Unity Hub로 열기
+- Unity 프로젝트 루트 위치
+- feature/unity 브랜치 사용
+- Mock Mode / Server Mode가 있다면 설명
+- .meta 파일 관리
+- Library/Temp/obj/Logs 커밋 금지
+
+apps README:
+- 실제 폴더 역할에 맞게 작성
+- 실험성 앱이면 test_app 브랜치 사용 정책 포함
+
+실제 명령어가 확실하지 않으면 TODO로 표시한다.
+
+--------------------------------------------------
+4. Git 작업 규칙
+--------------------------------------------------
+
+각 README에도 해당 담당자 기준 Git 전략을 짧게 포함한다.
+
+backend README:
+- develop pull
+- backend 또는 feature/backend에서 작업
+- push 후 develop PR
+
+frontend README:
+- develop pull
+- frontend 또는 feature/frontend에서 작업
+- push 후 develop PR
+
+unity-client README:
+- develop pull
+- feature/unity에서 작업
+- Windows에서 Unity 실행
+- .meta 파일 포함
+- Library/Temp/obj 커밋 금지
+- push 후 develop PR
+
+apps README:
+- 실제 역할에 맞게 작성
+- 실험성 작업이면 test_app 또는 feature/test-app 사용
+
+==================================================
+[3] 최상위 git.md 작성
+==================================================
+
+최상위 디렉토리에 git.md를 작성한다.
+
+목표:
+팀원의 AI Agent가 “git.md를 읽고 git 작업해”라는 명령을 받았을 때, 자동으로 안전한 Git 작업 방식을 따를 수 있어야 한다.
+
+git.md는 명령형 규칙으로 작성한다.
+
+--------------------------------------------------
+1. 기본 원칙
+--------------------------------------------------
+
+- 직접 develop에 commit하지 않는다.
+- 반드시 역할별 브랜치 또는 feature 브랜치에서 작업한다.
+- 작업 전 현재 브랜치와 변경사항을 확인한다.
+- 변경사항이 있으면 사용자 확인 없이 checkout/merge/rebase 하지 않는다.
+- PR 대상은 develop이다.
+- main/master는 직접 작업하지 않는다.
+- 사용자의 승인 없이 commit/push 하지 않는다.
+
+--------------------------------------------------
+2. 브랜치 정책
+--------------------------------------------------
+
+- develop: 통합 브랜치
+- feature/unity: Unity 개발
+- frontend 또는 feature/frontend: Frontend 개발
+- backend 또는 feature/backend: Backend 개발
+- system 또는 feature/system: System 자동화
+- test_app 또는 feature/test-app: 새로운 프레임워크, 실험성 기능, 바뀐 기획 검증
+
+기존 저장소에 이미 사용 중인 브랜치명이 있다면 현재 브랜치 목록을 확인하고 그 규칙에 맞춰 사용한다.
+
+--------------------------------------------------
+3. 작업 시작 절차
+--------------------------------------------------
+
+공통:
+git status
+git branch
+git fetch origin
+git checkout develop
+git pull origin develop
+
+작업 유형별:
+Unity:
+git checkout feature/unity
+git pull origin feature/unity
+
+Backend:
+git checkout backend
+또는
+git checkout feature/backend
+
+Frontend:
+git checkout frontend
+또는
+git checkout feature/frontend
+
+System:
+git checkout system
+또는
+git checkout feature/system
+
+Test App:
+git checkout test_app
+또는
+git checkout feature/test-app
+
+브랜치가 없으면 사용자에게 생성 여부를 먼저 물어본다.
+
+--------------------------------------------------
+4. 작업 중 규칙
+--------------------------------------------------
+
+- 작은 단위로 commit한다.
+- 기능 단위로 commit한다.
+- 커밋 전 테스트 가능한 범위에서 테스트한다.
+- README/문서 변경이 필요한 구조 변경이면 문서도 함께 수정한다.
+- Unity 파일 이동 시 .meta 파일 보존 필수
+- 불필요한 대용량 파일 커밋 금지
+- .env 파일 커밋 금지
+- Library, Temp, obj, Logs 커밋 금지
+
+--------------------------------------------------
+5. 커밋 전 체크리스트
+--------------------------------------------------
+
+- git status 확인
+- 변경 파일 목록 확인
+- 의도하지 않은 파일 포함 여부 확인
+- .env 포함 여부 확인
+- Unity Library/Temp/obj/Logs 포함 여부 확인
+- 필요한 README 업데이트 여부 확인
+- 테스트 여부 확인
+
+--------------------------------------------------
+6. 커밋 메시지 규칙
+--------------------------------------------------
+
+Conventional Commits 형식을 따른다.
+
+예:
+feat: add session asset upload flow
+fix: resolve unity mock data loading error
+docs: update backend setup guide
+refactor: separate mock and server data providers
+chore: update git workflow document
+
+타입:
+- feat
+- fix
+- docs
+- refactor
+- chore
+- test
+- style
+- build
+
+--------------------------------------------------
+7. push / PR 규칙
+--------------------------------------------------
+
+- 작업 브랜치로 push한다.
+- develop으로 PR을 생성한다.
+- PR 설명에는 변경 내용, 테스트 여부, 영향 범위를 작성한다.
+- merge는 리뷰 후 진행한다.
+
+--------------------------------------------------
+8. AI Agent 주의사항
+--------------------------------------------------
+
+- 사용자의 승인 없이 commit하지 않는다.
+- 사용자의 승인 없이 push하지 않는다.
+- 사용자의 승인 없이 브랜치 삭제하지 않는다.
+- 충돌 해결은 사용자에게 확인 후 진행한다.
+- 파일 삭제 전 반드시 사용자에게 확인한다.
+- 자동으로 git reset --hard를 수행하지 않는다.
+- merge/rebase 전 반드시 사용자에게 확인한다.
+
+==================================================
+[4] 최상위 CLAUDE.md 작성 또는 수정
+==================================================
+
+최상위 CLAUDE.md를 작성 또는 수정한다.
+
+목표:
+Claude Code가 작업할 때마다 이 파일을 읽고 개발의 일관성을 유지해야 한다.
+
+CLAUDE.md에 포함할 내용:
+
+--------------------------------------------------
+1. Claude 작업 기본 원칙
+--------------------------------------------------
+
+- 작업 시작 전 README.md, git.md, CLAUDE.md를 먼저 읽는다.
+- 현재 디렉토리 구조를 확인한 뒤 작업한다.
+- 사용자 요청 범위를 벗어난 대규모 리팩토링을 하지 않는다.
+- 기존 테스트 완료 흐름을 깨지 않는다.
+- 불확실한 부분은 TODO 또는 질문으로 남긴다.
+- 실제 파일 구조를 확인하지 않고 임의로 문서화하지 않는다.
+
+--------------------------------------------------
+2. 문서 자동 업데이트 원칙
+--------------------------------------------------
+
+다음 상황이 발생하면 관련 README를 수정해야 한다.
+
+- 디렉토리 구조 변경
+- 브랜치 전략 변경
+- 실행 방법 변경
+- Docker / requirements / package.json 의존성 변경
+- Unity 프로젝트 실행 방식 변경
+- backend / frontend / unity-client / apps 역할 변경
+- 전시 기획 변경
+- Mock Mode / Server Mode 변경
+- Trouble Shooting 기록이 생긴 경우 history 폴더에 문서 추가
+
+수정 대상:
+- 최상위 README.md
+- backend/README.md
+- frontend/README.md
+- unity-client/README.md
+- apps/README.md
+- git.md, 필요 시
+- CLAUDE.md, 필요 시
+
+--------------------------------------------------
+3. Git 작업 원칙
+--------------------------------------------------
+
+- git.md를 따른다.
+- 작업 전 git status 확인
+- commit 전 사용자에게 반드시 확인
+- push 전 사용자에게 반드시 확인
+- PR 생성 전 사용자에게 반드시 확인
+- 사용자의 명시적 승인 없이 commit/push 하지 않는다.
+- 사용자의 명시적 승인 없이 merge/rebase 하지 않는다.
+
+--------------------------------------------------
+4. Unity 작업 원칙
+--------------------------------------------------
+
+- Unity는 Windows에서 실행한다.
+- Unity 개발자는 feature/unity 브랜치를 사용한다.
+- Unity 관련 파일 이동은 .meta 파일에 주의한다.
+- Library, Temp, obj, Logs는 커밋하지 않는다.
+- Mock Mode와 Server Mode를 분리한다.
+- 팀원은 Mock Mode로 개발 가능해야 한다.
+- 실제 서버 연동은 Server Mode에서 처리한다.
+
+--------------------------------------------------
+5. Backend / Frontend 작업 원칙
+--------------------------------------------------
+
+- Linux 또는 WSL/Linux 기준으로 개발한다.
+- backend는 FastAPI, Redis/RQ Worker, PostgreSQL, Tripo API 연동 중심이다.
+- frontend는 태블릿 UI, 촬영, 이름 입력, 로딩 UI 중심이다.
+- Docker / requirements / package.json 변경 시 README도 함께 수정한다.
+
+--------------------------------------------------
+6. Trouble Shooting 기록 원칙
+--------------------------------------------------
+
+문제 해결 경험이 생길 때마다 Claude는 history 폴더에 Trouble Shooting 문서를 작성해야 한다.
+
+규칙:
+- 저장 위치: history/
+- 파일명 형식: Trouble_Shooting00.txt, Trouble_Shooting01.txt, Trouble_Shooting02.txt ...
+- 기존 파일 번호를 확인하고 다음 번호로 생성한다.
+- 이미 존재하는 파일을 덮어쓰지 않는다.
+
+Trouble Shooting 문서에 포함할 내용:
+1. 발생 일자
+2. 발생 환경
+3. 문제 상황
+4. 에러 메시지
+5. 원인 분석
+6. 해결 방법
+7. 재발 방지 방법
+8. 관련 파일/명령어
+9. 참고 사항
+
+예시 파일:
+history/Trouble_Shooting00.txt
+
+예시 내용:
+# Trouble Shooting 00
+
+## Date
+YYYY-MM-DD
+
+## Environment
+- OS:
+- Branch:
+- Module:
+- Tool:
+
+## Problem
+문제 상황 설명
+
+## Error Message
+에러 메시지
+
+## Cause
+원인 분석
+
+## Solution
+해결 방법
+
+## Prevention
+재발 방지 방법
+
+## Related Files / Commands
+관련 파일 및 명령어
+
+## Notes
+추가 참고 사항
+
+--------------------------------------------------
+7. 개발자 확인 필요 조건
+--------------------------------------------------
+
+Claude는 다음 행동 전에 반드시 사용자에게 물어봐야 한다.
+
+- commit
+- push
+- 브랜치 생성/삭제
+- merge/rebase
+- 패키지 설치
+- 대규모 파일 이동
+- 기존 구조 삭제
+- ProjectSettings/Packages 변경
+- Unity Scene 변경
+- .env 또는 민감 정보 관련 변경
+
+--------------------------------------------------
+8. 작업 완료 후 보고 형식
+--------------------------------------------------
+
+작업 후 다음을 요약한다.
+
+- 수정한 파일
+- 변경 내용
+- 테스트 방법
+- 추가로 필요한 작업
+- Trouble Shooting 문서 생성 여부
+- commit 여부 확인 질문
+
+==================================================
+[5] 개발환경 작성
+==================================================
+
+README와 하위 README에 개발환경을 명시한다.
+
+필수 구분:
+1. Backend / Frontend
+   - Linux 또는 WSL/Linux
+   - Docker / Docker Compose
+   - Python
+   - FastAPI
+   - PostgreSQL
+   - Redis
+   - RQ Worker
+   - Node.js
+   - React / Vite / TypeScript / Tailwind CSS
+
+2. Unity
+   - Windows
+   - Unity Hub
+   - Unity Editor
+   - Unity 실행은 반드시 Windows
+
+3. Git / Collaboration
+   - GitHub
+   - develop branch
+   - feature branches
+   - Pull Request workflow
+
+실제 버전은 프로젝트 파일 또는 현재 환경에서 확인 가능한 경우에만 작성한다.
+확실하지 않으면 TODO로 표시한다.
+
+==================================================
+[6] 작업 방식
+==================================================
+
+작업 순서:
+1. 현재 프로젝트의 실제 디렉토리 구조 확인
+2. 기존 README.md와 하위 README.md 존재 여부 확인
+3. 최상위 README.md 수정
+4. apps/backend/frontend/unity-client README.md 수정 또는 생성
+5. 최상위 git.md 생성
+6. 최상위 CLAUDE.md 생성 또는 수정
+7. history 폴더 존재 여부 확인
+8. Trouble Shooting 문서 규칙을 CLAUDE.md에 반영
+9. 변경 파일 목록 요약
+10. commit하지 말고 사용자에게 확인 요청
+
+주의:
+- 실제 파일 구조를 보지 않고 임의 구조를 단정하지 말 것
+- 명령어가 확실하지 않으면 TODO로 표시
+- 문서 수정 작업이므로 코드 기능 구현은 하지 말 것
+- 이번 작업에서 commit/push는 하지 말 것
+- 문서 수정 후 사용자에게 확인 요청할 것
+
+위 요구사항을 기준으로 먼저 현재 디렉토리 구조와 기존 README 파일들을 확인한 뒤, 문서 수정 계획을 요약해줘. 그 다음 README.md, 하위 README.md, git.md, CLAUDE.md를 수정해줘. 수정이 끝나면 commit하지 말고 변경 파일 목록과 검토 방법을 보고해줘.
+
+이 작업은 나한테 yes,no 물어보지말고 한번에 싹 작업해.
