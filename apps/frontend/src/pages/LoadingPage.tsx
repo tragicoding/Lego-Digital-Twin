@@ -76,7 +76,7 @@ export default function LoadingPage() {
             <motion.div key="loading" className="flex flex-col gap-5">
               <div className="text-center">
                 <h2 className="text-xl font-black text-gray-900 leading-snug">
-                  {charName}와 {objName}이<br />3D로 변환 중입니다!
+                  3D로 변환 중입니다!
                 </h2>
                 <p className="text-gray-400 text-sm mt-2">잠시만 기다려 주세요</p>
               </div>
