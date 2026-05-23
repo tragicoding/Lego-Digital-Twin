@@ -1,0 +1,202 @@
+================================================================
+Claude Code 작업 기록
+날짜: 2026-05-24
+브랜치: test_unity
+================================================================
+
+────────────────────────────────────────────────────────────────
+[세션 1] 프로젝트 구조 파악 및 맥락 학습
+────────────────────────────────────────────────────────────────
+
+## 작업 내용
+Claude가 프로젝트 전체 구조를 스캔하고 맥락을 파악함.
+
+## 파악한 디렉토리 구조 (Assets/00_Project/Scripts/)
+
+  Character/
+    - CharacterAnimationController.cs
+    - GeneratedCharacterSpawner.cs
+    - GuideNPCController.cs
+    - VRIntroGuide.cs
+  Core/
+    - ServerConfig.cs
+  Data/
+    - SessionData.cs
+  Managers/
+    - SessionManager.cs
+    - DataSourceMode.cs
+  Mock/
+    - MockSessionLoader.cs
+  Network/
+    - ApiClient.cs
+  Object/
+    - GeneratedObjectSpawner.cs
+  World/
+    - FastSkyDayNight.cs
+    - BalloonTour.cs
+
+## 코드 컨벤션
+
+  네임스페이스 : LegoTwin.Character / Managers / Data / Network / Mock / Core / Object
+  private 필드 : _camelCase (언더스코어 접두어)
+  public/프로퍼티 : PascalCase
+  싱글톤 패턴 : public static T Instance { get; private set; } + DontDestroyOnLoad
+  비동기 처리 : IEnumerator 코루틴 기반 (async/await 미사용)
+  이벤트 : public event Action<T> OnXxx
+  Debug.Log 형식 : [ClassName] message
+  주석 : public API → /// <summary> 한국어 XML, 내부 → 인라인 한국어
+  Inspector : [Header] + [Tooltip] 적극 활용
+  JSON 필드명 : snake_case (Python 백엔드 컨벤션 동일)
+
+## 현재 진행 상태 (feature/unity 기준)
+
+  완성:
+    - Mock/Server 이중 모드 구조
+    - Mock Mode 정상 동작 (캐릭터: 몽글이, 오브제: 하늘탑)
+    - GuideNPCController (MoveTo, StopMoving, StartGuideScenario)
+    - CharacterAnimationController (animation_walk, animation_idle)
+    - FastSkyDayNight (URP 주야간 사이클)
+    - BalloonTour (웨이포인트 순회)
+    - VRIntroGuide (기존 버전)
+    - 해리포터존 NPC 및 조경 (최근 커밋 cf086bf)
+
+  미완성 / TODO:
+    - Server Mode GLB 다운로드 (DownloadManager 미구현)
+    - GuideNPCController.GuideScenarioRoutine() 내용 미작성
+
+## 프로젝트 파이프라인 (README.md)
+
+  [관객] 태블릿 촬영
+    → [Frontend] POST /sessions/{id}/assets
+    → [Backend] Redis/RQ → Tripo3D API → GLB 생성
+    → [Unity] WebSocket session_ready 수신 → GLB 다운로드 → NPC/오브제 배치
+
+  - character: walk/idle 애니메이션 리타겟팅 후 NPC로 등장
+  - object: 3D 변환 후 정적 오브제로 배치
+
+
+────────────────────────────────────────────────────────────────
+[세션 2] test_unity 실험 브랜치 생성
+────────────────────────────────────────────────────────────────
+
+## 작업 내용
+실험 환경용 브랜치 test_unity 생성 및 원격 push.
+
+## 실행 순서
+  1. feature/unity 기반으로 test_unity 브랜치 생성
+       git checkout -b test_unity
+  2. origin/test_unity로 push 및 upstream 설정
+       git push -u origin test_unity
+
+## 결과
+  브랜치 : test_unity
+  upstream : origin/test_unity 연결 완료
+  최신 커밋 : cf086bf (feat(map): 해리포터존 신규 NPC 추가 및 조경 디테일 개선)
+
+
+────────────────────────────────────────────────────────────────
+[세션 3] VRIntroGuide.cs 전면 재작성
+────────────────────────────────────────────────────────────────
+
+## 구현 요구사항
+  - XR Origin이 시작 위치에서 5초 대기 후 15초 동안 Target Position까지 이동
+  - 대기 시간 / 이동 시간 Inspector에서 조정 가능
+  - 인트로 전 과정(대기 + 이동)에서 컨트롤러 이동 차단
+  - HMD 시선 추적(head tracking)은 항상 유지
+
+## 기존 코드의 문제점
+  - 네임스페이스 없음
+  - playerMovementScript 단일 MonoBehaviour만 비활성화 → XRI 3.x 다중 provider 처리 불가
+  - this.transform 직접 이동 (xrOrigin 지정 불가)
+  - Quaternion.Lerp 사용 (Slerp이 올바름)
+  - 선형 보간 (SmoothStep 미적용)
+  - 원래 활성화 상태 저장/복원 로직 없음
+
+## 변경 사항 (Assets/00_Project/Scripts/Character/VRIntroGuide.cs)
+
+  네임스페이스 추가 : LegoTwin.Character
+  using 추가 : UnityEngine.XR.Interaction.Toolkit.Locomotion
+
+  신규 필드:
+    [Header("XR Origin")]
+      Transform xrOrigin              — 이동 대상 (비워두면 this.transform)
+    [Header("위치 설정")]
+      Transform startPoint            — 시작 위치 (선택)
+      Transform targetPoint           — 목표 위치 (필수)
+    [Header("시간 설정 (초)")]
+      float waitDuration = 5f         — 대기 시간
+      float moveDuration = 15f        — 이동 시간
+    [Header("이동 잠금")]
+      LocomotionProvider[] locomotionProviders  — 자동 탐색 또는 수동 지정
+
+  이동 잠금 방식:
+    - 인트로 시작 시 LocomotionProvider[] 상태 저장 후 전체 비활성화
+    - 인트로 종료 시 원래 상태 복원 (인트로 전 꺼진 provider는 그대로 유지)
+    - xrOrigin 하위 GetComponentsInChildren<LocomotionProvider> 자동 탐색
+
+  이동 보간:
+    - SmoothStep(0, 1, elapsed/moveDuration) — ease-in/out 적용
+    - Vector3.Lerp (위치)
+    - Quaternion.Slerp (회전)
+    - SetPositionAndRotation으로 한 번에 적용
+
+  HMD 시선 추적 유지 근거:
+    - HMD head tracking은 카메라 트래킹 레이어에서 처리
+    - LocomotionProvider와 무관하게 항상 작동
+
+## Inspector 연결 방법
+  VRIntroGuide 컴포넌트 (XR Origin 또는 별도 GameObject에 추가)
+    XR Origin        → XR Origin GameObject 드래그
+    Start Point      → 시작 위치 Transform
+    Target Point     → 목표 위치 Transform (필수)
+    Wait Duration    → 5 (기본값)
+    Move Duration    → 15 (기본값)
+    Locomotion Providers → 비워두면 자동 탐색
+
+
+────────────────────────────────────────────────────────────────
+[세션 4] Main.unity - VRIntroGuide 컴포넌트 활성화
+────────────────────────────────────────────────────────────────
+
+## 작업 내용
+Main.unity 씬에서 VRIntroGuide 컴포넌트가 m_Enabled: 0 (비활성화) 상태였음.
+씬 파일 직접 편집으로 활성화 처리.
+
+## 변경 내용 (Assets/Scenes/Main.unity)
+  m_Enabled: 0  →  m_Enabled: 1
+  m_EditorClassIdentifier: Assembly-CSharp::VRIntroGuide
+    → Assembly-CSharp::LegoTwin.Character.VRIntroGuide  (네임스페이스 반영)
+
+## 주의사항 (Unity Editor에서 확인 필요)
+  스크립트 재작성으로 필드명이 변경되어 Inspector 재연결 필요:
+    waitTimeBeforeStart → waitDuration
+    guideDuration       → moveDuration
+    playerMovementScript → locomotionProviders (배열)
+    targetPoint → 기존 연결 Transform 재지정 필요
+
+
+────────────────────────────────────────────────────────────────
+[세션 5] test_unity 커밋 및 push
+────────────────────────────────────────────────────────────────
+
+## 커밋 정보
+  브랜치 : test_unity
+  커밋 해시 : 137d4a1
+  메시지 : feat(unity): VR 인트로 가이드 XRI 이동 잠금 및 SmoothStep 이동 구현
+
+## 커밋된 파일
+  - unity-client/AURA_Lego/Assets/00_Project/Scripts/Character/VRIntroGuide.cs
+  - unity-client/AURA_Lego/Assets/Scenes/Main.unity
+
+## 제외된 파일 (git.md 커밋 금지 규칙)
+  - Logs/ 전체
+  - UserSettings/Layouts/
+  - Assets/00_Project/History/ (Unity 에디터 자동 생성)
+
+## push 결과
+  cf086bf..137d4a1  test_unity -> origin/test_unity  완료
+
+
+================================================================
+END OF LOG
+================================================================

@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: cb8cb841a8f1604458104413b0d712f5
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 11400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 356818
+  packageName: MAR-Free Playground Starter Pack
+  packageVersion: 1.0
+  assetPath: Assets/Free_Playground_Starter_Pack/Free_Playground_Starter_Pack_UniversalRenderPipelineGlobalSettings.asset
+  uploadId: 850188
