@@ -1,0 +1,83 @@
+[태블릿 촬영] → [백엔드: AI 캐릭터 생성]
+      ↓
+  캐릭터: 리깅된 FBX + 텍스쳐 GLB (별도 파일)
+  오브제: GLB 파일
+      ↓
+[Unity SessionManager] → Mock/Server 모드 분기
+      ↓
+[Guide Mode] → 가이드 NPC가 월드 안내 → 인사말 입력
+      ↓
+[Free Mode / Plaza] → 광장에서 창작물 감상 + 좋아요
+1. 씬 구성 및 Inspector 연결 체크리스트
+SessionManager (씬에 빈 GameObject로 배치)
+DataSourceMode: 개발 중 → Mock, 통합 테스트 → Server
+apiBaseUrl: 서버 IP (예: http://192.168.x.x:8000)
+GeneratedCharacterSpawner
+mockCharacterPrefab: GeneratedCharacters/mocking/character/ 의 FBX Prefab 연결
+FBX + GLB 두 파일이 폴더에 있으면 텍스쳐가 자동으로 적용됩니다
+수동 적용: Unity 메뉴 Tools > MINIVERSE > Apply Character Textures
+guideSpawnPoint: 가이드 NPC 시작 Transform
+placedSpawnPoint: 광장에 배치될 캐릭터 Transform (오브제 옆)
+GuideNPCController (캐릭터 Prefab 또는 Spawner 반환값)
+plazaPathWaypoints[]: 광장까지 이동 경로 Transform 배열 (순서대로 연결)
+myCreationWaypoint: 내 창작물(캐릭터+오브제) 앞 위치 Transform
+moveSpeed: 이동 속도 (기본값: 2)
+PlazaManager (광장 씬/상태에서 사용)
+spawnPoints[]: 광장 내 배치 위치 Transform 배열 (세션 수만큼)
+mockCharacterPrefab, mockObjectPrefab: Mock Prefab 연결
+sessionViewPrefab: PlazaSessionView가 붙은 Prefab 연결
+PlazaSessionView Prefab
+likesCountText: TextMeshPro 연결 (♥ N 표시)
+bubbleText: TextMeshPro 연결 (인사말)
+starObject: 좋아요 1위 표시 GameObject 연결
+LikeSystem (PlazaSessionView와 같은 GameObject에 배치)
+likeButtonUI: 근접 시 표시할 좋아요 버튼/하트 UI 연결
+Sphere Collider (Is Trigger) 추가 후 triggerRadius 값으로 반경 조정
+좋아요 버튼의 OnClick 이벤트 → LikeSystem.OnLikePressed() 연결
+2. 가이드 시나리오 흐름 (자동 실행됨)
+GuideNPCController.StartGuideScenario()를 호출하면 아래 순서가 자동 진행됩니다:
+
+
+1. 입장 인사 → "안녕하세요! MINIVERSE에 온 걸 환영해요!"
+2. 월드 소개 → "레고로 만들어진 디지털 세상이에요!"
+3. plazaPathWaypoints 따라 광장으로 이동 (walk → idle)
+4. myCreationWaypoint로 이동 → 내 창작물 앞
+5. 모션 안내 대사 ← 여기서 모션 캡처/Mixamo 재생 트리거 삽입
+6. 인사말 입력 요청 → OnBubbleTextInputRequested 이벤트 발생
+7. 자유 모드 안내 대사
+8. OnGuideFinished 이벤트 발생 → 자유 모드 전환
+이벤트 구독 방법:
+
+
+// GuideNPCController npc = spawner.SpawnGuide(session);
+
+// 말풍선 UI 표시
+npc.OnDialogueChanged += text => bubbleUI.SetText(text);
+
+// 인사말 입력창 열기
+npc.OnBubbleTextInputRequested += callback => {
+    inputUI.Open(inputText => callback(inputText));
+};
+
+// 자유 모드 전환
+npc.OnGuideFinished += () => {
+    PlazaManager.Instance.EnterPlaza();
+    // 씬 전환 또는 상태 전환 로직
+};
+
+npc.StartGuideScenario();
+3. 캐릭터 Animator 설정
+Animator Controller에 아래 Trigger 파라미터를 추가하세요:
+
+파라미터 이름	타입	연결 Clip
+walk	Trigger	걷기 애니메이션
+idle	Trigger	대기 애니메이션
+4. 실시간 좋아요 업데이트 (WebSocket)
+현재는 HTTP 폴링 방식으로 구현되어 있습니다 (2초 간격).
+
+진짜 WebSocket을 쓰려면:
+
+Package Manager에서 NativeWebSocket 설치
+(GitHub: endel/NativeWebSocket)
+WebSocketManager.cs의 TODO 주석 참고해서 PollLoop() 대신 ConnectWs() 사용으로 교체
+서버 WS 엔드포인트: ws://{serverIP}:8000/ws/unity
