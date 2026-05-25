@@ -27,19 +27,14 @@ def get_unity_session(session_id: str, db: DBSession = Depends(get_db)):
             continue
 
         if asset.asset_type == "character":
-            animations = {}
-            for anim in asset.animations:
-                animations[anim.animation_key] = {
-                    "key": anim.animation_key,
-                    "display_name": anim.display_name,
-                    "unity_function": anim.unity_function,
-                }
+            # model_url  : 리깅된 FBX (Unity Animator 리타겟팅용)
+            # texture_url: PBR 텍스쳐 소스 GLB (glTFast로 텍스쳐 추출 후 FBX 캐릭터에 적용)
             assets_out["character"] = {
                 "asset_id": asset.id,
                 "model_url": asset.model_url,
+                "texture_url": asset.thumbnail_url,
                 "role": "guide_npc",
                 "npc_name": session.nickname,
-                "animations": animations,
             }
 
         elif asset.asset_type in ("object", "building"):
