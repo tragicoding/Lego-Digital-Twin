@@ -29,9 +29,17 @@ namespace LegoTwin.Core
             .Replace("http://", "ws://")
             .Replace("https://", "wss://") + "/ws/unity";
 
-        public static string UnitySessionUrl(string sid) => $"{BaseUrl}/unity/sessions/{sid}";
-        public static string StatusUrl(string sid)       => $"{BaseUrl}/sessions/{sid}/status";
-        public static string ModelDownloadUrl(string url) => url; // model_url은 이미 전체 URL
+        // ── 세션 ──────────────────────────────────────────────────────
+        public static string UnitySessionUrl(string sid)  => $"{BaseUrl}/unity/sessions/{sid}";
+        public static string StatusUrl(string sid)        => $"{BaseUrl}/sessions/{sid}/status";
+        public static string LikeUrl(string sid)          => $"{BaseUrl}/sessions/{sid}/like";
+        public static string BubbleTextUrl(string sid)    => $"{BaseUrl}/sessions/{sid}/profile";
+
+        // ── 광장 ──────────────────────────────────────────────────────
+        public static string PlazaSessionsUrl()           => $"{BaseUrl}/unity/plaza/sessions";
+
+        // ── 모델 다운로드 ─────────────────────────────────────────────
+        public static string ModelDownloadUrl(string url)  => url; // model_url은 이미 전체 URL
 
         private static string LoadBaseUrl()
         {

@@ -1,4 +1,6 @@
+using System;
 using System.Collections;
+using System.Text;
 using UnityEngine;
 using UnityEngine.Networking;
 using LegoTwin.Core;
@@ -8,8 +10,13 @@ namespace LegoTwin.Network
 {
     /// <summary>
     /// FastAPI 서버 REST API 클라이언트.
-    /// Server Mode에서 SessionManager가 간접 호출한다.
-    /// Mock Mode에서는 사용되지 않는다.
+    /// Server Mode에서만 사용. Mock Mode에서는 MockSessionLoader를 사용한다.
+    ///
+    /// 사용 예:
+    ///   StartCoroutine(ApiClient.Instance.FetchUnitySession(id, data => ...));
+    ///   StartCoroutine(ApiClient.Instance.FetchPlazaSessions(plaza => ...));
+    ///   StartCoroutine(ApiClient.Instance.LikeSession(id, result => ...));
+    ///   StartCoroutine(ApiClient.Instance.UpdateBubbleText(id, text, () => ...));
     /// </summary>
     public class ApiClient : MonoBehaviour
     {
@@ -22,59 +29,103 @@ namespace LegoTwin.Network
             DontDestroyOnLoad(gameObject);
         }
 
-        /// <summary>
-        /// GET /unity/sessions/{session_id} — Unity용 완성 데이터 수신.
-        /// </summary>
-        public IEnumerator FetchUnitySession(string sessionId, System.Action<SessionData> onSuccess)
+        // ══════════════════════════════════════════════════════════════
+        // 현재 세션 (가이드 모드)
+        // ══════════════════════════════════════════════════════════════
+
+        /// <summary>GET /unity/sessions/{id} — 현재 관람객 세션 데이터</summary>
+        public IEnumerator FetchUnitySession(string sessionId, Action<SessionData> onSuccess)
         {
-            string url = ServerConfig.UnitySessionUrl(sessionId);
-            Debug.Log($"[ApiClient] FetchUnitySession: {url}");
-
-            using var req = UnityWebRequest.Get(url);
+            using var req = UnityWebRequest.Get(ServerConfig.UnitySessionUrl(sessionId));
             yield return req.SendWebRequest();
-
             if (req.result != UnityWebRequest.Result.Success)
             {
                 Debug.LogError($"[ApiClient] FetchUnitySession 실패: {req.error}");
                 yield break;
             }
-
-            var data = JsonUtility.FromJson<SessionData>(req.downloadHandler.text);
-            onSuccess?.Invoke(data);
+            onSuccess?.Invoke(JsonUtility.FromJson<SessionData>(req.downloadHandler.text));
         }
 
-        /// <summary>
-        /// GET /sessions/{session_id}/status — ready_for_unity = true 될 때까지 polling (3초 간격).
-        /// </summary>
-        public IEnumerator PollUntilReady(string sessionId, System.Action onReady)
+        /// <summary>GET /sessions/{id}/status — ready_for_unity = true 될 때까지 polling</summary>
+        public IEnumerator PollUntilReady(string sessionId, Action onReady, float interval = 3f)
         {
-            Debug.Log($"[ApiClient] 상태 polling 시작: {sessionId}");
             while (true)
             {
                 using var req = UnityWebRequest.Get(ServerConfig.StatusUrl(sessionId));
                 yield return req.SendWebRequest();
-
                 if (req.result == UnityWebRequest.Result.Success)
                 {
                     var status = JsonUtility.FromJson<SessionStatusResponse>(req.downloadHandler.text);
-                    if (status.ready_for_unity)
-                    {
-                        Debug.Log("[ApiClient] ready_for_unity = true");
-                        onReady?.Invoke();
-                        yield break;
-                    }
+                    if (status.ready_for_unity) { onReady?.Invoke(); yield break; }
                 }
-
-                yield return new WaitForSeconds(3f);
+                yield return new WaitForSeconds(interval);
             }
+        }
+
+        // ══════════════════════════════════════════════════════════════
+        // 광장 (자유 모드)
+        // ══════════════════════════════════════════════════════════════
+
+        /// <summary>GET /unity/plaza/sessions — 광장 전체 세션 목록</summary>
+        public IEnumerator FetchPlazaSessions(Action<PlazaResponse> onSuccess)
+        {
+            using var req = UnityWebRequest.Get(ServerConfig.PlazaSessionsUrl());
+            yield return req.SendWebRequest();
+            if (req.result != UnityWebRequest.Result.Success)
+            {
+                Debug.LogError($"[ApiClient] FetchPlazaSessions 실패: {req.error}");
+                yield break;
+            }
+            onSuccess?.Invoke(JsonUtility.FromJson<PlazaResponse>(req.downloadHandler.text));
+        }
+
+        // ══════════════════════════════════════════════════════════════
+        // 좋아요
+        // ══════════════════════════════════════════════════════════════
+
+        /// <summary>POST /sessions/{id}/like — 좋아요 +1</summary>
+        public IEnumerator LikeSession(string sessionId, Action<LikeResponse> onSuccess = null)
+        {
+            using var req = new UnityWebRequest(ServerConfig.LikeUrl(sessionId), "POST");
+            req.downloadHandler = new DownloadHandlerBuffer();
+            req.SetRequestHeader("Content-Type", "application/json");
+            yield return req.SendWebRequest();
+            if (req.result != UnityWebRequest.Result.Success)
+            {
+                Debug.LogError($"[ApiClient] LikeSession 실패: {req.error}");
+                yield break;
+            }
+            onSuccess?.Invoke(JsonUtility.FromJson<LikeResponse>(req.downloadHandler.text));
+        }
+
+        // ══════════════════════════════════════════════════════════════
+        // 말풍선 텍스트 업데이트 (가이드 모드 → 자유 모드 전환 전)
+        // ══════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// PATCH /sessions/{id}/profile — bubble_text 업데이트.
+        /// 가이드 시나리오 마지막 단계에서 관람객이 인사말 입력 후 호출.
+        /// 자유 모드 진입 시 광장 캐릭터의 말풍선에 자동 반영.
+        /// </summary>
+        public IEnumerator UpdateBubbleText(string sessionId, string bubbleText, Action onSuccess = null)
+        {
+            string body = $"{{\"bubble_text\":\"{bubbleText}\"}}";
+            using var req = new UnityWebRequest(ServerConfig.BubbleTextUrl(sessionId), "PATCH");
+            req.uploadHandler   = new UploadHandlerRaw(Encoding.UTF8.GetBytes(body));
+            req.downloadHandler = new DownloadHandlerBuffer();
+            req.SetRequestHeader("Content-Type", "application/json");
+            yield return req.SendWebRequest();
+            if (req.result != UnityWebRequest.Result.Success)
+                Debug.LogError($"[ApiClient] UpdateBubbleText 실패: {req.error}");
+            else
+                onSuccess?.Invoke();
         }
     }
 
-    // polling 전용 경량 응답 구조
-    [System.Serializable]
-    public class SessionStatusResponse
+    [Serializable]
+    internal class SessionStatusResponse
     {
         public string session_id;
-        public bool ready_for_unity;
+        public bool   ready_for_unity;
     }
 }

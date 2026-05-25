@@ -50,8 +50,25 @@ namespace LegoTwin.Character
         /// <summary>CharacterAssetData로 NPC 정보를 초기화한다.</summary>
         public void Initialize(CharacterAssetData data, string bubble = "")
         {
+            if (data == null) return;
             npcName    = data.npc_name;
             bubbleText = bubble;
+
+            // TODO: 유니티 개발자 — texture_url(GLB)로 텍스쳐 적용
+            // data.texture_url 이 있으면 glTFast로 GLB 로드 후 Material 추출 → SkinnedMeshRenderer에 적용
+            // 예:
+            //   if (!string.IsNullOrEmpty(data.texture_url))
+            //       StartCoroutine(ApplyTextureFromGlb(data.texture_url));
         }
+
+        // TODO: 유니티 개발자 — glTFast 텍스쳐 적용 구현
+        // private IEnumerator ApplyTextureFromGlb(string url)
+        // {
+        //     var gltf = new GLTFast.GltfImport();
+        //     var success = await gltf.Load(url);
+        //     if (!success) yield break;
+        //     var renderer = GetComponentInChildren<SkinnedMeshRenderer>();
+        //     if (renderer != null) renderer.material = gltf.GetMaterial(0);
+        // }
     }
 }
