@@ -1,8 +1,9 @@
 """
 세션 라우터
-POST /sessions              — 세션 생성 (관객 입장 즉시)
-PATCH /sessions/{id}/profile — 닉네임/말풍선 입력
-GET  /sessions/{id}         — 세션 정보 조회
+POST /sessions                — 세션 생성 (관객 입장 즉시)
+PATCH /sessions/{id}/profile  — 닉네임/말풍선 입력
+GET  /sessions/{id}           — 세션 정보 조회
+POST /sessions/{id}/like      — 좋아요 +1 (실시간 WebSocket 브로드캐스트)
 """
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session as DBSession
@@ -13,6 +14,7 @@ from ...core.config import REDIS_URL, RQ_QUEUE_CHARACTER, RQ_QUEUE_OBJECT
 from ...core.database import get_db
 from ...models.session import Session
 from ...schemas.session import SessionCreateResponse, ProfileUpdate, SessionResponse
+from ...schemas.unity import LikeResponse
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
 
@@ -73,3 +75,30 @@ def get_session(session_id: str, db: DBSession = Depends(get_db)):
     if not session:
         raise HTTPException(404, "세션을 찾을 수 없습니다.")
     return session
+
+
+@router.post("/{session_id}/like", response_model=LikeResponse)
+def like_session(session_id: str, db: DBSession = Depends(get_db)):
+    """좋아요 +1. 완료된 세션만 좋아요 가능. 실시간 WebSocket 브로드캐스트."""
+    session = db.get(Session, session_id)
+    if not session:
+        raise HTTPException(404, "세션을 찾을 수 없습니다.")
+
+    session.likes = (session.likes or 0) + 1
+    db.commit()
+
+    # 전체 중 좋아요 1위 세션 계산
+    from sqlalchemy import desc
+    top = db.query(Session).order_by(desc(Session.likes)).first()
+    top_session_id = top.id if top else None
+
+    # WebSocket 브로드캐스트 (Redis pub/sub)
+    from ...services.event_service import publish_likes_updated
+    publish_likes_updated(session_id, session.likes, top_session_id)
+
+    return LikeResponse(
+        session_id=session_id,
+        likes=session.likes,
+        is_top_liked=(top_session_id == session_id),
+        top_session_id=top_session_id,
+    )

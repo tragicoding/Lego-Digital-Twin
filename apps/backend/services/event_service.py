@@ -27,6 +27,19 @@ def publish_session_ready(session_id: str):
     r.close()
 
 
+def publish_likes_updated(session_id: str, likes: int, top_session_id: str | None):
+    """좋아요 변경 시 호출 — 실시간 업데이트를 모든 Unity 클라이언트에 브로드캐스트."""
+    r = Redis.from_url(REDIS_URL)
+    payload = json.dumps({
+        "event": "likes_updated",
+        "session_id": session_id,
+        "likes": likes,
+        "top_session_id": top_session_id,
+    })
+    r.publish(CHANNEL, payload)
+    r.close()
+
+
 def check_and_notify(session_id: str):
     """
     세션의 모든 에셋이 completed 상태인지 확인 후 이벤트 발행.

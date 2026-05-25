@@ -3,25 +3,15 @@
   "character_npc_name": "몽글이",
   "object_name": "하늘탑",
   "bubble_text": "MINIVERSE에 온 걸 환영해!",
+  "likes": 0,
   "ready_for_unity": true,
   "assets": {
     "character": {
       "asset_id": "mock_character_001",
       "model_url": "",
+      "texture_url": "",
       "role": "guide_npc",
-      "npc_name": "몽글이",
-      "animations": {
-        "walk": {
-          "key": "walk",
-          "display_name": "걷기",
-          "unity_function": "animation_walk"
-        },
-        "idle": {
-          "key": "idle",
-          "display_name": "idle",
-          "unity_function": "animation_idle"
-        }
-      }
+      "npc_name": "몽글이"
     },
     "object": {
       "asset_id": "mock_object_001",

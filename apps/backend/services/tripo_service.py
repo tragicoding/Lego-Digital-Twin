@@ -73,15 +73,24 @@ async def create_model_task(file_token: str) -> str:
     #이 task_id는 나중에 poll_task()로 작업 완료 여부를 확인할 때 사용
 
 #이미 생성된 3D 모델에 리깅 작업을 요청하는 함수.
-async def create_rig_task(model_task_id: str) -> str:
-    """리깅 태스크를 생성하고 task_id를 반환한다."""
+async def create_rig_task(model_task_id: str, out_format: str = "fbx") -> str:
+    """리깅 태스크를 생성하고 task_id를 반환한다.
+
+    out_format: "fbx" (기본값, Unity 리타겟팅용) | "glb"
+    - FBX: 리깅 스켈레톤 포함, Unity Animator 리타겟팅 지원
+    - GLB: glTFast 런타임 로드용
+    """
     for attempt in range(3):
         try:
             async with httpx.AsyncClient() as c:
                 resp = await c.post(
                     f"{TRIPO_BASE_URL}/task",
                     headers={**_HEADERS, "Content-Type": "application/json"},
-                    json={"type": "animate_rig", "original_model_task_id": model_task_id},
+                    json={
+                        "type": "animate_rig",
+                        "original_model_task_id": model_task_id,
+                        "out_format": out_format,
+                    },
                     timeout=60,
                 )
             resp.raise_for_status()
@@ -175,10 +184,10 @@ task_id 확인
 
 
 #Tripo 결과에서 GLB 파일 URL을 찾아서 다운로드 하는 함수.
-# image_to_model → "pbr_model"
+# image_to_model → "pbr_model" (PBR 텍스쳐 포함 GLB)
 # animate_retarget → "model" 또는 "animation" 키 사용
 async def download_glb(result: dict, output_path: Path) -> Path:
-    """GLB 파일을 다운로드한다."""
+    """GLB 파일을 다운로드한다. (오브제 파이프라인 / 텍스쳐 소스용)"""
     output = result.get("output", {})
     glb_url = (
         output.get("pbr_model")
@@ -190,6 +199,23 @@ async def download_glb(result: dict, output_path: Path) -> Path:
         raise KeyError(f"GLB URL을 찾을 수 없습니다. output keys: {list(output.keys())}")
     async with httpx.AsyncClient() as c:
         resp = await c.get(glb_url, timeout=120, follow_redirects=True)
+        resp.raise_for_status()
+        output_path.write_bytes(resp.content)
+    return output_path
+
+
+async def download_fbx(result: dict, output_path: Path) -> Path:
+    """리깅된 FBX 파일을 다운로드한다. (캐릭터 파이프라인 전용)
+
+    공식 문서: animate_rig 완료 시 output.model 에 FBX URL 반환.
+    ref: https://platform.tripo3d.ai/docs/animation (Rig 섹션)
+    """
+    output = result.get("output", {})
+    fbx_url = output.get("model")
+    if not fbx_url:
+        raise KeyError(f"FBX URL을 찾을 수 없습니다. output keys: {list(output.keys())}")
+    async with httpx.AsyncClient() as c:
+        resp = await c.get(fbx_url, timeout=180, follow_redirects=True)
         resp.raise_for_status()
         output_path.write_bytes(resp.content)
     return output_path
