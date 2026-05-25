@@ -52,21 +52,21 @@ public class FastSkyDayNight : MonoBehaviour
         // 태양 벡터와 아래(Down) 벡터의 내적을 통해 태양의 높이 계산
         float dotProduct = Vector3.Dot(sun.transform.forward, Vector3.down);
 
-        // URP 조명 밝기 제어
         if (dotProduct > 0)
         {
             // 낮 시간대: 태양의 높이에 따라 밝기가 서서히 변함
             sun.intensity = Mathf.Lerp(0, sunInitialIntensity, dotProduct);
-            sun.shadows = LightShadows.Soft; // 낮에는 그림자 활성화
+            sun.shadows = LightShadows.Soft; 
         }
         else
         {
-            // 밤 시간대: 조도 0, 그림자 끄기 (성능 최적화)
+            // 밤 시간대: 밝기와 그림자만 0으로 (성능 최적화)
             sun.intensity = 0f;
             sun.shadows = LightShadows.None; 
         }
 
-        // 일부 절차적 스카이 쉐이더는 아래 코드로 글로벌 태양 방향을 강제로 넣어주면 더 빠르고 정확하게 반응
+        // FastSky 스카이박스 셰이더가 태양 디스크를 땅 밑으로 부드럽게 넘기려면 
+        // 낮이든 밤이든 이 방향 값이 매 프레임 전달되어야 합니다.
         Shader.SetGlobalVector("_SunDir", -sun.transform.forward);
     }
 }
