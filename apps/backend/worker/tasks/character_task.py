@@ -83,21 +83,26 @@ async def _process_character_async(asset_id: str):
         model_task_id = await tripo.create_model_task(token)
         _set_stage(db, asset, "generating", 30)
         model_result = await tripo.poll_task(model_task_id)
-        # TODO: 텍스쳐 누락 시 여기서 model_result["output"]의 키를 확인해
-        #       PNG 텍스쳐 URL(base_color 등)을 별도 다운로드한다.
-        print(f"[char] model output keys: {list(model_result.get('output', {}).keys())}", flush=True)
         if _is_cancelled(cur_session_id):
             return
+
+        # 2-1. pbr_model GLB 다운로드 — 텍스쳐 소스
+        #      animate_rig FBX 에는 텍스쳐가 포함되지 않음 (확인됨).
+        #      image_to_model 은 이미 완료된 태스크이므로 추가 API 비용 없음.
+        #      Unity 에서 glTFast 로 이 GLB 를 로드해 Material/Texture 를 추출,
+        #      리타겟팅된 FBX 캐릭터에 적용한다.
+        texture_glb_path = STORAGE_MODELS / f"{prefix}_texture.glb"
+        await tripo.download_glb(model_result, texture_glb_path)
+        print(f"[char] 텍스쳐 GLB 저장: {texture_glb_path.name}", flush=True)
 
         _set_stage(db, asset, "rigging", 50)
         t_rig_start = time.time()
         print(f"[char] model 완료 → rig(FBX) 요청", flush=True)
 
-        # 3. 리깅 — out_format="fbx" 로 요청 (Unity Animator 리타겟팅용)
+        # 3. 리깅 — out_format="fbx" (Unity Animator 리타겟팅용)
         rig_task_id = await tripo.create_rig_task(model_task_id, out_format="fbx")
         print(f"[char] rig task 등록 완료 (+{time.time()-t_rig_start:.1f}s)", flush=True)
         rig_result = await tripo.poll_task(rig_task_id)
-        print(f"[char] rig output keys: {list(rig_result.get('output', {}).keys())}", flush=True)
         if _is_cancelled(cur_session_id):
             return
 
@@ -109,7 +114,10 @@ async def _process_character_async(asset_id: str):
         print(f"[char] FBX 저장 완료: {fbx_path.name} (+{time.time()-t_rig_start:.1f}s)", flush=True)
 
         # 5. DB 업데이트
+        #    model_url     → FBX (리타겟팅용 리깅 캐릭터)
+        #    thumbnail_url → texture GLB (pbr_model, Unity 텍스쳐 소스)
         asset.model_url = f"{BACKEND_HOST}/static/models/{fbx_path.name}"
+        asset.thumbnail_url = f"{BACKEND_HOST}/static/models/{texture_glb_path.name}"
         asset.status = "completed"
         asset.stage = "ready"
         asset.progress = 100

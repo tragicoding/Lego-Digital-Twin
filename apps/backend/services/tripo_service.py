@@ -207,12 +207,11 @@ async def download_glb(result: dict, output_path: Path) -> Path:
 async def download_fbx(result: dict, output_path: Path) -> Path:
     """리깅된 FBX 파일을 다운로드한다. (캐릭터 파이프라인 전용)
 
-    animate_rig(out_format="fbx") 결과에서 "model" 키로 FBX URL을 추출.
-    FBX에는 스켈레톤 + 메시가 포함되며, Unity Animator 리타겟팅에 사용된다.
-    텍스쳐는 FBX에 임베딩되거나 별도 GLB(texture_url)로 제공된다.
+    공식 문서: animate_rig 완료 시 output.model 에 FBX URL 반환.
+    ref: https://platform.tripo3d.ai/docs/animation (Rig 섹션)
     """
     output = result.get("output", {})
-    fbx_url = output.get("model") or output.get("rigged_model")
+    fbx_url = output.get("model")
     if not fbx_url:
         raise KeyError(f"FBX URL을 찾을 수 없습니다. output keys: {list(output.keys())}")
     async with httpx.AsyncClient() as c:
