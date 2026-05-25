@@ -89,8 +89,16 @@ apps/engine-vision/Wonder3D/benchmark_dashboard.html
 apps/engine-vision/Wonder3D/benchmark_log.json
 
 # --- Backend storage (업로드 이미지 & 생성 모델) ---
-apps/backend/storage/images/*/
-apps/backend/storage/models/
+apps/backend/storage/
 
 # --- Frontend build cache ---
 apps/frontend/.vite/
+
+# --- Root-level Vite cache (프로젝트 루트에서 실행 시 생성) ---
+/.vite/
+
+# --- test_blazepose 출력물 (영상·CSV·모션 결과) ---
+test_blazepose/videos/
+test_blazepose/pose3d_data_*.csv
+test_blazepose/rigmotion/
+test_blazepose/output_pose_*.mp4

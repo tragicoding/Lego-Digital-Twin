@@ -1,0 +1,371 @@
+================================================================
+  MINIVERSE — 프로젝트 전체 구조 / 데이터 흐름 / 설계 기록
+  작성일: 2026-05-25
+================================================================
+
+----------------------------------------------------------------
+1. 프로젝트 개요
+----------------------------------------------------------------
+
+전시회 관람객이 태블릿으로 레고 피규어를 촬영하면
+AI가 3D 캐릭터+오브제를 생성하고,
+VR 헤드셋으로 자신의 창작물이 레고 월드에 살아 움직이는 것을 체험한다.
+
+관람 흐름:
+  [촬영 태블릿] → [AI 3D 생성] → [VR 헤드셋 가이드 모드] → [자유 모드 / 광장]
+
+----------------------------------------------------------------
+2. 시스템 아키텍처
+----------------------------------------------------------------
+
+  ┌─────────────────────────────────────────────────────────────┐
+  │  Frontend (태블릿)                                           │
+  │  React + Vite + TypeScript + Tailwind                       │
+  │  ① 촬영 → POST /sessions                                    │
+  │  ② 사진 업로드 → POST /sessions/{id}/upload                 │
+  │  ③ 닉네임/오브제명 입력 → PATCH /sessions/{id}/profile      │
+  │  ④ 로딩 폴링 → GET /sessions/{id}/status                    │
+  └───────────────┬─────────────────────────────────────────────┘
+                  │ HTTP (REST)
+  ┌───────────────▼─────────────────────────────────────────────┐
+  │  Backend (FastAPI, Python 3.11)                             │
+  │  ├── /sessions           — 세션 CRUD, 좋아요                 │
+  │  ├── /unity/sessions     — Unity 가이드 모드 데이터           │
+  │  ├── /unity/plaza        — Unity 자유 모드 광장 데이터        │
+  │  ├── /ws/unity           — WebSocket (좋아요 실시간 브로드캐스트)│
+  │  └── /static/models/     — FBX / GLB 정적 파일 서빙          │
+  │                                                              │
+  │  PostgreSQL 16 — sessions / assets / asset_animations        │
+  │  Redis 7       — RQ 큐, pub/sub, active_session 키           │
+  └───────┬────────────────────────────────────────────────────-┘
+          │ RQ (Redis Queue)
+  ┌───────▼──────────────────────────────────────────────────────┐
+  │  RQ Worker (run_worker.py, 2개 병렬)                         │
+  │  lego-character : character_task.process_character()         │
+  │  lego-object    : object_task.process_object()               │
+  │                                                              │
+  │  Tripo3D API 호출                                            │
+  │  ├── upload_image → token                                    │
+  │  ├── create_model_task → task_id                             │
+  │  ├── poll_task (완료 대기)                                    │
+  │  ├── [캐릭터] create_rig_task(out_format="fbx") → fbx_url    │
+  │  └── download FBX + texture GLB → storage/models/           │
+  └──────────────────────────────────────────────────────────────┘
+          │ HTTP / WebSocket
+  ┌───────▼──────────────────────────────────────────────────────┐
+  │  Unity VR Client (Meta XR, C#)                              │
+  │  SessionManager → Mock / Server 모드 분기                    │
+  │  가이드 모드 → 자유 모드(광장) → 좋아요                       │
+  └──────────────────────────────────────────────────────────────┘
+
+----------------------------------------------------------------
+3. 데이터베이스 스키마
+----------------------------------------------------------------
+
+[sessions]
+  id              VARCHAR PK   s_{uuid8}
+  nickname        VARCHAR(100) — 캐릭터 NPC 이름
+  phone           VARCHAR(20)  — 연락처 (시상용)
+  bubble_text     VARCHAR(200) — 관람객이 입력한 인사말
+  favorite_theme  VARCHAR(50)  — 좋아하는 레고 테마
+  likes           INTEGER      — 좋아요 수 (기본 0)
+  status          VARCHAR(20)  — active / completed
+  created_at      DATETIME
+  updated_at      DATETIME
+
+[assets]
+  id              VARCHAR PK   asset_{uuid8}
+  session_id      VARCHAR FK → sessions.id
+  asset_type      VARCHAR(20)  — character / object / building
+  input_image_path VARCHAR(500) — 업로드된 이미지 경로
+  model_url       VARCHAR(500) — 완성된 3D 모델 URL
+                                 캐릭터: FBX URL
+                                 오브제: GLB URL
+  thumbnail_url   VARCHAR(500) — 텍스쳐 GLB URL (캐릭터 전용)
+  status          VARCHAR(20)  — queued / processing / completed / failed
+  stage           VARCHAR(30)  — waiting / generating / rigging / downloading / ready
+  progress        INTEGER      — 진행률 0~100
+  error_message   VARCHAR(500)
+  created_at / updated_at DATETIME
+
+----------------------------------------------------------------
+4. 캐릭터 처리 파이프라인 (Worker)
+----------------------------------------------------------------
+
+이미지 입력
+    ↓
+[Step 1] tripo.upload_image(image_path) → image_token
+    ↓
+[Step 2] tripo.create_model_task(image_token) → model_task_id
+         stage="generating", progress=20
+    ↓
+[Step 3] tripo.poll_task(model_task_id) → model_result
+         (Tripo API 완료까지 폴링, 30초 간격)
+         stage="generating", progress=50
+    ↓
+[Step 4] tripo.download_glb(model_result, "npc_N_texture.glb")
+         → pbr_model GLB (텍스쳐 소스)
+         asset.thumbnail_url = backend_host/static/models/npc_N_texture.glb
+         stage="rigging", progress=60
+    ↓
+[Step 5] tripo.create_rig_task(model_task_id, out_format="fbx") → rig_task_id
+    ↓
+[Step 6] tripo.poll_task(rig_task_id) → rig_result
+         stage="rigging", progress=80
+    ↓
+[Step 7] tripo.download_fbx(rig_result, "npc_N_rigged.fbx")
+         → 리깅된 FBX (애니메이션 없음, 리타겟팅 전용)
+         asset.model_url = backend_host/static/models/npc_N_rigged.fbx
+         stage="ready", status="completed", progress=100
+    ↓
+[Step 8] Redis pub/sub: publish("lego:session:{id}:events", session_ready)
+         → WebSocket으로 Unity에 브로드캐스트
+
+취소 처리:
+  새 세션 POST /sessions → Redis lego:active_session 키 갱신
+  Worker 각 단계 후 _is_cancelled() 체크 → 취소 시 즉시 종료
+
+오브제 파이프라인 (object_task):
+  image → create_model_task → poll → download_glb → completed
+  (리깅 없음, GLB 바로 사용)
+
+----------------------------------------------------------------
+5. API 엔드포인트 전체 목록
+----------------------------------------------------------------
+
+[Frontend용]
+  POST   /sessions                    — 세션 생성 → session_id 반환
+  POST   /sessions/{id}/upload        — 이미지 업로드 (character/object 구분)
+  PATCH  /sessions/{id}/profile       — 닉네임, 오브제명, 연락처 저장
+  GET    /sessions/{id}               — 세션 기본 정보 조회
+  GET    /sessions/{id}/status        — 처리 진행 상황 폴링
+  POST   /sessions/{id}/like          — 좋아요 +1 (WebSocket 브로드캐스트)
+
+[Unity용]
+  GET    /unity/sessions/{id}         — 가이드 모드 시작 시 세션 데이터
+                                        assets.character (model_url/texture_url)
+                                        assets.object (model_url)
+                                        ready_for_unity bool
+  GET    /unity/plaza/sessions        — 자유 모드 광장 전체 세션 목록
+                                        likes 순 정렬, top_session_id 포함
+  WS     /ws/unity                    — WebSocket
+                                        수신: session_ready, likes_updated
+
+[정적 파일]
+  GET    /static/models/{filename}    — FBX / GLB 파일 다운로드
+
+----------------------------------------------------------------
+6. Unity 클라이언트 구조
+----------------------------------------------------------------
+
+[모드 구분]
+  DataSourceMode.Mock   — 서버 없이 Resources/Mock/mock_session.json 사용
+  DataSourceMode.Server — FastAPI 서버와 실시간 통신
+
+[주요 컴포넌트]
+
+  SessionManager (Singleton)
+    - Mock/Server 분기
+    - OnSessionLoaded 이벤트 → GeneratedCharacterSpawner 호출
+
+  GeneratedCharacterSpawner
+    - SpawnGuide(session) → GuideNPCController (가이드 모드)
+    - SpawnPlaced(session) → 광장 배치 캐릭터
+    - Mock: mockCharacterPrefab (Inspector 연결)
+    - Server: model_url FBX 런타임 로드 (TriLib 구현 필요)
+
+  GuideNPCController
+    - 7단계 가이드 시나리오 (Coroutine)
+    - 이벤트: OnDialogueChanged / OnBubbleTextInputRequested / OnGuideFinished
+    - 이동: MoveRoutine (Vector3.MoveTowards + Quaternion.Slerp)
+    - 웨이포인트: plazaPathWaypoints[], myCreationWaypoint
+
+  CharacterAnimationController
+    - Animator.SetTrigger("walk") / SetTrigger("idle")
+    - Initialize(CharacterAssetData, bubbleText)
+
+  WebSocketManager (Singleton)
+    - 현재: HTTP 폴링 방식 (2초 간격 poll_tick)
+    - 목표: NativeWebSocket 패키지 교체 후 진짜 WS 연결
+    - HandleMessage: session_ready / likes_updated 이벤트 파싱
+
+  PlazaManager (Singleton)
+    - EnterPlaza() → LoadAndSpawnPlaza() Coroutine
+    - Mock: Resources/Mock/mock_plaza.json
+    - Server: GET /unity/plaza/sessions
+    - WebSocketManager.OnLikesUpdated 구독 → 실시간 갱신
+
+  PlazaSessionView
+    - 세션 하나의 시각적 표현 (좋아요 수, 말풍선, 1위 별 표시)
+    - likesCountText(TMPro) / bubbleText(TMPro) / starObject
+
+  LikeSystem
+    - OnTriggerEnter(Player 태그) → 좋아요 버튼 UI 표시
+    - OnLikePressed() → POST /sessions/{id}/like → 응답으로 likes 갱신
+
+  ApiClient (Singleton)
+    - FetchUnitySession / PollUntilReady / FetchPlazaSessions
+    - LikeSession / UpdateBubbleText
+
+  CharacterTextureApplier (Editor Only)
+    - AssetPostprocessor: *_rigged.fbx + *_texture.glb 쌍 임포트 감지
+    - GLB sub-asset에서 Texture2D 추출 → URP Lit .mat 생성
+    - ModelImporter External 리맵 → FBX 자동 텍스쳐 적용
+    - 수동: Tools > MINIVERSE > Apply Character Textures
+
+----------------------------------------------------------------
+7. Unity 에셋 데이터 흐름 (캐릭터)
+----------------------------------------------------------------
+
+[Mock Mode]
+  GeneratedCharacters/mocking/character/
+    npc_3_rigged.fbx     ─┐
+    npc_3_texture.glb    ─┘→ CharacterTextureApplier (Editor 자동 처리)
+                              └→ Materials/npc_3.mat (URP Lit, GLB 텍스쳐 적용)
+                              └→ FBX Prefab → mockCharacterPrefab Inspector 연결
+
+[Server Mode]
+  asset.model_url   = http://server/static/models/npc_N_rigged.fbx
+  asset.texture_url = http://server/static/models/npc_N_texture.glb
+
+  런타임 로드 (미구현 → TODO):
+    FBX 로드: TriLib 패키지 (AssetLoader.LoadModelFromUri)
+    GLB 텍스쳐: glTFast (GltfImport.Load → GetMaterial(0))
+    → SkinnedMeshRenderer.material 교체
+
+----------------------------------------------------------------
+8. 리깅 구조 (npc_3_rigged.fbx 기준)
+----------------------------------------------------------------
+
+FBX 7.4, 본 42개, Skin Cluster 41개, 애니메이션 없음
+(Tripo3D animate_rig(out_format="fbx") 결과)
+
+계층 (주요 본):
+  Armature
+  └─ Root
+     └─ Hip
+        └─ Pelvis
+           ├─ L_Thigh → L_Calf → L_Foot → L_ToeBase
+           │  (Twist: L_CalfTwist01/02, L_ThighTwist01/02)
+           ├─ R_Thigh (대칭)
+           └─ Waist
+              └─ Spine01
+                 └─ Spine02
+                    ├─ NeckTwist01 → NeckTwist02 → Head
+                    ├─ L_Clavicle → L_Upperarm → L_Forearm → L_Hand
+                    │  (Twist: L_UpperarmTwist01/02, L_ForearmTwist01/02)
+                    └─ R_Clavicle (대칭)
+
+Mixamo 리타겟팅 매핑 참고:
+  Mixamo 이름     ↔   이 FBX 이름
+  Hips               Hip / Pelvis
+  Spine              Waist / Spine01
+  Spine2             Spine02
+  Neck               NeckTwist01
+  Head               Head
+  LeftUpLeg          L_Thigh
+  LeftLeg            L_Calf
+  LeftFoot           L_Foot
+  LeftShoulder       L_Clavicle
+  LeftArm            L_Upperarm
+  LeftForeArm        L_Forearm
+  LeftHand           L_Hand
+
+----------------------------------------------------------------
+9. 실시간 좋아요 시스템 설계
+----------------------------------------------------------------
+
+[흐름]
+  Unity LikeSystem.OnLikePressed()
+    → POST /sessions/{id}/like
+    → DB: session.likes += 1
+    → Redis publish("lego:session:events", {event:"likes_updated", session_id, likes, top_session_id})
+    → WebSocket /ws/unity 브로드캐스트
+    → 모든 연결된 Unity 클라이언트 수신
+    → PlazaManager.HandleLikesUpdated(ev)
+    → 해당 PlazaSessionView.UpdateLikes(likes) + SetTopLiked(bool)
+
+[현재 상태]
+  WebSocket 미구현 → 2초 폴링 fallback
+  NativeWebSocket 패키지 설치 후 WebSocketManager.cs 교체 필요
+
+----------------------------------------------------------------
+10. Mock 데이터 구조
+----------------------------------------------------------------
+
+[mock_session.json] — 현재 관람객 세션 (가이드 모드)
+{
+  "session_id": "s_test0001",
+  "character_npc_name": "뭉게",
+  "bubble_text": "안녕하세요!",
+  "likes": 0,
+  "ready_for_unity": true,
+  "assets": {
+    "character": {
+      "asset_id": "asset_mock_char_01",
+      "model_url": "",             ← 빈 문자열 → mockCharacterPrefab 사용
+      "texture_url": "",
+      "role": "guide_npc",
+      "npc_name": "뭉게"
+    },
+    "object": {
+      "asset_id": "asset_mock_obj_01",
+      "model_url": "",
+      "role": "static_object",
+      "object_name": "구름"
+    }
+  }
+}
+
+[mock_plaza.json] — 광장 세션 목록 (자유 모드)
+{
+  "top_session_id": "s_plaza_002",
+  "sessions": [
+    { "session_id": "s_plaza_001", "character_npc_name": "별이", "likes": 3, ... },
+    { "session_id": "s_plaza_002", "character_npc_name": "뭉게", "likes": 7, "is_top_liked": true, ... },
+    { "session_id": "s_plaza_003", "character_npc_name": "토실", "likes": 1, ... }
+  ]
+}
+
+----------------------------------------------------------------
+11. 브랜치 전략 (현재 상태 기준)
+----------------------------------------------------------------
+
+  main          — 최종 안정 버전 (직접 push 금지)
+  develop       — 통합 브랜치 (test_app 내용과 동기화됨)
+  feature/unity  — Unity 개발자 브랜치 (Windows)
+  feature/backend — 백엔드 개발 브랜치
+  feature/frontend — 프론트 개발 브랜치
+  test_app       — 실험·통합 검증 (현재 기준 브랜치)
+  test_motion    — 모션 캡처 연동 실험 브랜치 (test_app 에서 분기, 2026-05-25)
+
+  develop / feature/backend / feature/frontend
+  → test_app 내용으로 강제 동기화됨 (2026-05-25)
+
+----------------------------------------------------------------
+12. 현재 미구현 / TODO 항목
+----------------------------------------------------------------
+
+[Unity]
+  □ GuideNPCController: plazaPathWaypoints / myCreationWaypoint Inspector 연결
+  □ Animator Controller: "walk" / "idle" Trigger 파라미터 등록
+  □ OnDialogueChanged → 말풍선 UI 구독
+  □ OnBubbleTextInputRequested → 입력창 UI 구독
+  □ OnGuideFinished → 자유 모드 씬/상태 전환 구독
+  □ PlazaManager.spawnPoints[] 광장 배치 위치 연결
+  □ LikeSystem Sphere Collider + 좋아요 버튼 UI 연결
+  □ Server Mode: TriLib FBX 런타임 로드
+  □ Server Mode: glTFast GLB 텍스쳐 → FBX 머티리얼 적용
+  □ NativeWebSocket 패키지 설치 → WebSocketManager.cs 교체
+  □ 모션 캡처 / Mixamo 리타겟팅 연동 (test_motion 브랜치)
+
+[Backend]
+  □ WebSocket /ws/unity 실제 구현 (현재 Redis pub/sub 구조만 있음)
+  □ POST /sessions/{id}/upload 이미지 수신 → Worker 큐 enqueue 연결 확인
+  □ 대용량 FBX 파일 서빙 최적화 (CDN 또는 presigned URL)
+
+[Frontend]
+  □ 로딩 화면 진행률 표시 (asset.stage / asset.progress 활용)
+  □ 세션 완료 후 Unity 연동 QR 코드 / 세션 ID 표시
+
+================================================================
