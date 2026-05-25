@@ -109,6 +109,7 @@ chore(repo): storage gitignore 추가
 ### RULE-03: 스테이징·커밋 원칙
 
 - `git add .` 또는 `git add -A` **금지** — 파일을 명시적으로 지정한다.
+  - 예외: 브랜치 폴더 교체 작업 시 `git add <디렉토리>` 는 허용 (아래 RULE-08 참고)
 - `.env`, 시크릿, 바이너리 대용량 파일은 커밋하지 않는다.
 - 하나의 커밋은 하나의 논리적 단위만 포함한다.
 
@@ -136,6 +137,44 @@ git commit --amend (이미 push된 커밋)
 git checkout -- .
 git clean -f
 ```
+
+### RULE-08: 브랜치 폴더 교체 절차
+
+특정 브랜치의 디렉토리 전체를 현재 브랜치로 가져올 때 반드시 아래 순서를 따른다.
+
+**잘못된 방법 (파일 누락 위험):**
+```bash
+# 체크아웃 후 파일을 일일이 명시적으로 스테이징 → .meta, 바이너리 누락 가능
+git checkout origin/feature/X -- path/
+git add path/file1 path/file2 ...  # ← 누락 발생
+```
+
+**올바른 방법:**
+```bash
+# 1. 교체할 경로 체크아웃
+git checkout origin/<브랜치> -- <경로>/
+
+# 2. 변경 내용 확인 (누락 파일 없는지 검증)
+git diff --name-status origin/<브랜치> -- <경로>/
+
+# 3. 해당 디렉토리 전체를 스테이징 (디렉토리 지정은 허용)
+git add <경로>/
+
+# 4. 커밋 전 최종 검증 — D(삭제)로 표시된 파일이 없어야 정상
+git diff --name-status --cached origin/<브랜치> -- <경로>/
+
+# 5. 커밋
+git commit -m "chore(<scope>): <브랜치> 내용으로 <경로> 교체"
+```
+
+**교체 후 반드시 확인:**
+```bash
+# 누락 파일이 남아있으면 D(삭제)로 표시됨 → 추가 checkout 필요
+git diff --name-only origin/<브랜치> -- <경로>/ | head -20
+```
+
+> **Unity 주의사항**: `.meta` 파일 누락 시 Unity가 새 GUID를 생성하여  
+> 씬/프리팹의 스크립트·에셋 참조가 모두 깨진다. 반드시 함께 포함.
 
 ---
 
@@ -184,4 +223,7 @@ AGENT-GIT-06: PR은 develop을 대상으로 생성한다.
 AGENT-GIT-07: 현재 브랜치가 feature/* 또는 test_app이 아니면 작업 전에 사용자에게 알린다.
 AGENT-GIT-08: 사용자의 명시적 승인 없이 commit/push하지 않는다.
 AGENT-GIT-09: 브랜치 생성·삭제·merge·rebase 전 반드시 사용자에게 확인한다.
+AGENT-GIT-10: 브랜치 폴더 교체 후 git diff --name-status origin/<브랜치> -- <경로>/ 로
+             누락 파일(D 표시)이 없는지 반드시 검증한다.
+             누락 파일이 있으면 추가 checkout 후 함께 커밋한다.
 ```
