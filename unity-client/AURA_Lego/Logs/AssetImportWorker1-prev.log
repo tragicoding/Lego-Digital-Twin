@@ -1,9 +1,9 @@
 [Licensing::Module] Trying to connect to existing licensing client channel...
 Built from '6000.2/staging' branch; Version is '6000.2.2f1 (ea398eefe1c2) revision 15350158'; Using compiler version '194234433'; Build Type 'Release'
-[Licensing::IpcConnector] Successfully connected to: "LicenseClient-ym167" at "2026-05-19T05:06:08.4836921Z"
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-ym167" at "2026-05-26T13:40:46.6875505Z"
 OS: 'Windows 11  (10.0.26200) 64bit Professional' Language: 'ko' Physical Memory: 16243 MB
 BatchMode: 1, IsHumanControllingUs: 0, StartBugReporterOnCrash: 0, Is64bit: 1
-Date: 2026-05-19T05:06:08Z
+Date: 2026-05-26T13:40:46Z
 
 COMMAND LINE ARGUMENTS:
 C:\Program Files\Unity\Hub\Editor\6000.2.2f1\Editor\Unity.exe
@@ -17,7 +17,7 @@ C:/Users/ym167/Documents/GitHub/Lego-Digital-Twin/unity-client/AURA_Lego
 -logFile
 Logs/AssetImportWorker1.log
 -srvPort
-61850
+60649
 -licensingIpc
 LicenseClient-ym167
 -job-worker-count
@@ -65,27 +65,27 @@ C:/Users/ym167/Documents/GitHub/Lego-Digital-Twin/unity-client/AURA_Lego
     "memorysetup-temp-allocator-size-gi-baking-worker=262144"
     "memorysetup-temp-allocator-size-gi-baking-worker=262144"
     "memorysetup-temp-allocator-size-gfx=262144"
-Player connection [13892]  Target information:
+Player connection [29344]  Target information:
 
-Player connection [13892]  * "[IP] 172.30.1.68 [Port] 0 [Flags] 2 [Guid] 2501510150 [EditorId] 2501510150 [Version] 1048832 [Id] WindowsEditor(7,DESKTOP-M3M7B9U) [Debug] 1 [PackageName] WindowsEditor [ProjectName] Editor" 
+Player connection [29344]  * "[IP] 172.30.1.67 [Port] 0 [Flags] 2 [Guid] 2011800902 [EditorId] 2011800902 [Version] 1048832 [Id] WindowsEditor(7,DESKTOP-M3M7B9U) [Debug] 1 [PackageName] WindowsEditor [ProjectName] Editor" 
 
-Player connection [13892] Host joined multi-casting on [225.0.0.222:54997]...
-Player connection [13892] Host joined alternative multi-casting on [225.0.0.222:34997]...
+Player connection [29344] Host joined multi-casting on [225.0.0.222:54997]...
+Player connection [29344] Host joined alternative multi-casting on [225.0.0.222:34997]...
 JobSystem: Creating JobQueue using job-worker-count value 9
 Input System module state changed to: Initialized.
 [Physics::Module] Initialized fallback backend.
 [Physics::Module] Id: 0xdecafbad
-[Licensing::Client] Code 10 while verifying Licensing Client signature (process Id: 31268, path: "C:/Program Files/Unity Hub/UnityLicensingClient_V1/Unity.Licensing.Client.exe")
+[Licensing::Client] Code 10 while verifying Licensing Client signature (process Id: 19844, path: "C:/Program Files/Unity Hub/UnityLicensingClient_V1/Unity.Licensing.Client.exe")
 [Licensing::Module] LicensingClient has failed validation; ignoring
 [Licensing::Client] Handshaking with LicensingClient:
   Version:                 1.17.4+4293ba1
-  Session Id:              c180d8ac198f4a098eecb8c92652975d
-  Correlation Id:          73f008d2642c4767dd2bb0a19a9b1ad6
-  External correlation Id: 2688037185796606870
+  Session Id:              c1bc2208e96a4df2be641d74490de9a6
+  Correlation Id:          80cc82a49ae77f99e5d0d6fdc54c7c3b
+  External correlation Id: 4118101148849615359
   Machine Id:              nKW9zLnA3Cvjb+21/QgkJaxjydA=
-[Licensing::Module] Successfully connected to LicensingClient on channel: "LicenseClient-ym167" (connect: 0.00s, validation: 0.00s, handshake: 0.07s)
-[Licensing::IpcConnector] Successfully connected to: "LicenseClient-ym167-notifications" at "2026-05-19T05:06:08.5570619Z"
-[Licensing::Module] Licensing Background thread has ended after 0.07s
+[Licensing::Module] Successfully connected to LicensingClient on channel: "LicenseClient-ym167" (connect: 0.00s, validation: 0.00s, handshake: 0.06s)
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-ym167-notifications" at "2026-05-26T13:40:46.7519278Z"
+[Licensing::Module] Licensing Background thread has ended after 0.06s
 Library Redirect Path: Library/
 [Physics::Module] Selected backend.
 [Physics::Module] Name: PhysX
@@ -99,8 +99,8 @@ Library Redirect Path: Library/
   Product: Unity Personal
   Type: Assigned
   Expiration: Unlimited
-Refreshing native plugins compatible for Editor in 54.76 ms, found 19 plugins.
-Preloading 2 native plugins for Editor in 1.54 ms.
+Refreshing native plugins compatible for Editor in 56.20 ms, found 19 plugins.
+Preloading 2 native plugins for Editor in 1.49 ms.
 Initialize engine version: 6000.2.2f1 (ea398eefe1c2)
 [Subsystems] Discovering subsystems at path C:/Program Files/Unity/Hub/Editor/6000.2.2f1/Editor/Data/Resources/UnitySubsystems
 [Subsystems] Discovering subsystems at path C:/Users/ym167/Documents/GitHub/Lego-Digital-Twin/unity-client/AURA_Lego/Assets
@@ -115,13 +115,13 @@ Initialize mono
 Mono path[0] = 'C:/Program Files/Unity/Hub/Editor/6000.2.2f1/Editor/Data/Managed'
 Mono path[1] = 'C:/Program Files/Unity/Hub/Editor/6000.2.2f1/Editor/Data/MonoBleedingEdge/lib/mono/unityjit-win32'
 Mono config path = 'C:/Program Files/Unity/Hub/Editor/6000.2.2f1/Editor/Data/MonoBleedingEdge/etc'
-Using monoOptions --debugger-agent=transport=dt_socket,embedding=1,server=y,suspend=n,address=127.0.0.1:56860
+Using monoOptions --debugger-agent=transport=dt_socket,embedding=1,server=y,suspend=n,address=127.0.0.1:56704
 Begin MonoManager ReloadAssembly
 Registering precompiled unity dll's ...
 Register platform support module: C:/Program Files/Unity/Hub/Editor/6000.2.2f1/Editor/Data/PlaybackEngines/WindowsStandaloneSupport/UnityEditor.WindowsStandalone.Extensions.dll
 Register platform support module: C:/Program Files/Unity/Hub/Editor/6000.2.2f1/Editor/Data/PlaybackEngines/AndroidPlayer/UnityEditor.Android.Extensions.dll
-Registered in 0.003699 seconds.
-- Loaded All Assemblies, in  0.355 seconds
+Registered in 0.004641 seconds.
+- Loaded All Assemblies, in  0.377 seconds
 Native extension for Android target not found
 CommandWithNoStdoutInvokationFailure: Unable to start ADB server. Please make sure the Android SDK is installed and is properly configured in the Editor. See the Console for more details.
   at UnityEditor.Android.Command.RunWithShellExecute (System.String command, System.String args, System.String workingdir, System.String errorMsg) [0x0005a] in /home/bokken/build/output/unity/unity/PlatformDependent/AndroidPlayer/Editor/Managed/Android/Command.cs:148 
@@ -143,35 +143,35 @@ UnityEditor.Modules.ModuleManager:InitializePlatformSupportModules()
 
 Native extension for WindowsStandalone target not found
 Mono: successfully reloaded assembly
-- Finished resetting the current domain, in  7.314 seconds
-Domain Reload Profiling: 7665ms
-	BeginReloadAssembly (130ms)
+- Finished resetting the current domain, in  9.634 seconds
+Domain Reload Profiling: 10006ms
+	BeginReloadAssembly (140ms)
 		ExecutionOrderSort (0ms)
 		DisableScriptedObjects (0ms)
 		BackupInstance (0ms)
 		ReleaseScriptingObjects (0ms)
-		CreateAndSetChildDomain (0ms)
-	RebuildCommonClasses (30ms)
-	RebuildNativeTypeToScriptingClass (11ms)
-	initialDomainReloadingComplete (43ms)
-	LoadAllAssembliesAndSetupDomain (137ms)
-		LoadAssemblies (126ms)
+		CreateAndSetChildDomain (1ms)
+	RebuildCommonClasses (34ms)
+	RebuildNativeTypeToScriptingClass (9ms)
+	initialDomainReloadingComplete (48ms)
+	LoadAllAssembliesAndSetupDomain (140ms)
+		LoadAssemblies (136ms)
 		RebuildTransferFunctionScriptingTraits (0ms)
-		AnalyzeDomain (134ms)
-			TypeCache.Refresh (132ms)
-				TypeCache.ScanAssembly (121ms)
+		AnalyzeDomain (137ms)
+			TypeCache.Refresh (135ms)
+				TypeCache.ScanAssembly (124ms)
 			BuildScriptInfoCaches (0ms)
 			ResolveRequiredComponents (0ms)
-	FinalizeReload (7314ms)
+	FinalizeReload (9635ms)
 		ReleaseScriptCaches (0ms)
 		RebuildScriptCaches (0ms)
-		SetupLoadedEditorAssemblies (7274ms)
+		SetupLoadedEditorAssemblies (9598ms)
 			LogAssemblyErrors (0ms)
-			InitializePlatformSupportModulesInManaged (7069ms)
+			InitializePlatformSupportModulesInManaged (9425ms)
 			SetLoadedEditorAssemblies (3ms)
-			BeforeProcessingInitializeOnLoad (50ms)
-			ProcessInitializeOnLoadAttributes (100ms)
-			ProcessInitializeOnLoadMethodAttributes (53ms)
+			BeforeProcessingInitializeOnLoad (41ms)
+			ProcessInitializeOnLoadAttributes (88ms)
+			ProcessInitializeOnLoadMethodAttributes (41ms)
 			AfterProcessingInitializeOnLoad (0ms)
 			EditorAssembliesLoaded (0ms)
 		ExecutionOrderSort2 (0ms)
@@ -182,18 +182,18 @@ Import Worker Mode flag is 0x00
 Begin MonoManager ReloadAssembly
 [Licensing::Client] Successfully resolved entitlement details
 Symbol file LoadedFromMemory is not a mono symbol file
-- Loaded All Assemblies, in  1.081 seconds
-Refreshing native plugins compatible for Editor in 30.56 ms, found 19 plugins.
+- Loaded All Assemblies, in  1.087 seconds
+Refreshing native plugins compatible for Editor in 35.35 ms, found 19 plugins.
 Native extension for Android target not found
 Native extension for WindowsStandalone target not found
 Package Manager log level set to [2]
 [Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
 [Package Manager] Unable to send message (not connected to server process).
 [Package Manager] Cannot connect to Unity Package Manager local server
-Refreshing native plugins compatible for Editor in 43.41 ms, found 19 plugins.
 [Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
 [Package Manager] Unable to send message (not connected to server process).
 [Package Manager] Cannot connect to Unity Package Manager local server
+Refreshing native plugins compatible for Editor in 42.40 ms, found 19 plugins.
 [Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
 [Package Manager] Unable to send message (not connected to server process).
 [Package Manager] Cannot connect to Unity Package Manager local server
@@ -250,39 +250,39 @@ Mono: successfully reloaded assembly
 [Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
 [Package Manager] Unable to send message (not connected to server process).
 [Package Manager] Cannot connect to Unity Package Manager local server
-- Finished resetting the current domain, in  1.307 seconds
-Domain Reload Profiling: 2378ms
-	BeginReloadAssembly (170ms)
+- Finished resetting the current domain, in  1.057 seconds
+Domain Reload Profiling: 2132ms
+	BeginReloadAssembly (164ms)
 		ExecutionOrderSort (0ms)
-		DisableScriptedObjects (8ms)
+		DisableScriptedObjects (4ms)
 		BackupInstance (0ms)
 		ReleaseScriptingObjects (0ms)
-		CreateAndSetChildDomain (28ms)
-	RebuildCommonClasses (28ms)
-	RebuildNativeTypeToScriptingClass (9ms)
-	initialDomainReloadingComplete (35ms)
-	LoadAllAssembliesAndSetupDomain (830ms)
-		LoadAssemblies (582ms)
+		CreateAndSetChildDomain (21ms)
+	RebuildCommonClasses (30ms)
+	RebuildNativeTypeToScriptingClass (8ms)
+	initialDomainReloadingComplete (50ms)
+	LoadAllAssembliesAndSetupDomain (821ms)
+		LoadAssemblies (589ms)
 		RebuildTransferFunctionScriptingTraits (0ms)
-		AnalyzeDomain (345ms)
-			TypeCache.Refresh (254ms)
-				TypeCache.ScanAssembly (231ms)
-			BuildScriptInfoCaches (77ms)
-			ResolveRequiredComponents (10ms)
-	FinalizeReload (1307ms)
+		AnalyzeDomain (331ms)
+			TypeCache.Refresh (236ms)
+				TypeCache.ScanAssembly (214ms)
+			BuildScriptInfoCaches (82ms)
+			ResolveRequiredComponents (9ms)
+	FinalizeReload (1058ms)
 		ReleaseScriptCaches (0ms)
 		RebuildScriptCaches (0ms)
-		SetupLoadedEditorAssemblies (1063ms)
+		SetupLoadedEditorAssemblies (884ms)
 			LogAssemblyErrors (0ms)
-			InitializePlatformSupportModulesInManaged (12ms)
-			SetLoadedEditorAssemblies (7ms)
-			BeforeProcessingInitializeOnLoad (201ms)
-			ProcessInitializeOnLoadAttributes (487ms)
-			ProcessInitializeOnLoadMethodAttributes (348ms)
-			AfterProcessingInitializeOnLoad (6ms)
-			EditorAssembliesLoaded (4ms)
+			InitializePlatformSupportModulesInManaged (8ms)
+			SetLoadedEditorAssemblies (5ms)
+			BeforeProcessingInitializeOnLoad (160ms)
+			ProcessInitializeOnLoadAttributes (433ms)
+			ProcessInitializeOnLoadMethodAttributes (270ms)
+			AfterProcessingInitializeOnLoad (8ms)
+			EditorAssembliesLoaded (0ms)
 		ExecutionOrderSort2 (0ms)
-		AwakeInstancesAfterBackupRestoration (12ms)
+		AwakeInstancesAfterBackupRestoration (9ms)
 WARNING: Shader Unsupported: 'Hidden/Simulation/URP/Synthetic' - All subshaders removed
 WARNING: Shader Did you use #pragma only_renderers and omit this platform?
 WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
@@ -320,765 +320,111 @@ WARNING: Shader Unsupported: 'Simulation/URP/Lit' - All subshaders removed
 WARNING: Shader Did you use #pragma only_renderers and omit this platform?
 WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
 Launched and connected shader compiler UnityShaderCompiler.exe after 0.05 seconds
-Refreshing native plugins compatible for Editor in 42.27 ms, found 19 plugins.
-Preloading 2 native plugins for Editor in 0.49 ms.
-Unloading 23 Unused Serialized files (Serialized files now loaded: 0)
-Unloading 8832 unused Assets / (8.3 MB). Loaded Objects now: 9553.
-Memory consumption went from 179.5 MB to 171.2 MB.
-Total: 17.379900 ms (FindLiveObjects: 1.227200 ms CreateObjectMapping: 0.721000 ms MarkObjects: 9.597600 ms  DeleteObjects: 5.832700 ms)
-
-========================================================================
-Received Import Request.
-  Time since last request: 145062.837049 seconds.
-  path: Assets/External Assets/MyNPC/block_character_block_characterAction.anim
-  artifactKey: Guid(9b15e2bbcb7e6bf468485c2f4060a5c4) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/External Assets/MyNPC/block_character_block_characterAction.anim using Guid(9b15e2bbcb7e6bf468485c2f4060a5c4) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'd75bca2252ea9c9981cbda9291762595') in 0.0219662 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
-
-========================================================================
-Received Import Request.
-  Time since last request: 166.731385 seconds.
-  path: Assets/External Assets/MyNPC/npc_5_walk.glb
-  artifactKey: Guid(b7e27536c6e0f4548829304da441f241) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/External Assets/MyNPC/npc_5_walk.glb using Guid(b7e27536c6e0f4548829304da441f241) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '75282e3742d98d24146623aabcecf4e3') in 0.5680532 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 105
-
-========================================================================
-Received Import Request.
-  Time since last request: 32.203828 seconds.
-  path: Assets/External Assets/capstone1/NPC/Princess_NPC/princess.fbx
-  artifactKey: Guid(6121d0c64cb13a84db09beaad3442f7b) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/External Assets/capstone1/NPC/Princess_NPC/princess.fbx using Guid(6121d0c64cb13a84db09beaad3442f7b) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'bf1f425f2b58756973552a4c160d3b0b') in 0.0658194 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 59
-
-========================================================================
-Received Prepare
-[Licensing::Client] Successfully resolved entitlement details
-Begin MonoManager ReloadAssembly
-[Licensing::Client] Successfully resolved entitlement details
-Symbol file LoadedFromMemory is not a mono symbol file
-- Loaded All Assemblies, in  0.926 seconds
-Refreshing native plugins compatible for Editor in 30.55 ms, found 19 plugins.
-Native extension for Android target not found
-Native extension for WindowsStandalone target not found
-[Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
-[Package Manager] Unable to send message (not connected to server process).
-[Package Manager] Cannot connect to Unity Package Manager local server
-[Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
-[Package Manager] Unable to send message (not connected to server process).
-[Package Manager] Cannot connect to Unity Package Manager local server
-[Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
-[Package Manager] Unable to send message (not connected to server process).
-[Package Manager] Cannot connect to Unity Package Manager local server
-System.Reflection.TargetInvocationException: Exception has been thrown by the target of an invocation. ---> System.NullReferenceException: Object reference not set to an instance of an object
-  at Unity.XR.Oculus.OculusLoader.AssetPathToAbsolutePath (System.String assetPath) [0x0003d] in .\Library\PackageCache\com.unity.xr.oculus@68ef97a4d91e\Runtime\OculusLoader.cs:312 
-  at Unity.XR.Oculus.OculusLoader.EditorLoadOVRPlugin () [0x0008c] in .\Library\PackageCache\com.unity.xr.oculus@68ef97a4d91e\Runtime\OculusLoader.cs:297 
-  at (wrapper managed-to-native) System.Reflection.RuntimeMethodInfo.InternalInvoke(System.Reflection.RuntimeMethodInfo,object,object[],System.Exception&)
-  at System.Reflection.RuntimeMethodInfo.Invoke (System.Object obj, System.Reflection.BindingFlags invokeAttr, System.Reflection.Binder binder, System.Object[] parameters, System.Globalization.CultureInfo culture) [0x0006a] in <59bd7c40c082431db25e1e728ab62789>:0 
-   --- End of inner exception stack trace ---
-  at System.Reflection.RuntimeMethodInfo.Invoke (System.Object obj, System.Reflection.BindingFlags invokeAttr, System.Reflection.Binder binder, System.Object[] parameters, System.Globalization.CultureInfo culture) [0x00083] in <59bd7c40c082431db25e1e728ab62789>:0 
-  at System.Reflection.MethodBase.Invoke (System.Object obj, System.Object[] parameters) [0x00000] in <59bd7c40c082431db25e1e728ab62789>:0 
-  at UnityEditor.EditorAssemblies.ProcessInitializeOnLoadMethodAttributes () [0x00087] in <1acad9deef3549c4b9617dfa169c6659>:0 
-UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
-UnityEngine.StackTraceUtility:ExtractStackTrace ()
-UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
-UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
-UnityEngine.Logger:Log (UnityEngine.LogType,object)
-UnityEngine.Debug:LogError (object)
-UnityEditor.EditorAssemblies:ProcessInitializeOnLoadMethodAttributes ()
-
-[MODES] ModeService[none].Initialize
-[MODES] ModeService[none].LoadModes
-[Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
-[Package Manager] Unable to send message (not connected to server process).
-[Package Manager] Cannot connect to Unity Package Manager local server
-AssertionException: Error removing KTX for Unity WebGL sub-packages.. Failed fetching installed packages.
-Assertion failure. Values are not equal.
-Expected: Failure == Success
-  at UnityEngine.Assertions.Assert.Fail (System.String message, System.String userMessage) [0x00043] in <b4c8c45fec274213bfac03ee0e9a3d62>:0 
-  at UnityEngine.Assertions.Assert.AreEqual[T] (T expected, T actual, System.String message, System.Collections.Generic.IEqualityComparer`1[T] comparer) [0x0005f] in <b4c8c45fec274213bfac03ee0e9a3d62>:0 
-  at UnityEngine.Assertions.Assert.AreEqual[T] (T expected, T actual, System.String message) [0x00009] in <b4c8c45fec274213bfac03ee0e9a3d62>:0 
-  at SubPackage.SubPackageRemover.GetAllInstalledPackagesAsync (System.Double timeout) [0x000b7] in .\Library\PackageCache\com.unity.cloud.ktx@7a35f681840e\Editor\Scripts\SubPackage\SubPackageRemover.cs:81 
-  at SubPackage.SubPackageRemover.TryRemoveObsoleteSubPackagesAsync () [0x0002a] in .\Library\PackageCache\com.unity.cloud.ktx@7a35f681840e\Editor\Scripts\SubPackage\SubPackageRemover.cs:35 
-UnityEngine.DebugLogHandler:Internal_LogException_Injected(Exception, IntPtr)
-UnityEngine.DebugLogHandler:Internal_LogException(Exception, Object)
-UnityEngine.DebugLogHandler:LogException(Exception, Object)
-UnityEngine.Logger:LogException(Exception, Object)
-UnityEngine.Debug:LogException(Exception)
-SubPackage.<TryRemoveObsoleteSubPackagesAsync>d__5:MoveNext() (at .\Library\PackageCache\com.unity.cloud.ktx@7a35f681840e\Editor\Scripts\SubPackage\SubPackageRemover.cs:52)
-System.Runtime.CompilerServices.AsyncVoidMethodBuilder:Start(<TryRemoveObsoleteSubPackagesAsync>d__5&)
-SubPackage.SubPackageRemover:TryRemoveObsoleteSubPackagesAsync()
-System.Reflection.RuntimeMethodInfo:InternalInvoke(RuntimeMethodInfo, Object, Object[], Exception&)
-System.Reflection.RuntimeMethodInfo:Invoke(Object, BindingFlags, Binder, Object[], CultureInfo)
-System.Reflection.MethodBase:Invoke(Object, Object[])
-UnityEditor.EditorAssemblies:ProcessInitializeOnLoadMethodAttributes()
-
-(Filename: ./Library/PackageCache/com.unity.cloud.ktx@7a35f681840e/Editor/Scripts/SubPackage/SubPackageRemover.cs Line: 52)
-
-Mono: successfully reloaded assembly
-[Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
-[Package Manager] Unable to send message (not connected to server process).
-[Package Manager] Cannot connect to Unity Package Manager local server
-- Finished resetting the current domain, in  0.897 seconds
-Domain Reload Profiling: 1817ms
-	BeginReloadAssembly (251ms)
-		ExecutionOrderSort (0ms)
-		DisableScriptedObjects (17ms)
-		BackupInstance (0ms)
-		ReleaseScriptingObjects (0ms)
-		CreateAndSetChildDomain (68ms)
-	RebuildCommonClasses (29ms)
-	RebuildNativeTypeToScriptingClass (10ms)
-	initialDomainReloadingComplete (29ms)
-	LoadAllAssembliesAndSetupDomain (601ms)
-		LoadAssemblies (481ms)
-		RebuildTransferFunctionScriptingTraits (0ms)
-		AnalyzeDomain (222ms)
-			TypeCache.Refresh (8ms)
-				TypeCache.ScanAssembly (0ms)
-			BuildScriptInfoCaches (198ms)
-			ResolveRequiredComponents (10ms)
-	FinalizeReload (897ms)
-		ReleaseScriptCaches (0ms)
-		RebuildScriptCaches (0ms)
-		SetupLoadedEditorAssemblies (742ms)
-			LogAssemblyErrors (0ms)
-			InitializePlatformSupportModulesInManaged (9ms)
-			SetLoadedEditorAssemblies (3ms)
-			BeforeProcessingInitializeOnLoad (133ms)
-			ProcessInitializeOnLoadAttributes (344ms)
-			ProcessInitializeOnLoadMethodAttributes (246ms)
-			AfterProcessingInitializeOnLoad (6ms)
-			EditorAssembliesLoaded (0ms)
-		ExecutionOrderSort2 (0ms)
-		AwakeInstancesAfterBackupRestoration (17ms)
-WARNING: Shader Unsupported: 'Hidden/Simulation/URP/Synthetic' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Hidden/Simulation/URP/Synthetic' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Simulation/Standard Lit' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Simulation/Standard Lit' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Hidden/Simulation/Synthetic Lit' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Hidden/Simulation/Synthetic Lit' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Simulation/URP/Room X-Ray' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Simulation/URP/Room X-Ray' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Simulation/Room X-Ray' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Simulation/Room X-Ray' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Simulation/URP/Lit' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Simulation/URP/Lit' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-Refreshing native plugins compatible for Editor in 28.99 ms, found 19 plugins.
-Preloading 2 native plugins for Editor in 0.16 ms.
-Unloading 23 Unused Serialized files (Serialized files now loaded: 0)
-Unloading 8832 unused Assets / (9.5 MB). Loaded Objects now: 9640.
-Memory consumption went from 221.5 MB to 212.0 MB.
-Total: 11.905800 ms (FindLiveObjects: 0.643900 ms CreateObjectMapping: 0.607000 ms MarkObjects: 7.235600 ms  DeleteObjects: 3.418000 ms)
-
-Prepare: number of updated asset objects reloaded= 0
-========================================================================
-Received Import Request.
-  Time since last request: 106.225620 seconds.
-  path: Assets/External Assets/NPC/Harry_Anim.controller
-  artifactKey: Guid(5e08a5931ddac4e4ea9c7e9052ed25f6) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/External Assets/NPC/Harry_Anim.controller using Guid(5e08a5931ddac4e4ea9c7e9052ed25f6) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'e7114dce8ba9d50e62c178fd2ac1c563') in 0.0222307 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 4
-
-========================================================================
-Received Import Request.
-  Time since last request: 17.748755 seconds.
-  path: Assets/External Assets/MyNPC/New Animator Controller.controller
-  artifactKey: Guid(a2a04543c304d4748a0d6bf87458579a) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/External Assets/MyNPC/New Animator Controller.controller using Guid(a2a04543c304d4748a0d6bf87458579a) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'ad617f5f5594c95ab06391a743e6d6e3') in 0.0011256 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
-
-========================================================================
-Received Import Request.
-  Time since last request: 36.394893 seconds.
-  path: Assets/External Assets/MyNPC/npc_Anim.controller
-  artifactKey: Guid(a2a04543c304d4748a0d6bf87458579a) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/External Assets/MyNPC/npc_Anim.controller using Guid(a2a04543c304d4748a0d6bf87458579a) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'e60654604668bffad2a1c169f736740c') in 0.0024709 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 2
-
-========================================================================
-Received Prepare
-[Licensing::Client] Successfully resolved entitlement details
-Begin MonoManager ReloadAssembly
-[Licensing::Client] Successfully resolved entitlement details
-Symbol file LoadedFromMemory is not a mono symbol file
-- Loaded All Assemblies, in  0.917 seconds
-Refreshing native plugins compatible for Editor in 29.83 ms, found 19 plugins.
-Native extension for Android target not found
-Native extension for WindowsStandalone target not found
-[Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
-[Package Manager] Unable to send message (not connected to server process).
-[Package Manager] Cannot connect to Unity Package Manager local server
-[Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
-[Package Manager] Unable to send message (not connected to server process).
-[Package Manager] Cannot connect to Unity Package Manager local server
-[Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
-[Package Manager] Unable to send message (not connected to server process).
-[Package Manager] Cannot connect to Unity Package Manager local server
-System.Reflection.TargetInvocationException: Exception has been thrown by the target of an invocation. ---> System.NullReferenceException: Object reference not set to an instance of an object
-  at Unity.XR.Oculus.OculusLoader.AssetPathToAbsolutePath (System.String assetPath) [0x0003d] in .\Library\PackageCache\com.unity.xr.oculus@68ef97a4d91e\Runtime\OculusLoader.cs:312 
-  at Unity.XR.Oculus.OculusLoader.EditorLoadOVRPlugin () [0x0008c] in .\Library\PackageCache\com.unity.xr.oculus@68ef97a4d91e\Runtime\OculusLoader.cs:297 
-  at (wrapper managed-to-native) System.Reflection.RuntimeMethodInfo.InternalInvoke(System.Reflection.RuntimeMethodInfo,object,object[],System.Exception&)
-  at System.Reflection.RuntimeMethodInfo.Invoke (System.Object obj, System.Reflection.BindingFlags invokeAttr, System.Reflection.Binder binder, System.Object[] parameters, System.Globalization.CultureInfo culture) [0x0006a] in <59bd7c40c082431db25e1e728ab62789>:0 
-   --- End of inner exception stack trace ---
-  at System.Reflection.RuntimeMethodInfo.Invoke (System.Object obj, System.Reflection.BindingFlags invokeAttr, System.Reflection.Binder binder, System.Object[] parameters, System.Globalization.CultureInfo culture) [0x00083] in <59bd7c40c082431db25e1e728ab62789>:0 
-  at System.Reflection.MethodBase.Invoke (System.Object obj, System.Object[] parameters) [0x00000] in <59bd7c40c082431db25e1e728ab62789>:0 
-  at UnityEditor.EditorAssemblies.ProcessInitializeOnLoadMethodAttributes () [0x00087] in <1acad9deef3549c4b9617dfa169c6659>:0 
-UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
-UnityEngine.StackTraceUtility:ExtractStackTrace ()
-UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
-UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
-UnityEngine.Logger:Log (UnityEngine.LogType,object)
-UnityEngine.Debug:LogError (object)
-UnityEditor.EditorAssemblies:ProcessInitializeOnLoadMethodAttributes ()
-
-[MODES] ModeService[none].Initialize
-[MODES] ModeService[none].LoadModes
-[Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
-[Package Manager] Unable to send message (not connected to server process).
-[Package Manager] Cannot connect to Unity Package Manager local server
-AssertionException: Error removing KTX for Unity WebGL sub-packages.. Failed fetching installed packages.
-Assertion failure. Values are not equal.
-Expected: Failure == Success
-  at UnityEngine.Assertions.Assert.Fail (System.String message, System.String userMessage) [0x00043] in <b4c8c45fec274213bfac03ee0e9a3d62>:0 
-  at UnityEngine.Assertions.Assert.AreEqual[T] (T expected, T actual, System.String message, System.Collections.Generic.IEqualityComparer`1[T] comparer) [0x0005f] in <b4c8c45fec274213bfac03ee0e9a3d62>:0 
-  at UnityEngine.Assertions.Assert.AreEqual[T] (T expected, T actual, System.String message) [0x00009] in <b4c8c45fec274213bfac03ee0e9a3d62>:0 
-  at SubPackage.SubPackageRemover.GetAllInstalledPackagesAsync (System.Double timeout) [0x000b7] in .\Library\PackageCache\com.unity.cloud.ktx@7a35f681840e\Editor\Scripts\SubPackage\SubPackageRemover.cs:81 
-  at SubPackage.SubPackageRemover.TryRemoveObsoleteSubPackagesAsync () [0x0002a] in .\Library\PackageCache\com.unity.cloud.ktx@7a35f681840e\Editor\Scripts\SubPackage\SubPackageRemover.cs:35 
-UnityEngine.DebugLogHandler:Internal_LogException_Injected(Exception, IntPtr)
-UnityEngine.DebugLogHandler:Internal_LogException(Exception, Object)
-UnityEngine.DebugLogHandler:LogException(Exception, Object)
-UnityEngine.Logger:LogException(Exception, Object)
-UnityEngine.Debug:LogException(Exception)
-SubPackage.<TryRemoveObsoleteSubPackagesAsync>d__5:MoveNext() (at .\Library\PackageCache\com.unity.cloud.ktx@7a35f681840e\Editor\Scripts\SubPackage\SubPackageRemover.cs:52)
-System.Runtime.CompilerServices.AsyncVoidMethodBuilder:Start(<TryRemoveObsoleteSubPackagesAsync>d__5&)
-SubPackage.SubPackageRemover:TryRemoveObsoleteSubPackagesAsync()
-System.Reflection.RuntimeMethodInfo:InternalInvoke(RuntimeMethodInfo, Object, Object[], Exception&)
-System.Reflection.RuntimeMethodInfo:Invoke(Object, BindingFlags, Binder, Object[], CultureInfo)
-System.Reflection.MethodBase:Invoke(Object, Object[])
-UnityEditor.EditorAssemblies:ProcessInitializeOnLoadMethodAttributes()
-
-(Filename: ./Library/PackageCache/com.unity.cloud.ktx@7a35f681840e/Editor/Scripts/SubPackage/SubPackageRemover.cs Line: 52)
-
-Mono: successfully reloaded assembly
-[Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
-[Package Manager] Unable to send message (not connected to server process).
-[Package Manager] Cannot connect to Unity Package Manager local server
-- Finished resetting the current domain, in  0.904 seconds
-Domain Reload Profiling: 1815ms
-	BeginReloadAssembly (222ms)
-		ExecutionOrderSort (0ms)
-		DisableScriptedObjects (5ms)
-		BackupInstance (0ms)
-		ReleaseScriptingObjects (0ms)
-		CreateAndSetChildDomain (55ms)
-	RebuildCommonClasses (29ms)
-	RebuildNativeTypeToScriptingClass (10ms)
-	initialDomainReloadingComplete (30ms)
-	LoadAllAssembliesAndSetupDomain (619ms)
-		LoadAssemblies (481ms)
-		RebuildTransferFunctionScriptingTraits (0ms)
-		AnalyzeDomain (234ms)
-			TypeCache.Refresh (8ms)
-				TypeCache.ScanAssembly (0ms)
-			BuildScriptInfoCaches (212ms)
-			ResolveRequiredComponents (9ms)
-	FinalizeReload (904ms)
-		ReleaseScriptCaches (0ms)
-		RebuildScriptCaches (0ms)
-		SetupLoadedEditorAssemblies (755ms)
-			LogAssemblyErrors (0ms)
-			InitializePlatformSupportModulesInManaged (10ms)
-			SetLoadedEditorAssemblies (4ms)
-			BeforeProcessingInitializeOnLoad (137ms)
-			ProcessInitializeOnLoadAttributes (328ms)
-			ProcessInitializeOnLoadMethodAttributes (270ms)
-			AfterProcessingInitializeOnLoad (6ms)
-			EditorAssembliesLoaded (1ms)
-		ExecutionOrderSort2 (0ms)
-		AwakeInstancesAfterBackupRestoration (17ms)
-WARNING: Shader Unsupported: 'Hidden/Simulation/URP/Synthetic' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Hidden/Simulation/URP/Synthetic' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Simulation/Standard Lit' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Simulation/Standard Lit' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Hidden/Simulation/Synthetic Lit' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Hidden/Simulation/Synthetic Lit' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Simulation/URP/Room X-Ray' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Simulation/URP/Room X-Ray' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Simulation/Room X-Ray' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Simulation/Room X-Ray' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Simulation/URP/Lit' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Simulation/URP/Lit' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-Refreshing native plugins compatible for Editor in 28.36 ms, found 19 plugins.
+Refreshing native plugins compatible for Editor in 38.78 ms, found 19 plugins.
 Preloading 2 native plugins for Editor in 0.21 ms.
 Unloading 23 Unused Serialized files (Serialized files now loaded: 0)
-Unloading 8831 unused Assets / (9.3 MB). Loaded Objects now: 9644.
-Memory consumption went from 221.5 MB to 212.2 MB.
-Total: 11.941400 ms (FindLiveObjects: 0.626700 ms CreateObjectMapping: 0.576600 ms MarkObjects: 7.143700 ms  DeleteObjects: 3.593400 ms)
-
-Prepare: number of updated asset objects reloaded= 0
-========================================================================
-Received Prepare
-Begin MonoManager ReloadAssembly
-Symbol file LoadedFromMemory is not a mono symbol file
-- Loaded All Assemblies, in  0.881 seconds
-Refreshing native plugins compatible for Editor in 31.23 ms, found 19 plugins.
-Native extension for Android target not found
-Native extension for WindowsStandalone target not found
-[Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
-[Package Manager] Unable to send message (not connected to server process).
-[Package Manager] Cannot connect to Unity Package Manager local server
-[Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
-[Package Manager] Unable to send message (not connected to server process).
-[Package Manager] Cannot connect to Unity Package Manager local server
-[Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
-[Package Manager] Unable to send message (not connected to server process).
-[Package Manager] Cannot connect to Unity Package Manager local server
-System.Reflection.TargetInvocationException: Exception has been thrown by the target of an invocation. ---> System.NullReferenceException: Object reference not set to an instance of an object
-  at Unity.XR.Oculus.OculusLoader.AssetPathToAbsolutePath (System.String assetPath) [0x0003d] in .\Library\PackageCache\com.unity.xr.oculus@68ef97a4d91e\Runtime\OculusLoader.cs:312 
-  at Unity.XR.Oculus.OculusLoader.EditorLoadOVRPlugin () [0x0008c] in .\Library\PackageCache\com.unity.xr.oculus@68ef97a4d91e\Runtime\OculusLoader.cs:297 
-  at (wrapper managed-to-native) System.Reflection.RuntimeMethodInfo.InternalInvoke(System.Reflection.RuntimeMethodInfo,object,object[],System.Exception&)
-  at System.Reflection.RuntimeMethodInfo.Invoke (System.Object obj, System.Reflection.BindingFlags invokeAttr, System.Reflection.Binder binder, System.Object[] parameters, System.Globalization.CultureInfo culture) [0x0006a] in <59bd7c40c082431db25e1e728ab62789>:0 
-   --- End of inner exception stack trace ---
-  at System.Reflection.RuntimeMethodInfo.Invoke (System.Object obj, System.Reflection.BindingFlags invokeAttr, System.Reflection.Binder binder, System.Object[] parameters, System.Globalization.CultureInfo culture) [0x00083] in <59bd7c40c082431db25e1e728ab62789>:0 
-  at System.Reflection.MethodBase.Invoke (System.Object obj, System.Object[] parameters) [0x00000] in <59bd7c40c082431db25e1e728ab62789>:0 
-  at UnityEditor.EditorAssemblies.ProcessInitializeOnLoadMethodAttributes () [0x00087] in <1acad9deef3549c4b9617dfa169c6659>:0 
-UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
-UnityEngine.StackTraceUtility:ExtractStackTrace ()
-UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
-UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
-UnityEngine.Logger:Log (UnityEngine.LogType,object)
-UnityEngine.Debug:LogError (object)
-UnityEditor.EditorAssemblies:ProcessInitializeOnLoadMethodAttributes ()
-
-[MODES] ModeService[none].Initialize
-[MODES] ModeService[none].LoadModes
-[Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
-[Package Manager] Unable to send message (not connected to server process).
-[Package Manager] Cannot connect to Unity Package Manager local server
-AssertionException: Error removing KTX for Unity WebGL sub-packages.. Failed fetching installed packages.
-Assertion failure. Values are not equal.
-Expected: Failure == Success
-  at UnityEngine.Assertions.Assert.Fail (System.String message, System.String userMessage) [0x00043] in <b4c8c45fec274213bfac03ee0e9a3d62>:0 
-  at UnityEngine.Assertions.Assert.AreEqual[T] (T expected, T actual, System.String message, System.Collections.Generic.IEqualityComparer`1[T] comparer) [0x0005f] in <b4c8c45fec274213bfac03ee0e9a3d62>:0 
-  at UnityEngine.Assertions.Assert.AreEqual[T] (T expected, T actual, System.String message) [0x00009] in <b4c8c45fec274213bfac03ee0e9a3d62>:0 
-  at SubPackage.SubPackageRemover.GetAllInstalledPackagesAsync (System.Double timeout) [0x000b7] in .\Library\PackageCache\com.unity.cloud.ktx@7a35f681840e\Editor\Scripts\SubPackage\SubPackageRemover.cs:81 
-  at SubPackage.SubPackageRemover.TryRemoveObsoleteSubPackagesAsync () [0x0002a] in .\Library\PackageCache\com.unity.cloud.ktx@7a35f681840e\Editor\Scripts\SubPackage\SubPackageRemover.cs:35 
-UnityEngine.DebugLogHandler:Internal_LogException_Injected(Exception, IntPtr)
-UnityEngine.DebugLogHandler:Internal_LogException(Exception, Object)
-UnityEngine.DebugLogHandler:LogException(Exception, Object)
-UnityEngine.Logger:LogException(Exception, Object)
-UnityEngine.Debug:LogException(Exception)
-SubPackage.<TryRemoveObsoleteSubPackagesAsync>d__5:MoveNext() (at .\Library\PackageCache\com.unity.cloud.ktx@7a35f681840e\Editor\Scripts\SubPackage\SubPackageRemover.cs:52)
-System.Runtime.CompilerServices.AsyncVoidMethodBuilder:Start(<TryRemoveObsoleteSubPackagesAsync>d__5&)
-SubPackage.SubPackageRemover:TryRemoveObsoleteSubPackagesAsync()
-System.Reflection.RuntimeMethodInfo:InternalInvoke(RuntimeMethodInfo, Object, Object[], Exception&)
-System.Reflection.RuntimeMethodInfo:Invoke(Object, BindingFlags, Binder, Object[], CultureInfo)
-System.Reflection.MethodBase:Invoke(Object, Object[])
-UnityEditor.EditorAssemblies:ProcessInitializeOnLoadMethodAttributes()
-
-(Filename: ./Library/PackageCache/com.unity.cloud.ktx@7a35f681840e/Editor/Scripts/SubPackage/SubPackageRemover.cs Line: 52)
-
-Mono: successfully reloaded assembly
-[Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
-[Package Manager] Unable to send message (not connected to server process).
-[Package Manager] Cannot connect to Unity Package Manager local server
-- Finished resetting the current domain, in  0.896 seconds
-Domain Reload Profiling: 1771ms
-	BeginReloadAssembly (207ms)
-		ExecutionOrderSort (0ms)
-		DisableScriptedObjects (5ms)
-		BackupInstance (0ms)
-		ReleaseScriptingObjects (0ms)
-		CreateAndSetChildDomain (47ms)
-	RebuildCommonClasses (28ms)
-	RebuildNativeTypeToScriptingClass (10ms)
-	initialDomainReloadingComplete (28ms)
-	LoadAllAssembliesAndSetupDomain (601ms)
-		LoadAssemblies (470ms)
-		RebuildTransferFunctionScriptingTraits (0ms)
-		AnalyzeDomain (225ms)
-			TypeCache.Refresh (8ms)
-				TypeCache.ScanAssembly (0ms)
-			BuildScriptInfoCaches (203ms)
-			ResolveRequiredComponents (9ms)
-	FinalizeReload (897ms)
-		ReleaseScriptCaches (0ms)
-		RebuildScriptCaches (0ms)
-		SetupLoadedEditorAssemblies (750ms)
-			LogAssemblyErrors (0ms)
-			InitializePlatformSupportModulesInManaged (9ms)
-			SetLoadedEditorAssemblies (3ms)
-			BeforeProcessingInitializeOnLoad (134ms)
-			ProcessInitializeOnLoadAttributes (335ms)
-			ProcessInitializeOnLoadMethodAttributes (263ms)
-			AfterProcessingInitializeOnLoad (6ms)
-			EditorAssembliesLoaded (1ms)
-		ExecutionOrderSort2 (0ms)
-		AwakeInstancesAfterBackupRestoration (18ms)
-WARNING: Shader Unsupported: 'Hidden/Simulation/URP/Synthetic' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Hidden/Simulation/URP/Synthetic' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Simulation/Standard Lit' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Simulation/Standard Lit' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Hidden/Simulation/Synthetic Lit' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Hidden/Simulation/Synthetic Lit' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Simulation/URP/Room X-Ray' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Simulation/URP/Room X-Ray' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Simulation/Room X-Ray' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Simulation/Room X-Ray' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Simulation/URP/Lit' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Simulation/URP/Lit' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-Refreshing native plugins compatible for Editor in 31.46 ms, found 19 plugins.
-Preloading 2 native plugins for Editor in 0.22 ms.
-Unloading 23 Unused Serialized files (Serialized files now loaded: 0)
-Unloading 8831 unused Assets / (9.6 MB). Loaded Objects now: 9648.
-Memory consumption went from 221.6 MB to 212.0 MB.
-Total: 12.789800 ms (FindLiveObjects: 0.744400 ms CreateObjectMapping: 0.683600 ms MarkObjects: 7.421800 ms  DeleteObjects: 3.939000 ms)
-
-Prepare: number of updated asset objects reloaded= 0
-========================================================================
-Received Import Request.
-  Time since last request: 473.116381 seconds.
-  path: Assets/External Assets/capstone1/Bench/Bench.fbx
-  artifactKey: Guid(8a4f484334c27114b828facc713f33aa) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/External Assets/capstone1/Bench/Bench.fbx using Guid(8a4f484334c27114b828facc713f33aa) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '33ded885f4a6e8ead9948e9a9a9e1dae') in 0.349131 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 9
+Unloading 9114 unused Assets / (8.2 MB). Loaded Objects now: 9834.
+Memory consumption went from 177.9 MB to 169.6 MB.
+Total: 12.421000 ms (FindLiveObjects: 0.668900 ms CreateObjectMapping: 0.539900 ms MarkObjects: 7.723100 ms  DeleteObjects: 3.488300 ms)
 
 ========================================================================
 Received Import Request.
-  Time since last request: 6.378181 seconds.
-  path: Assets/External Assets/capstone1/BGM
-  artifactKey: Guid(cac6f0c91496e8c4f96794705f893898) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/External Assets/capstone1/BGM using Guid(cac6f0c91496e8c4f96794705f893898) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '5738204ae3410e47616366d7fe3aed2d') in 0.0026969 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 0
+  Time since last request: 7294.307968 seconds.
+  path: Assets/00_Project/GeneratedCharacters/mocking/character/tripo_material_510f3761-e672-49d4-aa0d-beaa4678e4a1.mat
+  artifactKey: Guid(80f27acdafabca840a482e40c32a50ad) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/00_Project/GeneratedCharacters/mocking/character/tripo_material_510f3761-e672-49d4-aa0d-beaa4678e4a1.mat using Guid(80f27acdafabca840a482e40c32a50ad) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '49b2a04d9746ea83f2a032136857bc00') in 0.4825768 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 11
 
 ========================================================================
 Received Import Request.
-  Time since last request: 0.153633 seconds.
-  path: Assets/External Assets/capstone1/BGM/Jump.mp3
-  artifactKey: Guid(037ba329fcc10364689dd96b29f7ca7c) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/External Assets/capstone1/BGM/Jump.mp3 using Guid(037ba329fcc10364689dd96b29f7ca7c) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'fa2bc3891357e1274faff5c868f2e21d') in 0.035239 seconds
+  Time since last request: 152.709155 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.2.1/Starter Assets/DemoSceneAssets/Sprites/Round Radius 4.png
+  artifactKey: Guid(affa059594145a843b81788037b4ee21) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/Samples/XR Interaction Toolkit/3.2.1/Starter Assets/DemoSceneAssets/Sprites/Round Radius 4.png using Guid(affa059594145a843b81788037b4ee21) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter)[Licensing::Client] Successfully resolved entitlement details
+ -> (artifact id: 'f283e11b8fa41f31267f3d63f3c4c9bf') in 0.0407695 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 3
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000050 seconds.
+  path: Assets/External Assets/Fog Particles/Bonus/Materials & Textures/Snow.png
+  artifactKey: Guid(b4f91f33eecb59c46b171e884a617e30) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/External Assets/Fog Particles/Bonus/Materials & Textures/Snow.png using Guid(b4f91f33eecb59c46b171e884a617e30) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '7e77c182101c32275679babea6c54a3f') in 0.039481 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 3
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000047 seconds.
+  path: Assets/External Assets/Selcuk Gerceker/Toon Environments - World Creator Pack Lite/Textures/Color Palettes PS Files/Spring.psd
+  artifactKey: Guid(bef4d7b07ef8ff443aefc7e5f7ae1c6c) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/External Assets/Selcuk Gerceker/Toon Environments - World Creator Pack Lite/Textures/Color Palettes PS Files/Spring.psd using Guid(bef4d7b07ef8ff443aefc7e5f7ae1c6c) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'ec460c7f591b38ede2a52bad5335d7ea') in 0.0374649 seconds
 Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 2
 
 ========================================================================
 Received Import Request.
-  Time since last request: 0.000034 seconds.
-  path: Assets/External Assets/capstone1/BGM/Walk.mp3
-  artifactKey: Guid(8e211644c4700c046baf819e85d2bc47) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/External Assets/capstone1/BGM/Walk.mp3 using Guid(8e211644c4700c046baf819e85d2bc47) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'a4bf92cb48435a7835a8622f71d12758') in 0.0117811 seconds
+  Time since last request: 0.000033 seconds.
+  path: Assets/External Assets/test/Tripo_fbxTexture/tripo_test_org_basecolor.JPEG
+  artifactKey: Guid(b77d5be983fd9f24796714d6aa5bc2d1) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/External Assets/test/Tripo_fbxTexture/tripo_test_org_basecolor.JPEG using Guid(b77d5be983fd9f24796714d6aa5bc2d1) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '66b5b5bf35f446aa0d93b685ac072810') in 0.0638756 seconds
 Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 2
 
 ========================================================================
 Received Import Request.
-  Time since last request: 2.305669 seconds.
-  path: Assets/External Assets/capstone1/Castle
-  artifactKey: Guid(894d03be0268230498ac80231f88e71e) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/External Assets/capstone1/Castle using Guid(894d03be0268230498ac80231f88e71e) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '571d8728328ec8ab0302a0716c92d84a') in 0.0028138 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 0
-
-========================================================================
-Received Import Request.
-  Time since last request: 0.055427 seconds.
-  path: Assets/External Assets/capstone1/Castle/Castle02.fbx
-  artifactKey: Guid(450271f9a24847e4287ef638876edbeb) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/External Assets/capstone1/Castle/Castle02.fbx using Guid(450271f9a24847e4287ef638876edbeb) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '0818b90d59919ce61a1fb4fd902d68a3') in 0.278972 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 9
-
-========================================================================
-Received Import Request.
-  Time since last request: 1.248738 seconds.
-  path: Assets/External Assets/capstone1/Floor
-  artifactKey: Guid(bb907434ff46c4741b3eb2e74a79c572) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/External Assets/capstone1/Floor using Guid(bb907434ff46c4741b3eb2e74a79c572) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '37927275816e2ba98d024ad736e83d51') in 0.003448 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 0
-
-========================================================================
-Received Import Request.
-  Time since last request: 0.008987 seconds.
-  path: Assets/External Assets/capstone1/Floor/Castle.Floor.png
-  artifactKey: Guid(ae980346608b26349b51a9047993510c) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/External Assets/capstone1/Floor/Castle.Floor.png using Guid(ae980346608b26349b51a9047993510c) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter)[Licensing::Client] Successfully resolved entitlement details
- -> (artifact id: '72c71d8bc38ab88a1c8effcde62ff377') in 0.0537276 seconds
+  Time since last request: 0.000043 seconds.
+  path: Assets/External Assets/test/Tripo_fbxTexture/tripo_test_org_normal.JPEG
+  artifactKey: Guid(e0d7c8828d0d4fc4ab21b8cbe039dddd) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/External Assets/test/Tripo_fbxTexture/tripo_test_org_normal.JPEG using Guid(e0d7c8828d0d4fc4ab21b8cbe039dddd) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '3713e659bbb45d5b137aeadd628d87bc') in 0.0623838 seconds
 Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 2
 
 ========================================================================
 Received Import Request.
-  Time since last request: 0.000021 seconds.
-  path: Assets/External Assets/capstone1/Floor/Floor.fbx
-  artifactKey: Guid(17f44a9f65dd1434b8b65907d270ae13) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/External Assets/capstone1/Floor/Floor.fbx using Guid(17f44a9f65dd1434b8b65907d270ae13) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'c4f08630950ff7f269679b75101af689') in 0.0763904 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 8
+  Time since last request: 0.000044 seconds.
+  path: Assets/External Assets/Fog Particles/Texture/Smoke Sprite Sheet.png
+  artifactKey: Guid(9871705e2cf6b164cbdaf598e6bb5cbf) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/External Assets/Fog Particles/Texture/Smoke Sprite Sheet.png using Guid(9871705e2cf6b164cbdaf598e6bb5cbf) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'f7c69822fef15b15eda081709a6e1190') in 0.0194053 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 3
 
 ========================================================================
 Received Import Request.
-  Time since last request: 9.360127 seconds.
-  path: Assets/External Assets/capstone1/Flowers/bush.fbx
-  artifactKey: Guid(6d2ee13df3382c74d85b7a6debdefae3) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/External Assets/capstone1/Flowers/bush.fbx using Guid(6d2ee13df3382c74d85b7a6debdefae3) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'b1d5cea6bc25212037a1b8e40fd60ce6') in 0.0207822 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 8
-
-========================================================================
-Received Import Request.
-  Time since last request: 0.000018 seconds.
-  path: Assets/External Assets/capstone1/Flowers/yellowFlower.fbx
-  artifactKey: Guid(797ec766ad8f9f34991acb5ffef39219) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/External Assets/capstone1/Flowers/yellowFlower.fbx using Guid(797ec766ad8f9f34991acb5ffef39219) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'db7e286e745dcfe900d506e054564411') in 0.0282346 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 10
-
-========================================================================
-Received Import Request.
-  Time since last request: 497.330193 seconds.
-  path: Assets/External Assets/capstone1/Trees
-  artifactKey: Guid(7435b40adebab1a40b1542180e9ef8d4) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/External Assets/capstone1/Trees using Guid(7435b40adebab1a40b1542180e9ef8d4) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '5e235113d663e77a589bcf69a63dbd7b') in 0.0025114 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 0
-
-========================================================================
-Received Import Request.
-  Time since last request: 1.330406 seconds.
-  path: Assets/External Assets/capstone1/Trees/Tree02
-  artifactKey: Guid(b5ca355a1220096478f6395385909f50) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/External Assets/capstone1/Trees/Tree02 using Guid(b5ca355a1220096478f6395385909f50) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '88787a09fd03c3d732c6994b056e8c95') in 0.0007239 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 0
-
-========================================================================
-Received Import Request.
-  Time since last request: 0.045829 seconds.
-  path: Assets/External Assets/capstone1/Trees/Tree02/NewTEX.png
-  artifactKey: Guid(d81f2cd9d16904249b75c15529ffaf97) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/External Assets/capstone1/Trees/Tree02/NewTEX.png using Guid(d81f2cd9d16904249b75c15529ffaf97) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '428a2621066f2e11d21811ac708d3608') in 0.0772723 seconds
+  Time since last request: 0.000027 seconds.
+  path: Assets/External Assets/Selcuk Gerceker/Toon Environments - World Creator Pack Lite/Textures/Winter.png
+  artifactKey: Guid(55ed5d57e32b5a549ac69b060d828ca9) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/External Assets/Selcuk Gerceker/Toon Environments - World Creator Pack Lite/Textures/Winter.png using Guid(55ed5d57e32b5a549ac69b060d828ca9) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '2914cff015635477756945f26f6953f3') in 0.0238981 seconds
 Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 2
 
 ========================================================================
 Received Import Request.
-  Time since last request: 2.197319 seconds.
-  path: Assets/External Assets/capstone1/Trees/Tree01
-  artifactKey: Guid(565e17a025f2f674e9d6cc0610a10edd) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/External Assets/capstone1/Trees/Tree01 using Guid(565e17a025f2f674e9d6cc0610a10edd) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '9c1f02eaed94d6c3e270e187e2ed8a3f') in 0.0008802 seconds
-Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 0
-
-========================================================================
-Received Import Request.
-  Time since last request: 0.184439 seconds.
-  path: Assets/External Assets/capstone1/Trees/Tree01/NewTEX.png
-  artifactKey: Guid(c8efb9d0e37695443bd249b1bb303bbd) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/External Assets/capstone1/Trees/Tree01/NewTEX.png using Guid(c8efb9d0e37695443bd249b1bb303bbd) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '7ac27eb111ffa2919ed09a74ed7fac4d') in 0.0461744 seconds
+  Time since last request: 0.000040 seconds.
+  path: Assets/00_Project/GeneratedCharacters/mocking/character/npc_3_rigged.fbm/temp_ORM_510f3761-e672-49d4-aa0d-beaa4678e4a1_Roughness.jpg
+  artifactKey: Guid(06f9dcd91e3fd4a43a810090c9838c58) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/00_Project/GeneratedCharacters/mocking/character/npc_3_rigged.fbm/temp_ORM_510f3761-e672-49d4-aa0d-beaa4678e4a1_Roughness.jpg using Guid(06f9dcd91e3fd4a43a810090c9838c58) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '9315775b027634082fed264fd95a082a') in 0.0538218 seconds
 Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 2
 
 ========================================================================
-Received Prepare
-[Licensing::Client] Successfully resolved entitlement details
-Begin MonoManager ReloadAssembly
-[Licensing::Client] Successfully resolved entitlement details
-Symbol file LoadedFromMemory is not a mono symbol file
-- Loaded All Assemblies, in  1.410 seconds
-Refreshing native plugins compatible for Editor in 33.24 ms, found 19 plugins.
-Native extension for Android target not found
-Native extension for WindowsStandalone target not found
-[Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
-[Package Manager] Unable to send message (not connected to server process).
-[Package Manager] Cannot connect to Unity Package Manager local server
-[Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
-[Package Manager] Unable to send message (not connected to server process).
-[Package Manager] Cannot connect to Unity Package Manager local server
-[Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
-[Package Manager] Unable to send message (not connected to server process).
-[Package Manager] Cannot connect to Unity Package Manager local server
-System.Reflection.TargetInvocationException: Exception has been thrown by the target of an invocation. ---> System.NullReferenceException: Object reference not set to an instance of an object
-  at Unity.XR.Oculus.OculusLoader.AssetPathToAbsolutePath (System.String assetPath) [0x0003d] in .\Library\PackageCache\com.unity.xr.oculus@68ef97a4d91e\Runtime\OculusLoader.cs:312 
-  at Unity.XR.Oculus.OculusLoader.EditorLoadOVRPlugin () [0x0008c] in .\Library\PackageCache\com.unity.xr.oculus@68ef97a4d91e\Runtime\OculusLoader.cs:297 
-  at (wrapper managed-to-native) System.Reflection.RuntimeMethodInfo.InternalInvoke(System.Reflection.RuntimeMethodInfo,object,object[],System.Exception&)
-  at System.Reflection.RuntimeMethodInfo.Invoke (System.Object obj, System.Reflection.BindingFlags invokeAttr, System.Reflection.Binder binder, System.Object[] parameters, System.Globalization.CultureInfo culture) [0x0006a] in <59bd7c40c082431db25e1e728ab62789>:0 
-   --- End of inner exception stack trace ---
-  at System.Reflection.RuntimeMethodInfo.Invoke (System.Object obj, System.Reflection.BindingFlags invokeAttr, System.Reflection.Binder binder, System.Object[] parameters, System.Globalization.CultureInfo culture) [0x00083] in <59bd7c40c082431db25e1e728ab62789>:0 
-  at System.Reflection.MethodBase.Invoke (System.Object obj, System.Object[] parameters) [0x00000] in <59bd7c40c082431db25e1e728ab62789>:0 
-  at UnityEditor.EditorAssemblies.ProcessInitializeOnLoadMethodAttributes () [0x00087] in <1acad9deef3549c4b9617dfa169c6659>:0 
-UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
-UnityEngine.StackTraceUtility:ExtractStackTrace ()
-UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
-UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
-UnityEngine.Logger:Log (UnityEngine.LogType,object)
-UnityEngine.Debug:LogError (object)
-UnityEditor.EditorAssemblies:ProcessInitializeOnLoadMethodAttributes ()
+Received Import Request.
+  Time since last request: 0.000052 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.2.1/Starter Assets/DemoSceneAssets/Sprites/Round Radius 4 Outline.png
+  artifactKey: Guid(b7bad1260586fa746a0b67e930892936) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/Samples/XR Interaction Toolkit/3.2.1/Starter Assets/DemoSceneAssets/Sprites/Round Radius 4 Outline.png using Guid(b7bad1260586fa746a0b67e930892936) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '671f33ca4e7add8a6ca0c5225b51646a') in 0.0206796 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 3
 
-[MODES] ModeService[none].Initialize
-[MODES] ModeService[none].LoadModes
-[Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
-[Package Manager] Unable to send message (not connected to server process).
-[Package Manager] Cannot connect to Unity Package Manager local server
-AssertionException: Error removing KTX for Unity WebGL sub-packages.. Failed fetching installed packages.
-Assertion failure. Values are not equal.
-Expected: Failure == Success
-  at UnityEngine.Assertions.Assert.Fail (System.String message, System.String userMessage) [0x00043] in <b4c8c45fec274213bfac03ee0e9a3d62>:0 
-  at UnityEngine.Assertions.Assert.AreEqual[T] (T expected, T actual, System.String message, System.Collections.Generic.IEqualityComparer`1[T] comparer) [0x0005f] in <b4c8c45fec274213bfac03ee0e9a3d62>:0 
-  at UnityEngine.Assertions.Assert.AreEqual[T] (T expected, T actual, System.String message) [0x00009] in <b4c8c45fec274213bfac03ee0e9a3d62>:0 
-  at SubPackage.SubPackageRemover.GetAllInstalledPackagesAsync (System.Double timeout) [0x000b7] in .\Library\PackageCache\com.unity.cloud.ktx@7a35f681840e\Editor\Scripts\SubPackage\SubPackageRemover.cs:81 
-  at SubPackage.SubPackageRemover.TryRemoveObsoleteSubPackagesAsync () [0x0002a] in .\Library\PackageCache\com.unity.cloud.ktx@7a35f681840e\Editor\Scripts\SubPackage\SubPackageRemover.cs:35 
-UnityEngine.DebugLogHandler:Internal_LogException_Injected(Exception, IntPtr)
-UnityEngine.DebugLogHandler:Internal_LogException(Exception, Object)
-UnityEngine.DebugLogHandler:LogException(Exception, Object)
-UnityEngine.Logger:LogException(Exception, Object)
-UnityEngine.Debug:LogException(Exception)
-SubPackage.<TryRemoveObsoleteSubPackagesAsync>d__5:MoveNext() (at .\Library\PackageCache\com.unity.cloud.ktx@7a35f681840e\Editor\Scripts\SubPackage\SubPackageRemover.cs:52)
-System.Runtime.CompilerServices.AsyncVoidMethodBuilder:Start(<TryRemoveObsoleteSubPackagesAsync>d__5&)
-SubPackage.SubPackageRemover:TryRemoveObsoleteSubPackagesAsync()
-System.Reflection.RuntimeMethodInfo:InternalInvoke(RuntimeMethodInfo, Object, Object[], Exception&)
-System.Reflection.RuntimeMethodInfo:Invoke(Object, BindingFlags, Binder, Object[], CultureInfo)
-System.Reflection.MethodBase:Invoke(Object, Object[])
-UnityEditor.EditorAssemblies:ProcessInitializeOnLoadMethodAttributes()
+========================================================================
+Received Import Request.
+  Time since last request: 0.000032 seconds.
+  path: Assets/External Assets/Selcuk Gerceker/Toon Environments - World Creator Pack Lite/Textures/Summer.png
+  artifactKey: Guid(934972275be36e84bb2d18e039506d6a) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/External Assets/Selcuk Gerceker/Toon Environments - World Creator Pack Lite/Textures/Summer.png using Guid(934972275be36e84bb2d18e039506d6a) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: '70e840ac116a62db2a031543d4c82637') in 0.0218203 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 2
 
-(Filename: ./Library/PackageCache/com.unity.cloud.ktx@7a35f681840e/Editor/Scripts/SubPackage/SubPackageRemover.cs Line: 52)
+========================================================================
+Received Import Request.
+  Time since last request: 0.000045 seconds.
+  path: Assets/External Assets/CartoonToylandDemo/Textures/Toy Brick/ToyBrick_Normal.png
+  artifactKey: Guid(8f0fb0379628c204eab5a4797b9dc7a2) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/External Assets/CartoonToylandDemo/Textures/Toy Brick/ToyBrick_Normal.png using Guid(8f0fb0379628c204eab5a4797b9dc7a2) Importer(815301076,1909f56bfc062723c751e8b465ee728b) (PreviewImporter) -> (artifact id: 'd7b3bc55f0498f234a56ef43b6aca508') in 0.0226923 seconds
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 2
 
-Mono: successfully reloaded assembly
-[Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
-[Package Manager] Unable to send message (not connected to server process).
-[Package Manager] Cannot connect to Unity Package Manager local server
-- Finished resetting the current domain, in  0.945 seconds
-Domain Reload Profiling: 2349ms
-	BeginReloadAssembly (499ms)
-		ExecutionOrderSort (0ms)
-		DisableScriptedObjects (69ms)
-		BackupInstance (0ms)
-		ReleaseScriptingObjects (1ms)
-		CreateAndSetChildDomain (164ms)
-	RebuildCommonClasses (32ms)
-	RebuildNativeTypeToScriptingClass (10ms)
-	initialDomainReloadingComplete (36ms)
-	LoadAllAssembliesAndSetupDomain (825ms)
-		LoadAssemblies (691ms)
-		RebuildTransferFunctionScriptingTraits (0ms)
-		AnalyzeDomain (262ms)
-			TypeCache.Refresh (11ms)
-				TypeCache.ScanAssembly (0ms)
-			BuildScriptInfoCaches (236ms)
-			ResolveRequiredComponents (10ms)
-	FinalizeReload (945ms)
-		ReleaseScriptCaches (0ms)
-		RebuildScriptCaches (0ms)
-		SetupLoadedEditorAssemblies (796ms)
-			LogAssemblyErrors (0ms)
-			InitializePlatformSupportModulesInManaged (9ms)
-			SetLoadedEditorAssemblies (3ms)
-			BeforeProcessingInitializeOnLoad (148ms)
-			ProcessInitializeOnLoadAttributes (374ms)
-			ProcessInitializeOnLoadMethodAttributes (254ms)
-			AfterProcessingInitializeOnLoad (6ms)
-			EditorAssembliesLoaded (1ms)
-		ExecutionOrderSort2 (0ms)
-		AwakeInstancesAfterBackupRestoration (17ms)
-WARNING: Shader Unsupported: 'Hidden/Simulation/URP/Synthetic' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Hidden/Simulation/URP/Synthetic' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Simulation/Standard Lit' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Simulation/Standard Lit' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Hidden/Simulation/Synthetic Lit' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Hidden/Simulation/Synthetic Lit' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Simulation/URP/Room X-Ray' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Simulation/URP/Room X-Ray' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Simulation/Room X-Ray' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Simulation/Room X-Ray' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Simulation/URP/Lit' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-WARNING: Shader Unsupported: 'Simulation/URP/Lit' - All subshaders removed
-WARNING: Shader Did you use #pragma only_renderers and omit this platform?
-WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-Refreshing native plugins compatible for Editor in 33.15 ms, found 19 plugins.
-Preloading 2 native plugins for Editor in 0.28 ms.
-Unloading 23 Unused Serialized files (Serialized files now loaded: 0)
-Unloading 8832 unused Assets / (9.1 MB). Loaded Objects now: 9674.
-Memory consumption went from 221.7 MB to 212.6 MB.
-Total: 13.963900 ms (FindLiveObjects: 0.627200 ms CreateObjectMapping: 0.641400 ms MarkObjects: 8.226300 ms  DeleteObjects: 4.467600 ms)
-
-Prepare: number of updated asset objects reloaded= 0
+Editor requested this worker to shutdown with reason: Scaling down because of idle timeout
+AssetImportWorker is now disconnected from the server
+Process exiting
+Exiting without the bug reporter. Application will terminate with return code 0
