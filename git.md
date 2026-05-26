@@ -108,8 +108,8 @@ chore(repo): storage gitignore 추가
 
 ### RULE-03: 스테이징·커밋 원칙
 
-- `git add .` 또는 `git add -A` **금지** — 파일을 명시적으로 지정한다.
-  - 예외: 브랜치 폴더 교체 작업 시 `git add <디렉토리>` 는 허용 (아래 RULE-08 참고)
+- `git add .` 허용 — 단, commit 전 `git status`로 포함 파일을 반드시 확인한다.
+- `.env`, 시크릿, 바이너리 대용량 파일, node_modules, dist, storage는 커밋하지 않는다.
 - `.env`, 시크릿, 바이너리 대용량 파일은 커밋하지 않는다.
 - 하나의 커밋은 하나의 논리적 단위만 포함한다.
 
@@ -216,7 +216,7 @@ Claude 에이전트는 git 관련 작업 시 아래 규칙을 자동 적용한�
 ```
 AGENT-GIT-01: 커밋 전 반드시 origin/develop fetch·merge 여부를 확인한다.
 AGENT-GIT-02: 커밋 메시지는 반드시 <type>(<scope>): <subject> 형식을 따른다.
-AGENT-GIT-03: git add는 파일을 명시적으로 지정한다. add . 금지.
+AGENT-GIT-03: git add . 허용. 단 commit 전 git status로 포함 파일 확인 필수.
 AGENT-GIT-04: push는 feature/* 또는 test_app 브랜치에만 한다. main·develop 직접 push 금지.
 AGENT-GIT-05: force push, reset --hard 등 파괴적 명령은 사용자 확인 후 실행한다.
 AGENT-GIT-06: PR은 develop을 대상으로 생성한다.
