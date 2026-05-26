@@ -1,7 +1,7 @@
 using System;
-using System.Collections;
+using System.Text;
 using UnityEngine;
-using UnityEngine.Networking;
+using NativeWebSocket;
 using LegoTwin.Core;
 using LegoTwin.Data;
 
@@ -16,39 +16,30 @@ namespace LegoTwin.Network
     ///   likes_updated  → OnLikesUpdated  (광장 좋아요 실시간 갱신)
     ///
     /// 사용 예:
-    ///   WebSocketManager.Instance.OnLikesUpdated += HandleLikesUpdate;
-    ///
-    /// Unity WebGL/Android 에서는 NativeWebSocket 패키지를 사용 권장.
-    /// 현재는 UnityWebRequest Long-Polling 방식으로 구현 (WebSocket 패키지 미포함 시 대체).
-    /// TODO: NativeWebSocket 패키지 임포트 후 아래 주석 참고해서 교체
+    ///   WebSocketManager.Instance.OnSessionReady  += sid => StartGuide(sid);
+    ///   WebSocketManager.Instance.OnLikesUpdated  += ev  => plaza.ApplyLikes(ev);
     /// </summary>
     public class WebSocketManager : MonoBehaviour
     {
         public static WebSocketManager Instance { get; private set; }
 
         /// <summary>세션 준비 완료 이벤트 (session_id)</summary>
-        public event Action<string> OnSessionReady;
+        public event Action<string>       OnSessionReady;
 
         /// <summary>좋아요 업데이트 이벤트</summary>
         public event Action<WsLikesEvent> OnLikesUpdated;
 
         [Header("재연결 설정")]
-        [Tooltip("폴링 간격 (초) — NativeWebSocket 사용 시 무시")]
-        public float pollInterval = 2f;
+        [Tooltip("연결 끊김 후 재시도 대기 시간 (초)")]
+        public float reconnectDelay = 3f;
 
-        private bool _running;
+        private WebSocket _ws;
+        private bool      _running;
+        private bool      _reconnecting;
 
-        // ── TODO: NativeWebSocket 패키지로 교체 시 아래 구조 사용 ────
-        // using NativeWebSocket;
-        // private WebSocket _ws;
-        //
-        // async void ConnectWs() {
-        //     _ws = new WebSocket(ServerConfig.WsUrl);
-        //     _ws.OnMessage += bytes => HandleMessage(System.Text.Encoding.UTF8.GetString(bytes));
-        //     await _ws.Connect();
-        // }
-        // void Update() { _ws?.DispatchMessageQueue(); }
-        // ────────────────────────────────────────────────────────────
+        // ─────────────────────────────────────────────────────────────
+        // Unity 생명주기
+        // ─────────────────────────────────────────────────────────────
 
         private void Awake()
         {
@@ -57,42 +48,110 @@ namespace LegoTwin.Network
             DontDestroyOnLoad(gameObject);
         }
 
+        private void Update()
+        {
+#if !UNITY_WEBGL || UNITY_EDITOR
+            // NativeWebSocket: 메인스레드에서 메시지 큐 디스패치 필수
+            _ws?.DispatchMessageQueue();
+#endif
+        }
+
+        private async void OnApplicationQuit()
+        {
+            _running = false;
+            if (_ws != null && _ws.State == WebSocketState.Open)
+                await _ws.Close();
+        }
+
+        // ─────────────────────────────────────────────────────────────
+        // 공개 API
+        // ─────────────────────────────────────────────────────────────
+
         /// <summary>
-        /// WebSocket 수신 시작. SessionManager.Server Mode에서 자동 호출.
+        /// WebSocket 수신 시작. SessionManager (Server Mode) 에서 자동 호출.
         /// </summary>
         public void StartListening()
         {
             if (_running) return;
             _running = true;
-            StartCoroutine(PollLoop());
-            Debug.Log("[WebSocketManager] 수신 시작 (폴링 방식)");
+            ConnectWs();
+            Debug.Log("[WebSocketManager] 연결 시작");
         }
 
-        public void StopListening()
+        public async void StopListening()
         {
             _running = false;
-            StopAllCoroutines();
+            _reconnecting = false;
+            if (_ws != null && _ws.State == WebSocketState.Open)
+                await _ws.Close();
         }
 
-        // ── 폴링 루프 (NativeWebSocket 미사용 시 대체) ───────────────
-        // 서버 /ws/unity 는 WebSocket 전용이므로 실제 연결 불가.
-        // NativeWebSocket 적용 전까지는 HTTP polling으로 plaza를 주기적으로 갱신.
-        // TODO: NativeWebSocket 패키지 적용 후 이 코루틴 제거하고 위 ConnectWs() 사용.
+        // ─────────────────────────────────────────────────────────────
+        // 내부 연결 로직
+        // ─────────────────────────────────────────────────────────────
 
-        private IEnumerator PollLoop()
+        private async void ConnectWs()
         {
-            while (_running)
-            {
-                // 광장 좋아요 갱신 — 폴링 방식으로 PlazaManager에 알림
-                OnLikesUpdated?.Invoke(new WsLikesEvent { @event = "poll_tick" });
-                yield return new WaitForSeconds(pollInterval);
-            }
+            if (!_running) return;
+
+            string url = ServerConfig.WsUrl;
+            Debug.Log($"[WebSocketManager] 연결 중: {url}");
+
+            _ws = new WebSocket(url);
+
+            _ws.OnOpen    += OnOpen;
+            _ws.OnMessage += OnMessage;
+            _ws.OnError   += OnError;
+            _ws.OnClose   += OnClose;
+
+            await _ws.Connect();
         }
 
-        /// <summary>WebSocket 메시지 파싱 (NativeWebSocket 사용 시 여기 연결)</summary>
+        private void OnOpen()
+        {
+            _reconnecting = false;
+            Debug.Log("[WebSocketManager] 연결 성공");
+        }
+
+        private void OnMessage(byte[] bytes)
+        {
+            HandleMessage(Encoding.UTF8.GetString(bytes));
+        }
+
+        private void OnError(string errorMsg)
+        {
+            Debug.LogWarning($"[WebSocketManager] 오류: {errorMsg}");
+        }
+
+        private void OnClose(WebSocketCloseCode code)
+        {
+            Debug.Log($"[WebSocketManager] 연결 종료 (코드: {code})");
+            if (_running && !_reconnecting)
+                ScheduleReconnect();
+        }
+
+        private void ScheduleReconnect()
+        {
+            _reconnecting = true;
+            Debug.Log($"[WebSocketManager] {reconnectDelay}초 후 재연결 시도...");
+            Invoke(nameof(Reconnect), reconnectDelay);
+        }
+
+        private void Reconnect()
+        {
+            if (!_running) return;
+            ConnectWs();
+        }
+
+        // ─────────────────────────────────────────────────────────────
+        // 메시지 파싱
+        // ─────────────────────────────────────────────────────────────
+
+        /// <summary>수신 JSON 파싱 후 이벤트 발행.</summary>
         public void HandleMessage(string json)
         {
             var ev = JsonUtility.FromJson<WsEvent>(json);
+
             switch (ev.@event)
             {
                 case "session_ready":

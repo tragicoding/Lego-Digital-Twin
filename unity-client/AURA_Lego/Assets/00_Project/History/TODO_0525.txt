@@ -73,11 +73,7 @@ Animator Controller에 아래 Trigger 파라미터를 추가하세요:
 walk	Trigger	걷기 애니메이션
 idle	Trigger	대기 애니메이션
 4. 실시간 좋아요 업데이트 (WebSocket)
-현재는 HTTP 폴링 방식으로 구현되어 있습니다 (2초 간격).
-
-진짜 WebSocket을 쓰려면:
-
-Package Manager에서 NativeWebSocket 설치
-(GitHub: endel/NativeWebSocket)
-WebSocketManager.cs의 TODO 주석 참고해서 PollLoop() 대신 ConnectWs() 사용으로 교체
+[완료 2026-05-26] NativeWebSocket(endel/NativeWebSocket#upm)으로 전환 완료.
+HTTP 폴링 제거. 서버 push 수신 즉시 반영.
 서버 WS 엔드포인트: ws://{serverIP}:8000/ws/unity
+연결 끊김 시 자동 재연결 (기본 3초 간격, Inspector에서 조정 가능)
