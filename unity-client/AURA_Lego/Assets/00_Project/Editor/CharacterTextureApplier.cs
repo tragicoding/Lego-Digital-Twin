@@ -7,23 +7,30 @@ namespace LegoTwin.EditorTools
 {
     /// <summary>
     /// GeneratedCharacters/**/character/ 폴더의 FBX+GLB 쌍을 감지하여
-    /// GLB 안에 포함된 Texture2D를 새 Material의 BaseMap/MainTex에 연결하고,
-    /// FBX 캐릭터의 SkinnedMeshRenderer에 자동 적용하는 에디터 스크립트.
+    /// GLB 의 텍스쳐를 FBX 머티리얼에 자동 적용하는 에디터 스크립트.
     ///
-    /// 핵심 변경점:
-    /// - GLB Material에서 텍스처를 추출하지 않음
-    /// - GLB sub-asset 중 Texture2D를 직접 찾음
-    /// - 완전히 새로운 Material 생성
-    /// - FBX의 SkinnedMeshRenderer에 새 Material 적용
-    /// - 원본 FBX rig / bone / Animator 구조는 변경하지 않음
-    /// - 적용된 상태의 Prefab을 GeneratedCharacters/**/character/Prefabs/ 에 저장
+    /// ── 자동 실행 ──────────────────────────────────────────────────
+    /// FBX(*_rigged.fbx) 또는 GLB(*_texture.glb) 를 폴더에 넣으면
+    /// 페어 파일이 존재할 때 자동으로 텍스쳐를 적용합니다.
+    ///
+    /// ── 수동 실행 ──────────────────────────────────────────────────
+    /// Unity 메뉴: Tools > MINIVERSE > Apply Character Textures
+    ///
+    /// ── 처리 흐름 ──────────────────────────────────────────────────
+    ///  1. GLB 에서 Texture2D 및 Material 추출
+    ///     (glTFast 6.x 가 GLB를 임포트하면 sub-asset으로 접근 가능)
+    ///  2. URP Lit 머티리얼(.mat) 생성 / 갱신
+    ///     저장 위치: GeneratedCharacters/**/character/Materials/{npc_N}.mat
+    ///  3. FBX ModelImporter → External 머티리얼 모드로 전환
+    ///  4. FBX 내 모든 머티리얼을 위의 .mat 으로 리맵 후 SaveAndReimport
     /// </summary>
     public class CharacterTextureApplier : AssetPostprocessor
     {
         private const string CHAR_FOLDER = "GeneratedCharacters";
-        private const string FBX_SUFFIX = "_rigged.fbx";
-        private const string GLB_SUFFIX = "_texture.glb";
+        private const string FBX_SUFFIX  = "_rigged.fbx";
+        private const string GLB_SUFFIX  = "_texture.glb";
 
+        // 재귀 임포트 방지 플래그
         private static bool _isApplying = false;
 
         // ════════════════════════════════════════════════════════════
@@ -31,10 +38,8 @@ namespace LegoTwin.EditorTools
         // ════════════════════════════════════════════════════════════
 
         static void OnPostprocessAllAssets(
-            string[] imported,
-            string[] deleted,
-            string[] moved,
-            string[] movedFrom)
+            string[] imported, string[] deleted,
+            string[] moved,    string[] movedFrom)
         {
             if (_isApplying) return;
 
@@ -45,24 +50,17 @@ namespace LegoTwin.EditorTools
 
                 if (path.EndsWith(GLB_SUFFIX, System.StringComparison.OrdinalIgnoreCase))
                 {
-                    string fbxPath = path.Replace(GLB_SUFFIX, FBX_SUFFIX);
-
-                    if (FileExists(fbxPath))
-                    {
-                        EditorApplication.delayCall += () =>
-                            ApplyGlbTexture2DToFbx(fbxPath, path);
-                    }
+                    // GLB 임포트 완료 → 페어 FBX 에 적용
+                    string fbx = path.Replace(GLB_SUFFIX, FBX_SUFFIX);
+                    if (FileExists(fbx))
+                        EditorApplication.delayCall += () => ApplyGlbTextureToFbx(fbx, path);
                 }
                 else if (path.EndsWith(FBX_SUFFIX, System.StringComparison.OrdinalIgnoreCase))
                 {
-                    string glbPath = path.Replace(FBX_SUFFIX, GLB_SUFFIX);
-
-                    if (FileExists(glbPath) &&
-                        AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(glbPath) != null)
-                    {
-                        EditorApplication.delayCall += () =>
-                            ApplyGlbTexture2DToFbx(path, glbPath);
-                    }
+                    // FBX 임포트 완료 → GLB 가 이미 존재하면 적용
+                    string glb = path.Replace(FBX_SUFFIX, GLB_SUFFIX);
+                    if (FileExists(glb) && AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(glb) != null)
+                        EditorApplication.delayCall += () => ApplyGlbTextureToFbx(path, glb);
                 }
             }
         }
@@ -75,118 +73,182 @@ namespace LegoTwin.EditorTools
         public static void MenuApplyAll()
         {
             string searchRoot = Path.Combine(
-                Application.dataPath,
-                "00_Project",
-                CHAR_FOLDER
-            );
+                Application.dataPath, "00_Project", CHAR_FOLDER);
 
             if (!Directory.Exists(searchRoot))
             {
-                EditorUtility.DisplayDialog(
-                    "MINIVERSE",
-                    $"폴더 없음: {searchRoot}",
-                    "확인"
-                );
+                EditorUtility.DisplayDialog("MINIVERSE",
+                    $"폴더 없음: {searchRoot}", "확인");
                 return;
             }
 
-            var fbxFiles = Directory.GetFiles(
-                searchRoot,
-                $"*{FBX_SUFFIX}",
-                SearchOption.AllDirectories
-            );
-
+            var fbxFiles = Directory.GetFiles(searchRoot, $"*{FBX_SUFFIX}",
+                                              SearchOption.AllDirectories);
             int count = 0;
-
             foreach (var absPath in fbxFiles)
             {
+                // 절대 경로 → Unity 에셋 경로
                 string fbxPath = ToAssetPath(absPath);
                 string glbPath = fbxPath.Replace(FBX_SUFFIX, GLB_SUFFIX);
 
                 if (AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(glbPath) == null)
                 {
                     Debug.LogWarning(
-                        $"[CharacterTextureApplier] GLB 미임포트 또는 없음 — 건너뜀: {glbPath}"
-                    );
+                        $"[CharacterTextureApplier] GLB 미임포트 — 건너뜀: {glbPath}");
                     continue;
                 }
 
-                ApplyGlbTexture2DToFbx(fbxPath, glbPath);
+                ApplyGlbTextureToFbx(fbxPath, glbPath);
                 count++;
             }
 
             AssetDatabase.Refresh();
-
             Debug.Log($"[CharacterTextureApplier] ✅ 완료 — {count}개 처리");
-
-            EditorUtility.DisplayDialog(
-                "MINIVERSE",
-                $"캐릭터 텍스쳐 적용 완료\n처리된 캐릭터: {count}개",
-                "확인"
-            );
+            EditorUtility.DisplayDialog("MINIVERSE",
+                $"캐릭터 텍스쳐 적용 완료\n처리된 캐릭터: {count}개", "확인");
         }
 
         // ════════════════════════════════════════════════════════════
         // 핵심 로직
         // ════════════════════════════════════════════════════════════
 
-        private static void ApplyGlbTexture2DToFbx(string fbxPath, string glbPath)
+        static void ApplyGlbTextureToFbx(string fbxPath, string glbPath)
         {
             if (_isApplying) return;
             if (!FileExists(fbxPath) || !FileExists(glbPath)) return;
 
             _isApplying = true;
-
             try
             {
-                Debug.Log(
-                    $"[CharacterTextureApplier] 처리 시작: " +
-                    $"{Path.GetFileName(fbxPath)} ← {Path.GetFileName(glbPath)}"
-                );
+                Debug.Log($"[CharacterTextureApplier] 처리 중: " +
+                          $"{Path.GetFileName(fbxPath)} ← {Path.GetFileName(glbPath)}");
 
-                // 1. GLB sub-asset에서 Texture2D 직접 찾기
-                Texture2D texture = ExtractTexture2DFromGlb(glbPath);
+                // ── 1. GLB 에서 텍스쳐 추출 ──────────────────────────
+                var glbSubs  = AssetDatabase.LoadAllAssetsAtPath(glbPath);
+                var glbMat   = glbSubs.OfType<Material>().FirstOrDefault();
+                var textures = glbSubs.OfType<Texture2D>().ToArray();
 
-                if (texture == null)
+                if (glbSubs.Length == 0)
                 {
                     Debug.LogWarning(
-                        $"[CharacterTextureApplier] GLB에서 Texture2D를 찾지 못했습니다: {glbPath}"
-                    );
+                        $"[CharacterTextureApplier] GLB sub-asset 없음 — " +
+                        $"glTFast 임포트 완료 후 다시 시도하세요: {glbPath}");
                     return;
                 }
 
-                // 2. Texture2D 기반 새 Material 생성 또는 갱신
-                Material generatedMaterial = CreateOrUpdateMaterialFromTexture(
-                    fbxPath,
-                    texture
-                );
+                // 우선순위: GLB Material 프로퍼티 → Texture2D 이름 패턴 → 첫 번째 텍스쳐
+                Texture2D baseColorTex = FindTex(glbMat, textures,
+                    new[] { "_BaseMap", "_BaseColorMap", "_MainTex" },
+                    new[] { "basecolor", "albedo", "diffuse", "color" });
 
-                if (generatedMaterial == null)
+                Texture2D normalTex = FindTex(glbMat, textures,
+                    new[] { "_BumpMap", "_NormalMap" },
+                    new[] { "normal", "nrm", "nrml" });
+
+                Texture2D metallicTex = FindTex(glbMat, textures,
+                    new[] { "_MetallicGlossMap", "_MetallicRoughnessMap" },
+                    new[] { "metallic", "roughness", "orm", "metallicroughness" });
+
+                Texture2D emissiveTex = FindTex(glbMat, textures,
+                    new[] { "_EmissionMap", "_EmissiveColorMap" },
+                    new[] { "emissive", "emission" });
+
+                // baseColor 를 못 찾으면 첫 번째 Texture2D 사용
+                if (baseColorTex == null && textures.Length > 0)
+                    baseColorTex = textures[0];
+
+                if (baseColorTex == null)
                 {
                     Debug.LogWarning(
-                        $"[CharacterTextureApplier] Material 생성 실패: {fbxPath}"
-                    );
+                        $"[CharacterTextureApplier] Texture2D 없음: {glbPath}\n" +
+                        $"GLB sub-asset 수: {glbSubs.Length}");
                     return;
                 }
 
-                // 3. FBX Importer의 Material Remap에도 적용
-                //    FBX asset 자체를 Project 창에서 열어도 material이 연결되게 하기 위함
-                ApplyMaterialRemapToFbx(fbxPath, generatedMaterial);
+                // ── 2. Materials 폴더에 .mat 생성 / 갱신 ────────────
+                string fbxDir  = Path.GetDirectoryName(fbxPath);
+                string matDir  = fbxDir + "/Materials";
+                if (!AssetDatabase.IsValidFolder(matDir))
+                    AssetDatabase.CreateFolder(fbxDir, "Materials");
 
-                // 4. FBX를 instantiate해서 SkinnedMeshRenderer에 새 Material 직접 적용
-                //    실제 Unity 개발자가 사용할 Prefab 생성
-                CreateOrUpdateTexturedPrefab(fbxPath, generatedMaterial);
+                // mat 이름: npc_3_rigged → npc_3
+                string baseName = Path.GetFileNameWithoutExtension(fbxPath)
+                                     .Replace("_rigged", "");
+                string matPath  = $"{matDir}/{baseName}.mat";
 
+                Material mat = AssetDatabase.LoadAssetAtPath<Material>(matPath);
+                if (mat == null)
+                {
+                    mat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+                    AssetDatabase.CreateAsset(mat, matPath);
+                }
+
+                // 텍스쳐 적용
+                mat.SetTexture("_BaseMap", baseColorTex);
+                mat.SetColor("_BaseColor", glbMat != null ? glbMat.color : Color.white);
+
+                if (normalTex != null)
+                {
+                    mat.SetTexture("_BumpMap", normalTex);
+                    mat.EnableKeyword("_NORMALMAP");
+                }
+                if (metallicTex != null)
+                {
+                    mat.SetTexture("_MetallicGlossMap", metallicTex);
+                    mat.EnableKeyword("_METALLICSPECGLOSSMAP");
+                }
+                if (emissiveTex != null)
+                {
+                    mat.SetTexture("_EmissionMap", emissiveTex);
+                    mat.EnableKeyword("_EMISSION");
+                    mat.globalIlluminationFlags =
+                        MaterialGlobalIlluminationFlags.RealtimeEmissive;
+                }
+
+                EditorUtility.SetDirty(mat);
                 AssetDatabase.SaveAssets();
-                AssetDatabase.Refresh();
+
+                // ── 3. FBX → External 머티리얼 모드 + 리맵 ──────────
+                var importer = AssetImporter.GetAtPath(fbxPath) as ModelImporter;
+                if (importer == null)
+                {
+                    Debug.LogWarning(
+                        $"[CharacterTextureApplier] ModelImporter 없음: {fbxPath}");
+                    return;
+                }
+
+                importer.materialImportMode =
+                    ModelImporterMaterialImportMode.ImportViaMaterialDescription;
+                importer.materialLocation =
+                    ModelImporterMaterialLocation.External;
+
+                // FBX 내 embedded 머티리얼 이름 수집
+                var srcMats = AssetDatabase.LoadAllAssetsAtPath(fbxPath)
+                                           .OfType<Material>().ToList();
+
+                if (srcMats.Count > 0)
+                {
+                    foreach (var srcMat in srcMats)
+                        importer.AddRemap(
+                            new AssetImporter.SourceAssetIdentifier(
+                                typeof(Material), srcMat.name), mat);
+                }
+                else
+                {
+                    // embedded 머티리얼이 아직 없으면 기본 이름 "Material" 로 리맵
+                    importer.AddRemap(
+                        new AssetImporter.SourceAssetIdentifier(
+                            typeof(Material), "Material"), mat);
+                }
+
+                importer.SaveAndReimport();
 
                 Debug.Log(
-                    $"[CharacterTextureApplier] ✅ 적용 완료\n" +
-                    $"  FBX      : {fbxPath}\n" +
-                    $"  GLB      : {glbPath}\n" +
-                    $"  Texture  : {texture.name}\n" +
-                    $"  Material : {AssetDatabase.GetAssetPath(generatedMaterial)}"
-                );
+                    $"[CharacterTextureApplier] ✅ 적용 완료: {Path.GetFileName(fbxPath)}\n" +
+                    $"  BaseColor : {baseColorTex.name}\n" +
+                    $"  Normal    : {(normalTex    != null ? normalTex.name    : "없음")}\n" +
+                    $"  Metallic  : {(metallicTex  != null ? metallicTex.name  : "없음")}\n" +
+                    $"  Emissive  : {(emissiveTex  != null ? emissiveTex.name  : "없음")}");
             }
             finally
             {
@@ -194,387 +256,49 @@ namespace LegoTwin.EditorTools
             }
         }
 
-        /// <summary>
-        /// GLB sub-asset 중 Texture2D를 직접 찾는다.
-        /// Material 프로퍼티는 사용하지 않는다.
-        /// </summary>
-        private static Texture2D ExtractTexture2DFromGlb(string glbPath)
-        {
-            var subAssets = AssetDatabase.LoadAllAssetsAtPath(glbPath);
-
-            if (subAssets == null || subAssets.Length == 0)
-            {
-                Debug.LogWarning(
-                    $"[CharacterTextureApplier] GLB sub-asset 없음: {glbPath}"
-                );
-                return null;
-            }
-
-            var textures = subAssets
-                .OfType<Texture2D>()
-                .Where(t => t != null)
-                .ToArray();
-
-            if (textures.Length == 0)
-            {
-                Debug.LogWarning(
-                    $"[CharacterTextureApplier] Texture2D sub-asset 없음: {glbPath}"
-                );
-                return null;
-            }
-
-            Debug.Log(
-                $"[CharacterTextureApplier] GLB Texture2D 후보 {textures.Length}개 발견:\n" +
-                string.Join("\n", textures.Select(t => $"  - {t.name} ({t.width}x{t.height})"))
-            );
-
-            // 이름 기준 우선순위
-            string[] baseColorKeywords =
-            {
-                "basecolor",
-                "base_color",
-                "albedo",
-                "diffuse",
-                "color",
-                "texture",
-                "tex"
-            };
-
-            foreach (var keyword in baseColorKeywords)
-            {
-                Texture2D matched = textures.FirstOrDefault(
-                    t => t.name.ToLower().Contains(keyword)
-                );
-
-                if (matched != null)
-                {
-                    Debug.Log(
-                        $"[CharacterTextureApplier] Texture2D 선택: {matched.name} / keyword={keyword}"
-                    );
-                    return matched;
-                }
-            }
-
-            // 못 찾으면 첫 번째 Texture2D 사용
-            Debug.LogWarning(
-                $"[CharacterTextureApplier] 이름 패턴으로 BaseColor를 찾지 못해 첫 번째 Texture2D 사용: {textures[0].name}"
-            );
-
-            return textures[0];
-        }
-
-        /// <summary>
-        /// Texture2D를 BaseMap/MainTex로 사용하는 새 Material 생성 또는 갱신.
-        /// </summary>
-        private static Material CreateOrUpdateMaterialFromTexture(
-            string fbxPath,
-            Texture2D texture)
-        {
-            string fbxDir = Path.GetDirectoryName(fbxPath);
-            string matDir = fbxDir + "/Materials";
-
-            if (!AssetDatabase.IsValidFolder(matDir))
-            {
-                AssetDatabase.CreateFolder(fbxDir, "Materials");
-            }
-
-            string baseName = Path.GetFileNameWithoutExtension(fbxPath)
-                .Replace("_rigged", "");
-
-            string matPath = $"{matDir}/{baseName}_TextureFromGLB.mat";
-
-            Material mat = AssetDatabase.LoadAssetAtPath<Material>(matPath);
-
-            if (mat == null)
-            {
-                Shader shader = FindBestShader();
-
-                if (shader == null)
-                {
-                    Debug.LogWarning(
-                        "[CharacterTextureApplier] 사용할 수 있는 Shader를 찾지 못했습니다."
-                    );
-                    return null;
-                }
-
-                mat = new Material(shader)
-                {
-                    name = $"{baseName}_TextureFromGLB"
-                };
-
-                AssetDatabase.CreateAsset(mat, matPath);
-
-                Debug.Log(
-                    $"[CharacterTextureApplier] 새 Material 생성: {matPath}"
-                );
-            }
-
-            ApplyTextureToMaterial(mat, texture);
-
-            EditorUtility.SetDirty(mat);
-
-            return mat;
-        }
-
-        private static Shader FindBestShader()
-        {
-            Shader shader = Shader.Find("Universal Render Pipeline/Lit");
-
-            if (shader != null)
-            {
-                return shader;
-            }
-
-            shader = Shader.Find("Standard");
-
-            if (shader != null)
-            {
-                return shader;
-            }
-
-            shader = Shader.Find("Unlit/Texture");
-
-            if (shader != null)
-            {
-                return shader;
-            }
-
-            return null;
-        }
-
-        private static void ApplyTextureToMaterial(Material mat, Texture2D texture)
-        {
-            if (mat == null || texture == null) return;
-
-            if (mat.HasProperty("_BaseMap"))
-            {
-                mat.SetTexture("_BaseMap", texture);
-            }
-
-            if (mat.HasProperty("_MainTex"))
-            {
-                mat.SetTexture("_MainTex", texture);
-            }
-
-            if (mat.HasProperty("_BaseColor"))
-            {
-                mat.SetColor("_BaseColor", Color.white);
-            }
-
-            if (mat.HasProperty("_Color"))
-            {
-                mat.SetColor("_Color", Color.white);
-            }
-
-            mat.mainTexture = texture;
-
-            Debug.Log(
-                $"[CharacterTextureApplier] Material에 Texture2D 연결 완료: {mat.name} ← {texture.name}"
-            );
-        }
-
-        /// <summary>
-        /// FBX importer의 material remap 설정.
-        /// Project 창의 FBX asset 자체에도 material 연결이 되도록 한다.
-        /// </summary>
-        private static void ApplyMaterialRemapToFbx(
-            string fbxPath,
-            Material generatedMaterial)
-        {
-            var importer = AssetImporter.GetAtPath(fbxPath) as ModelImporter;
-
-            if (importer == null)
-            {
-                Debug.LogWarning(
-                    $"[CharacterTextureApplier] ModelImporter 없음: {fbxPath}"
-                );
-                return;
-            }
-
-            importer.materialImportMode =
-                ModelImporterMaterialImportMode.ImportViaMaterialDescription;
-
-            importer.materialLocation =
-                ModelImporterMaterialLocation.External;
-
-            var sourceMaterials = AssetDatabase
-                .LoadAllAssetsAtPath(fbxPath)
-                .OfType<Material>()
-                .ToList();
-
-            if (sourceMaterials.Count > 0)
-            {
-                foreach (var srcMat in sourceMaterials)
-                {
-                    importer.AddRemap(
-                        new AssetImporter.SourceAssetIdentifier(
-                            typeof(Material),
-                            srcMat.name
-                        ),
-                        generatedMaterial
-                    );
-
-                    Debug.Log(
-                        $"[CharacterTextureApplier] Material Remap: {srcMat.name} → {generatedMaterial.name}"
-                    );
-                }
-            }
-            else
-            {
-                importer.AddRemap(
-                    new AssetImporter.SourceAssetIdentifier(
-                        typeof(Material),
-                        "Material"
-                    ),
-                    generatedMaterial
-                );
-
-                Debug.LogWarning(
-                    $"[CharacterTextureApplier] FBX source material을 찾지 못해 기본 이름 'Material'에 remap 적용"
-                );
-            }
-
-            importer.SaveAndReimport();
-        }
-
-        /// <summary>
-        /// FBX prefab을 instantiate한 뒤 SkinnedMeshRenderer에 새 Material을 직접 적용하고,
-        /// 적용된 상태의 Prefab을 Generated Prefabs 폴더에 저장한다.
-        /// </summary>
-        private static void CreateOrUpdateTexturedPrefab(
-            string fbxPath,
-            Material generatedMaterial)
-        {
-            GameObject fbxAsset = AssetDatabase.LoadAssetAtPath<GameObject>(fbxPath);
-
-            if (fbxAsset == null)
-            {
-                Debug.LogWarning(
-                    $"[CharacterTextureApplier] FBX GameObject 로드 실패: {fbxPath}"
-                );
-                return;
-            }
-
-            GameObject instance = null;
-
-            try
-            {
-                instance = (GameObject)PrefabUtility.InstantiatePrefab(fbxAsset);
-
-                if (instance == null)
-                {
-                    instance = Object.Instantiate(fbxAsset);
-                }
-
-                string baseName = Path.GetFileNameWithoutExtension(fbxPath)
-                    .Replace("_rigged", "");
-
-                instance.name = $"{baseName}_Textured";
-
-                ApplyMaterialToSkinnedMeshRenderers(instance, generatedMaterial);
-
-                string fbxDir = Path.GetDirectoryName(fbxPath);
-                string prefabDir = fbxDir + "/Prefabs";
-
-                if (!AssetDatabase.IsValidFolder(prefabDir))
-                {
-                    AssetDatabase.CreateFolder(fbxDir, "Prefabs");
-                }
-
-                string prefabPath = $"{prefabDir}/{baseName}_Textured.prefab";
-
-                PrefabUtility.SaveAsPrefabAsset(instance, prefabPath);
-
-                Debug.Log(
-                    $"[CharacterTextureApplier] Textured Prefab 저장 완료: {prefabPath}"
-                );
-            }
-            finally
-            {
-                if (instance != null)
-                {
-                    Object.DestroyImmediate(instance);
-                }
-            }
-        }
-
-        /// <summary>
-        /// GameObject 하위의 모든 SkinnedMeshRenderer에 Material 적용.
-        /// FBX의 bone / rig / Animator는 건드리지 않는다.
-        /// </summary>
-        private static void ApplyMaterialToSkinnedMeshRenderers(
-            GameObject root,
-            Material material)
-        {
-            if (root == null)
-            {
-                Debug.LogWarning(
-                    "[CharacterTextureApplier] root GameObject가 null입니다."
-                );
-                return;
-            }
-
-            if (material == null)
-            {
-                Debug.LogWarning(
-                    "[CharacterTextureApplier] 적용할 Material이 null입니다."
-                );
-                return;
-            }
-
-            var skinnedRenderers =
-                root.GetComponentsInChildren<SkinnedMeshRenderer>(true);
-
-            if (skinnedRenderers == null || skinnedRenderers.Length == 0)
-            {
-                Debug.LogWarning(
-                    $"[CharacterTextureApplier] SkinnedMeshRenderer 없음: {root.name}"
-                );
-                return;
-            }
-
-            foreach (var renderer in skinnedRenderers)
-            {
-                Material[] before = renderer.sharedMaterials;
-
-                int slotCount = Mathf.Max(1, before.Length);
-                Material[] newMaterials = new Material[slotCount];
-
-                for (int i = 0; i < slotCount; i++)
-                {
-                    newMaterials[i] = material;
-                }
-
-                renderer.sharedMaterials = newMaterials;
-
-                Debug.Log(
-                    $"[CharacterTextureApplier] SkinnedMeshRenderer Material 적용\n" +
-                    $"  Renderer : {renderer.name}\n" +
-                    $"  SlotCount: {slotCount}\n" +
-                    $"  NewMat   : {material.name}"
-                );
-            }
-        }
-
         // ════════════════════════════════════════════════════════════
         // 유틸리티
         // ════════════════════════════════════════════════════════════
 
-        private static bool FileExists(string assetPath)
+        /// <summary>
+        /// Material 프로퍼티 → Texture2D 이름 패턴 순서로 텍스쳐를 탐색.
+        /// </summary>
+        static Texture2D FindTex(
+            Material glbMat,
+            Texture2D[] pool,
+            string[] matProps,
+            string[] nameKeywords)
         {
-            string absolutePath = Path.GetFullPath(
-                Path.Combine(Application.dataPath, "..", assetPath)
-            );
+            // 1. GLB Material 프로퍼티에서 탐색
+            if (glbMat != null)
+            {
+                foreach (var prop in matProps)
+                {
+                    if (!glbMat.HasProperty(prop)) continue;
+                    var t = glbMat.GetTexture(prop) as Texture2D;
+                    if (t != null) return t;
+                }
+            }
+            // 2. Texture2D 이름 키워드로 탐색
+            foreach (var kw in nameKeywords)
+                foreach (var t in pool)
+                    if (t.name.ToLower().Contains(kw)) return t;
 
-            return File.Exists(absolutePath);
+            return null;
         }
 
-        private static string ToAssetPath(string absPath)
+        /// <summary>Unity 에셋 경로 → 파일시스템 절대 경로 존재 여부 확인.</summary>
+        static bool FileExists(string assetPath) =>
+            File.Exists(Path.GetFullPath(
+                Path.Combine(Application.dataPath, "..", assetPath)));
+
+        /// <summary>파일시스템 절대 경로 → Unity 에셋 경로 변환.</summary>
+        static string ToAssetPath(string absPath)
         {
             absPath = absPath.Replace('\\', '/');
-
+            string dataPath = Application.dataPath.Replace('\\', '/');
+            // dataPath = "...project/Assets"
             int idx = absPath.IndexOf("/Assets/");
-
             return idx >= 0 ? absPath.Substring(idx + 1) : absPath;
         }
     }
