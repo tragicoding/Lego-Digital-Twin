@@ -1,0 +1,117 @@
+구현 순서 브리핑
+Phase 1 — 데이터 레이어 (의존성 없음, 먼저 확정)
+① MotionType.cs — enum 정의
+
+
+Dance / Run / Jump / Wave / Sit / Kick / Idle ...
+모든 파일이 이걸 참조하므로 제일 먼저.
+
+② MixamoMotionLibrary.cs — ScriptableObject
+
+
+MotionType.Dance → dance.anim
+MotionType.Run   → run.anim
+...
+폴더 Assets/00_Project/Animations/Mixamo/ 지정. Unity 개발자가 Inspector에서 클립 연결.
+
+Phase 2 — 로직 레이어
+③ MotionPromptParser.cs — 키워드 → MotionType
+
+
+"춤춰", "댄스", "dance" → MotionType.Dance
+"달려", "뛰어"          → MotionType.Run
+...
+매칭 없음              → MotionType.Idle
+MixamoMotionLibrary 의존 없음. 순수 파싱 로직.
+
+Phase 3 — 캐릭터 제어 레이어
+④ CharacterAnimationController.cs 수정
+
+Awake()에서 AnimatorOverrideController 초기화
+PlayMotionClip(AnimationClip clip) 메서드 추가
+기존 walk / idle Trigger 방식은 그대로 유지.
+
+⑤ PlacedCharacterController.cs 신규
+
+MixamoMotionLibrary + MotionPromptParser 조합
+PlayMotionFromPrompt(string input) 공개 메서드 1개
+내부: Parse → 클립 찾기 → CharacterAnimationController.PlayMotionClip()
+Phase 4 — 시나리오 연결
+⑥ GuideNPCController.cs 수정
+
+Step 5 TODO 위치에:
+
+
+"시그니처 동작을 입력해주세요!"
+→ OnMotionPromptRequested 이벤트 발행
+→ 콜백으로 입력 문자열 수신
+→ PlacedCharacterController.PlayMotionFromPrompt(input) 호출
+전체 의존 관계
+
+MotionType (①)
+    ├── MixamoMotionLibrary (②)
+    └── MotionPromptParser (③)
+              ↓
+    CharacterAnimationController (④)
+              ↓
+    PlacedCharacterController (⑤)
+              ↓
+    GuideNPCController (⑥)
+Unity 개발자 후속 작업 (코드 완료 후)
+순서	작업
+1	Animator Controller에 Motion 스테이트 추가 (Override 대상 클립)
+2	MixamoMotionLibrary ScriptableObject 생성 → 클립 연결
+3	PlacedCharacterController → 배치 캐릭터 Prefab에 추가
+4	VR 텍스트 입력 UI → OnMotionPromptRequested 콜백 연결
+
+
+생성/수정된 파일 목록:
+
+파일	작업
+MotionType.cs	신규 — 10개 모션 enum
+MixamoMotionLibrary.cs	신규 — ScriptableObject
+MotionPromptParser.cs	신규 — 한/영 32개 키워드
+CharacterAnimationController.cs	수정 — AnimatorOverrideController + PlayMotionClip()
+PlacedCharacterController.cs	신규 — 통합 컨트롤러
+GuideNPCController.cs	수정 — Step 5 프롬프트 연결
+유니티 개발자 남은 작업
+순서	작업
+1	Animator Controller에 Motion 스테이트 + motion Trigger 파라미터 추가
+2	MixamoMotionLibrary ScriptableObject 생성 → .anim 클립 연결
+3	PlacedCharacterController → 배치 캐릭터 Prefab에 추가 + Library 연결
+4	VR 입력 UI → OnMotionPromptRequested 콜백 구독
+
+
+*** 믹사모 모션 저장 위치.
+Assets/
+└── 00_Project/
+    └── Animations/
+        └── Mixamo/          ← 여기에 저장
+            ├── idle.fbx
+            ├── dance.fbx
+            ├── run.fbx
+            ├── jump.fbx
+            ├── wave.fbx
+            ├── sit.fbx
+            ├── kick.fbx
+            ├── spin.fbx
+            ├── cheer.fbx
+            └── clap.fbx
+파일명은 MotionType 소문자로 통일 (라이브러리 연결 시 혼동 방지)
+
+🔧 Unity Import 설정 (각 FBX마다)
+
+Inspector → Rig 탭
+  Animation Type : Humanoid   ← 필수
+  Avatar Definition : Create From This Model
+
+Inspector → Animation 탭
+  Loop Time : ✅ (Idle, Dance, Sit 등 반복 모션)
+  Loop Time : ❌ (Jump, Wave 등 1회성 모션)
+📌 MixamoMotionLibrary 연결 방법
+FBX 임포트 후 Project 창에서 FBX 옆 ▶ 펼치면 AnimationClip이 나옵니다.
+
+
+dance.fbx
+  └── 📎 dance   ← 이 클립을 ScriptableObject에 드래그
+MixamoMotionLibrary ScriptableObject → Inspector → Dance 항목에 드래그 연결.
