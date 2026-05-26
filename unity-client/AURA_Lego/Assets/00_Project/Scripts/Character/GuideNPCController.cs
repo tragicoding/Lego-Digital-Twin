@@ -42,6 +42,10 @@ namespace LegoTwin.Character
         [SerializeField] private string _npcName;
         [SerializeField] private string _sessionId;
 
+        [Header("배치 캐릭터 (모션 재생 대상)")]
+        [Tooltip("광장 오브제 옆 배치 캐릭터의 PlacedCharacterController 연결")]
+        public PlacedCharacterController placedCharacter;
+
         // ── 이벤트 (UI 개발자가 구독) ────────────────────────────────
 
         /// <summary>말풍선 텍스트 변경 시 발생. UI에서 구독해 말풍선을 표시.</summary>
@@ -56,6 +60,14 @@ namespace LegoTwin.Character
         ///   npc.OnBubbleTextInputRequested += callback => MyInputUI.Open(callback);
         /// </summary>
         public event Action<Action<string>> OnBubbleTextInputRequested;
+
+        /// <summary>
+        /// 모션 프롬프트 입력 요청 시 발생.
+        /// 구독 예:
+        ///   npc.OnMotionPromptRequested += callback => MyInputUI.Open(callback);
+        /// 콜백으로 입력 문자열을 전달하면 PlacedCharacterController가 모션을 재생한다.
+        /// </summary>
+        public event Action<Action<string>> OnMotionPromptRequested;
 
         private Coroutine _moveCoroutine;
 
@@ -158,13 +170,26 @@ namespace LegoTwin.Character
             Say("여기가 바로 당신의 창작물이에요!");
             yield return new WaitForSeconds(2f);
 
-            // ── 5. 모션 안내 ──────────────────────────────────────────
+            // ── 5. 모션 프롬프트 입력 ────────────────────────────────
             Say("여러분의 시그니처 동작을 캐릭터가 따라할거에요!");
             yield return new WaitForSeconds(2.5f);
 
-            // TODO: 유니티 개발자 — 모션 캡처 / Mixamo 모션 재생 트리거 호출
-            // 예) RetargetingController.Instance.StartCapture();
-            // 예) PlacedCharacterController.Instance.PlayMixamoAnimation("wave");
+            Say("원하는 동작을 입력해주세요! (예: 춤춰줘, 점프해, 손흔들어)");
+
+            // UI에서 OnMotionPromptRequested 이벤트를 구독해 입력창을 열어야 합니다.
+            // 구독 예:
+            //   npc.OnMotionPromptRequested += callback => myVRInputUI.Open(text => callback(text));
+            string motionInput = null;
+            OnMotionPromptRequested?.Invoke(text => motionInput = text);
+            yield return new WaitUntil(() => motionInput != null);
+
+            // 배치 캐릭터에 모션 적용
+            if (placedCharacter != null)
+                placedCharacter.PlayMotionFromPrompt(motionInput);
+            else
+                Debug.LogWarning("[GuideNPCController] placedCharacter가 연결되지 않았습니다. Inspector에서 연결하세요.");
+
+            yield return new WaitForSeconds(1f);
 
             Say("이후에 다른 사람들이 당신의 동작과 문구, 오브제를 보고 좋아요를 누를거에요.");
             yield return new WaitForSeconds(3f);

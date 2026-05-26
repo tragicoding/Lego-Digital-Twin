@@ -11,6 +11,7 @@ namespace LegoTwin.Character
     ///   npc.Animation.animation_walk();
     ///   npc.Animation.animation_idle();
     ///   npc.Animation.PlayAnimation("walk");
+    ///   npc.Animation.PlayMotionClip(clip);   // Mixamo 클립 런타임 교체
     /// </summary>
     public class CharacterAnimationController : MonoBehaviour
     {
@@ -19,10 +20,36 @@ namespace LegoTwin.Character
         public string bubbleText;
 
         private Animator _animator;
+        private AnimatorOverrideController _overrideController;
+
+        // AnimatorOverrideController에서 교체할 클립 슬롯 이름
+        // Base Animator Controller의 "Motion" 스테이트 클립 이름과 일치해야 함
+        private const string MOTION_SLOT = "Motion";
 
         private void Awake()
         {
             _animator = GetComponentInChildren<Animator>();
+            InitOverrideController();
+        }
+
+        /// <summary>
+        /// AnimatorOverrideController 초기화.
+        /// Base Animator Controller가 설정되어 있어야 동작한다.
+        /// </summary>
+        private void InitOverrideController()
+        {
+            if (_animator == null || _animator.runtimeAnimatorController == null)
+                return;
+
+            // 이미 Override라면 중복 생성 방지
+            if (_animator.runtimeAnimatorController is AnimatorOverrideController)
+            {
+                _overrideController = _animator.runtimeAnimatorController as AnimatorOverrideController;
+                return;
+            }
+
+            _overrideController = new AnimatorOverrideController(_animator.runtimeAnimatorController);
+            _animator.runtimeAnimatorController = _overrideController;
         }
 
         // ── 공개 애니메이션 함수 ─────────────────────────────────────
@@ -43,6 +70,35 @@ namespace LegoTwin.Character
             }
             _animator.SetTrigger(animationKey);
             Debug.Log($"[CharacterAnimationController] {npcName}: {animationKey}");
+        }
+
+        /// <summary>
+        /// Mixamo AnimationClip을 런타임에 교체하여 재생한다.
+        /// AnimatorOverrideController의 "Motion" 슬롯을 교체한 뒤
+        /// "motion" Trigger를 발생시킨다.
+        ///
+        /// 유니티 개발자 체크리스트:
+        ///   [ ] Base Animator Controller에 "Motion" 스테이트 추가
+        ///       (Any State → Motion, Trigger 파라미터: "motion")
+        /// </summary>
+        public void PlayMotionClip(AnimationClip clip)
+        {
+            if (clip == null)
+            {
+                Debug.LogWarning($"[CharacterAnimationController] clip이 null입니다.");
+                return;
+            }
+
+            if (_overrideController == null)
+            {
+                Debug.LogWarning($"[CharacterAnimationController] OverrideController 없음 — " +
+                                 $"Base Animator Controller가 설정되어 있는지 확인하세요.");
+                return;
+            }
+
+            _overrideController[MOTION_SLOT] = clip;
+            _animator.SetTrigger("motion");
+            Debug.Log($"[CharacterAnimationController] {npcName}: Motion → {clip.name}");
         }
 
         // ── 초기화 ───────────────────────────────────────────────────
