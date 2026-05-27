@@ -123,24 +123,33 @@ namespace LegoTwin.Character
         private IEnumerator GuideScenarioRoutine()
         {
             // ── 1. 입장 인사 ─────────────────────────────────────────
-            yield return new WaitForSeconds(0.5f);
+            yield return new WaitForSeconds(1f);
             Say($"안녕하세요, MINIVERSE에 온 걸 환영해요!");
             yield return new WaitForSeconds(3f);
 
-            Say($"저는 당신이 만든 캐릭터 {_npcName}이라고 해요. 만나서 반가워요!");
+            Say($"저는 당신이 만든 '{_npcName}'(이)에요. 만나서 반가워요!");
             yield return new WaitForSeconds(3f);
 
             Say("먼저 World를 소개할게요.");
-            yield return new WaitForSeconds(2f);
+            yield return new WaitForSeconds(3f);
 
             // ── 2. 월드 소개 ─────────────────────────────────────────
             // TODO: 유니티 개발자 — 월드 소개 대사 및 카메라 연출 추가
-            Say("저희 월드는 레고로 만들어진 디지털 세상이에요!");
+            Say("이곳은 4개의 구역으로 나눠져 있어요.");
+            yield return new WaitForSeconds(3f);
+
+            Say("해리포터, 디즈니, 미래도시, 동심 월드까지");
+            yield return new WaitForSeconds(3f);
+
+            Say("다양한 구역에는 즐길 수 있는 어트랙션도 있답니다.");
             yield return new WaitForSeconds(3f);
 
             // ── 3. 광장으로 이동 ─────────────────────────────────────
-            Say("이제 광장으로 가볼까요?");
-            yield return new WaitForSeconds(1.5f);
+            Say("아참!  World를 즐기기 전에, 광장 구역으로 가볼까요?");
+            yield return new WaitForSeconds(3f);
+            
+            Say("광장에서는 직접 만든 창작물들을 볼 수 있어요!");
+            yield return new WaitForSeconds(3f);
 
             // TODO: 유니티 개발자 — plazaPathWaypoints 를 Inspector에 연결
             if (plazaPathWaypoints != null)
@@ -153,11 +162,8 @@ namespace LegoTwin.Character
                 }
             }
 
-            Say("광장에서는 직접 만든 창작물들을 볼 수 있어요!");
-            yield return new WaitForSeconds(2.5f);
-
-            Say("먼저 직접 만든 오브제와 저를 만나러 가볼까요?");
-            yield return new WaitForSeconds(1.5f);
+            Say("저기 당신이 만든 오브제가 보이네요, 가서 확인해볼까요?");
+            yield return new WaitForSeconds(3f);
 
             // ── 4. 내 창작물로 이동 ──────────────────────────────────
             // TODO: 유니티 개발자 — myCreationWaypoint 를 Inspector에 연결
@@ -168,11 +174,11 @@ namespace LegoTwin.Character
             }
 
             Say("여기가 바로 당신의 창작물이에요!");
-            yield return new WaitForSeconds(2f);
+            yield return new WaitForSeconds(3f);
 
             // ── 5. 모션 프롬프트 입력 ────────────────────────────────
             Say("여러분의 시그니처 동작을 캐릭터가 따라할거에요!");
-            yield return new WaitForSeconds(2.5f);
+            yield return new WaitForSeconds(3f);
 
             Say("원하는 동작을 입력해주세요! (예: 춤춰줘, 점프해, 손흔들어)");
 
@@ -214,15 +220,6 @@ namespace LegoTwin.Character
             // ── 7. 자유 모드 전환 안내 ───────────────────────────────
             yield return new WaitForSeconds(0.5f);
             Say("자, 이제 자유롭게 월드를 탐험해보세요!");
-            yield return new WaitForSeconds(2f);
-
-            Say("다른 관람객들이 만들어 놓은 창작물에 가까이 가면 '좋아요'를 누를 수 있어요!");
-            yield return new WaitForSeconds(3f);
-
-            Say("가장 많은 좋아요를 받은 관람객에게 소정의 상품이 있을 거에요!");
-            yield return new WaitForSeconds(3f);
-
-            Say("자, 이제 그럼 안녕!!");
             yield return new WaitForSeconds(2f);
 
             // ── 8. 종료 → 자유 모드 전환 ────────────────────────────
