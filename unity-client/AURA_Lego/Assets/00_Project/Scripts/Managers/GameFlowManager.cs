@@ -35,6 +35,10 @@ namespace LegoTwin.Managers
         [Tooltip("씬의 GeneratedObjectSpawner 연결 (없으면 오브제 스폰 생략)")]
         [SerializeField] private GeneratedObjectSpawner _objectSpawner;
 
+        [Header("플레이어")]
+        [Tooltip("XR Origin(또는 Camera Rig 루트)에 붙은 PlayerFollowGuide 연결")]
+        [SerializeField] private PlayerFollowGuide _playerFollowGuide;
+
         [Header("UI")]
         [Tooltip("말풍선 UI — DialogueUI 컴포넌트가 붙은 Canvas GameObject 연결")]
         [SerializeField] private DialogueUI _dialogueUI;
@@ -122,6 +126,8 @@ namespace LegoTwin.Managers
             npc.OnGuideFinished           += OnGuideFinished;
             npc.OnBubbleTextInputRequested += OnBubbleTextInputRequested;
             npc.OnMotionPromptRequested   += OnMotionPromptRequested;
+            // 광장 이동 시작 시점에만 따라가기 활성화 (인사·소개 구간은 제외)
+            npc.OnPlazaMoveStarted        += OnPlazaMoveStarted;
 
             // ⑥ 시나리오 시작 ── GuideScenarioRoutine() 코루틴 실행
             //    등장 씬(Step 1) 부터 자유 모드 전환(Step 8) 까지 자동 진행
@@ -139,6 +145,14 @@ namespace LegoTwin.Managers
         {
             Debug.Log($"[말풍선] {text}");
             _dialogueUI?.Show(_currentNpcName, text);
+        }
+
+        /// <summary>
+        /// [Step 3] 광장 이동 시작 → 플레이어 따라가기 활성화.
+        /// </summary>
+        private void OnPlazaMoveStarted()
+        {
+            _playerFollowGuide?.StartFollowing(_currentNPC);
         }
 
         /// <summary>
@@ -200,6 +214,7 @@ namespace LegoTwin.Managers
             _currentNPC.OnGuideFinished            -= OnGuideFinished;
             _currentNPC.OnBubbleTextInputRequested -= OnBubbleTextInputRequested;
             _currentNPC.OnMotionPromptRequested    -= OnMotionPromptRequested;
+            _currentNPC.OnPlazaMoveStarted         -= OnPlazaMoveStarted;
             _currentNPC = null;
         }
     }

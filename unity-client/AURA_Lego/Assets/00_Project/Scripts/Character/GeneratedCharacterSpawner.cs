@@ -34,8 +34,14 @@ namespace LegoTwin.Character
         public GameObject mockCharacterPrefab;
 
         [Header("스폰 위치")]
-        [Tooltip("가이드 NPC 시작 위치")]
+        [Tooltip("가이드 NPC 스폰 위치 (등장 시작점)")]
         public Transform guideSpawnPoint;
+        [Tooltip("가이드 NPC 가 걸어가서 멈출 위치 (인사 위치). 비워두면 스폰 위치에서 즉시 인사.")]
+        public Transform   guideArrivalPoint;
+        [Tooltip("광장까지 이동 경로 웨이포인트 (순서대로 연결)")]
+        public Transform[] plazaPathWaypoints;
+        [Tooltip("내 창작물 앞 위치 (캐릭터+오브제 확인 위치)")]
+        public Transform   myCreationWaypoint;
         [Tooltip("광장 배치 캐릭터 위치 (오브제 옆)")]
         public Transform placedSpawnPoint;
 
@@ -46,6 +52,9 @@ namespace LegoTwin.Character
         [Header("컴포넌트 자동 주입")]
         [Tooltip("PlacedCharacterController 에 자동 연결할 MixamoMotionLibrary ScriptableObject")]
         public MixamoMotionLibrary motionLibrary;
+
+        [Tooltip("캐릭터 Animator 에 자동 연결할 Animator Controller (없으면 스킵)")]
+        public RuntimeAnimatorController animatorController;
 
         // ── 런타임 인스턴스 참조 ─────────────────────────────────────
         private GameObject _guideInstance;
@@ -102,6 +111,8 @@ namespace LegoTwin.Character
         /// </summary>
         private GuideNPCController SetupAsGuide(GameObject go, SessionData session)
         {
+            SetupAnimatorController(go);
+
             // 있으면 재사용, 없으면 AddComponent
             var anim = GetOrAdd<CharacterAnimationController>(go);
             var npc  = GetOrAdd<GuideNPCController>(go);
@@ -112,6 +123,14 @@ namespace LegoTwin.Character
 
             // npcName · sessionId 세팅 + anim.Initialize() 내부 호출
             npc.Initialize(session);
+
+            // 웨이포인트 전달 — 씬에 배치된 Transform 을 NPC 에 주입
+            if (guideArrivalPoint != null)
+                npc.guideArrivalPoint = guideArrivalPoint;
+            if (plazaPathWaypoints is { Length: > 0 })
+                npc.plazaPathWaypoints = plazaPathWaypoints;
+            if (myCreationWaypoint != null)
+                npc.myCreationWaypoint = myCreationWaypoint;
 
             Debug.Log($"[CharacterSpawner] Guide 설정 완료: {session.character_npc_name}");
             return npc;
@@ -124,6 +143,8 @@ namespace LegoTwin.Character
         /// </summary>
         private PlacedCharacterController SetupAsPlaced(GameObject go, SessionData session)
         {
+            SetupAnimatorController(go);
+
             var anim   = GetOrAdd<CharacterAnimationController>(go);
             var placed = GetOrAdd<PlacedCharacterController>(go);
             // PlacedCharacterController.Awake() 가 _animation 을 GetComponent 로 찾으므로
@@ -184,8 +205,10 @@ namespace LegoTwin.Character
             //       ctx => {
             //           var go = ctx.RootGameObject;
             //           go.transform.SetPositionAndRotation(pos, rot);
+            //           go.transform.localScale = Vector3.one * spawnScale;
+            //           HumanoidAvatarBuilder.Build(go);   // ← Humanoid Avatar 자동 구성
             //           _guideInstance = go;
-            //           SetupAsGuide(go, session);   // ← 컴포넌트 자동 주입
+            //           SetupAsGuide(go, session);         // ← 컴포넌트 자동 주입
             //       },
             //       null, null, null, null, options
             //   );
@@ -209,6 +232,21 @@ namespace LegoTwin.Character
         // ════════════════════════════════════════════════════════════
         // 유틸
         // ════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// Animator Controller 가 Inspector 에 연결되어 있고 캐릭터 Animator 에
+        /// 아직 Controller 가 없을 때만 자동으로 할당한다.
+        /// </summary>
+        private void SetupAnimatorController(GameObject go)
+        {
+            if (animatorController == null) return;
+
+            var animator = go.GetComponentInChildren<Animator>();
+            if (animator == null || animator.runtimeAnimatorController != null) return;
+
+            animator.runtimeAnimatorController = animatorController;
+            Debug.Log($"[CharacterSpawner] Animator Controller 자동 연결: {go.name}");
+        }
 
         /// <summary>
         /// T 컴포넌트가 go 에 있으면 반환, 없으면 AddComponent 후 반환.

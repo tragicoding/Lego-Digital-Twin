@@ -28,9 +28,13 @@ namespace LegoTwin.Character
         public CharacterAnimationController Animation;
 
         [Header("이동 설정")]
-        public float moveSpeed        = 2f;
+        public float moveSpeed        = 5f;
         public float rotationSpeed    = 5f;
         public float arrivalThreshold = 0.15f;
+
+        [Header("등장 연출")]
+        [Tooltip("스폰 후 걸어가서 멈출 위치. 비워두면 스폰 위치에서 바로 인사.")]
+        public Transform guideArrivalPoint;
 
         [Header("시나리오 웨이포인트")]
         [Tooltip("광장으로 이동하는 경로 (순서대로 연결)")]
@@ -53,6 +57,9 @@ namespace LegoTwin.Character
 
         /// <summary>가이드 시나리오 완료 → 자유 모드 전환 트리거.</summary>
         public event Action OnGuideFinished;
+
+        /// <summary>광장으로 이동을 시작하는 순간 발생 (Step 3 진입 시).</summary>
+        public event Action OnPlazaMoveStarted;
 
         /// <summary>
         /// 인사말 입력 요청 시 발생.
@@ -122,8 +129,16 @@ namespace LegoTwin.Character
 
         private IEnumerator GuideScenarioRoutine()
         {
+            // ── 0. 등장 — guideSpawnPoint 에서 guideArrivalPoint 까지 이동 후 플레이어 방향으로 회전
+            if (guideArrivalPoint != null)
+            {
+                MoveTo(guideArrivalPoint.position);
+                yield return WaitUntilArrived();
+            }
+            yield return FacePlayerRoutine();
+            yield return new WaitForSeconds(0.3f);
+
             // ── 1. 입장 인사 ─────────────────────────────────────────
-            yield return new WaitForSeconds(1f);
             Say($"안녕하세요, MINIVERSE에 온 걸 환영해요!");
             yield return new WaitForSeconds(3f);
 
@@ -144,33 +159,42 @@ namespace LegoTwin.Character
             Say("다양한 구역에는 즐길 수 있는 어트랙션도 있답니다.");
             yield return new WaitForSeconds(3f);
 
-            // ── 3. 광장으로 이동 ─────────────────────────────────────
-            Say("아참!  World를 즐기기 전에, 광장 구역으로 가볼까요?");
-            yield return new WaitForSeconds(3f);
-            
-            Say("광장에서는 직접 만든 창작물들을 볼 수 있어요!");
-            yield return new WaitForSeconds(3f);
+            // ── 3. 광장으로 이동 — 대사와 동시에 걷기 시작 ────────────
+            OnPlazaMoveStarted?.Invoke();   // 이 시점부터 플레이어가 NPC를 따라감
 
-            // TODO: 유니티 개발자 — plazaPathWaypoints 를 Inspector에 연결
-            if (plazaPathWaypoints != null)
+            if (plazaPathWaypoints != null && plazaPathWaypoints.Length > 0)
             {
+                Say("아참! World를 즐기기 전에, 광장 구역으로 가볼까요?");
+                yield return new WaitForSeconds(3f);
+                Say("광장에서는 직접 만든 창작물들을 볼 수 있어요!");
+                // 대사가 표시되는 동안 바로 이동 시작
                 foreach (var wp in plazaPathWaypoints)
                 {
                     if (wp == null) continue;
                     MoveTo(wp.position);
                     yield return WaitUntilArrived();
                 }
+                Say("저기 당신이 만든 오브제가 보이네요, 가서 확인해볼까요?");
+                yield return new WaitForSeconds(3f);
+                
+            }
+            else
+            {
+                // 웨이포인트 미설정 시 제자리에서 대사만
+                Say("아참! World를 즐기기 전에, 광장 구역으로 가볼까요?");
+                yield return new WaitForSeconds(3f);
+                Say("광장에서는 직접 만든 창작물들을 볼 수 있어요!");
+                yield return new WaitForSeconds(3f);
+                Say("저기 당신이 만든 오브제가 보이네요, 가서 확인해볼까요?");
+                yield return new WaitForSeconds(3f);
             }
 
-            Say("저기 당신이 만든 오브제가 보이네요, 가서 확인해볼까요?");
-            yield return new WaitForSeconds(3f);
-
             // ── 4. 내 창작물로 이동 ──────────────────────────────────
-            // TODO: 유니티 개발자 — myCreationWaypoint 를 Inspector에 연결
             if (myCreationWaypoint != null)
             {
-                MoveTo(myCreationWaypoint.position);
+                MoveTo(myCreationWaypoint.position);   // 대사와 동시에 이동
                 yield return WaitUntilArrived();
+                yield return FacePlayerRoutine();       // 도착 후 플레이어 방향으로 회전
             }
 
             Say("여기가 바로 당신의 창작물이에요!");
@@ -230,6 +254,28 @@ namespace LegoTwin.Character
         // ════════════════════════════════════════════════════════════
         // 내부 이동 구현
         // ════════════════════════════════════════════════════════════
+
+        /// <summary>Camera.main 방향으로 부드럽게 회전. duration 초 동안 Slerp.</summary>
+        private IEnumerator FacePlayerRoutine(float duration = 0.4f)
+        {
+            var cam = Camera.main;
+            if (cam == null) yield break;
+
+            Quaternion startRot = transform.rotation;
+            var dir = cam.transform.position - transform.position;
+            dir.y = 0f;
+            if (dir == Vector3.zero) yield break;
+
+            Quaternion targetRot = Quaternion.LookRotation(dir);
+            float elapsed = 0f;
+            while (elapsed < duration)
+            {
+                transform.rotation = Quaternion.Slerp(startRot, targetRot, elapsed / duration);
+                elapsed += Time.deltaTime;
+                yield return null;
+            }
+            transform.rotation = targetRot;
+        }
 
         private IEnumerator MoveRoutine(Vector3 target)
         {

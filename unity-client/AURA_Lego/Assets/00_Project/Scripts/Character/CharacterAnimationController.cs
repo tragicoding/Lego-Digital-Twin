@@ -19,8 +19,17 @@ namespace LegoTwin.Character
         public string npcName;
         public string bubbleText;
 
+        [Header("Animator 파라미터")]
+        [Tooltip("Bool 방식 파라미터 이름 (Animator에 이 Bool이 있으면 우선 사용)")]
+        public string walkBoolParam = "isWalking";
+        [Tooltip("Trigger 방식 — 걷기 Trigger 이름 (Bool 없을 때 사용)")]
+        public string walkTrigger   = "walk";
+        [Tooltip("Trigger 방식 — 정지 Trigger 이름 (Bool 없을 때 사용)")]
+        public string idleTrigger   = "idle";
+
         private Animator _animator;
         private AnimatorOverrideController _overrideController;
+        private bool _useBoolParam;
 
         // AnimatorOverrideController에서 교체할 클립 슬롯 이름
         // Base Animator Controller의 "Motion" 스테이트 클립 이름과 일치해야 함
@@ -29,7 +38,20 @@ namespace LegoTwin.Character
         private void Awake()
         {
             _animator = GetComponentInChildren<Animator>();
+            if (_animator == null)
+            {
+                Debug.LogWarning($"[CharacterAnimationController] Animator 없음: {gameObject.name}");
+                return;
+            }
+            if (_animator.runtimeAnimatorController == null)
+            {
+                Debug.LogWarning($"[CharacterAnimationController] Animator Controller 미연결: {gameObject.name}\n" +
+                                 "Inspector에서 Animator Controller를 연결해야 애니메이션이 재생됩니다.\n" +
+                                 "물리적 이동(transform)은 Controller 없이도 동작합니다.");
+                return;
+            }
             InitOverrideController();
+            DetectAnimatorMode();
         }
 
         /// <summary>
@@ -52,22 +74,45 @@ namespace LegoTwin.Character
             _animator.runtimeAnimatorController = _overrideController;
         }
 
+        /// <summary>
+        /// Animator 파라미터를 확인하여 Bool / Trigger 방식을 자동 감지합니다.
+        /// </summary>
+        private void DetectAnimatorMode()
+        {
+            foreach (var p in _animator.parameters)
+            {
+                if (p.name == walkBoolParam && p.type == AnimatorControllerParameterType.Bool)
+                {
+                    _useBoolParam = true;
+                    Debug.Log($"[CharacterAnimationController] {gameObject.name}: Bool 방식 ('{walkBoolParam}')");
+                    return;
+                }
+            }
+            Debug.Log($"[CharacterAnimationController] {gameObject.name}: Trigger 방식 ('{walkTrigger}'/'{idleTrigger}')");
+        }
+
         // ── 공개 애니메이션 함수 ─────────────────────────────────────
 
-        /// <summary>걷기 애니메이션</summary>
-        public void animation_walk() => PlayAnimation("walk");
+        /// <summary>걷기 애니메이션 (Bool / Trigger 자동 분기)</summary>
+        public void animation_walk()
+        {
+            if (_animator == null || _animator.runtimeAnimatorController == null) return;
+            if (_useBoolParam) _animator.SetBool(walkBoolParam, true);
+            else               PlayAnimation(walkTrigger);
+        }
 
-        /// <summary>idle(대기) 애니메이션</summary>
-        public void animation_idle() => PlayAnimation("idle");
+        /// <summary>idle(대기) 애니메이션 (Bool / Trigger 자동 분기)</summary>
+        public void animation_idle()
+        {
+            if (_animator == null || _animator.runtimeAnimatorController == null) return;
+            if (_useBoolParam) _animator.SetBool(walkBoolParam, false);
+            else               PlayAnimation(idleTrigger);
+        }
 
-        /// <summary>animation key 기반 실행 ("walk", "idle" 등)</summary>
+        /// <summary>animation key 기반 Trigger 실행</summary>
         public void PlayAnimation(string animationKey)
         {
-            if (_animator == null)
-            {
-                Debug.LogWarning($"[CharacterAnimationController] Animator 없음: {gameObject.name}");
-                return;
-            }
+            if (_animator == null || _animator.runtimeAnimatorController == null) return;
             _animator.SetTrigger(animationKey);
             Debug.Log($"[CharacterAnimationController] {npcName}: {animationKey}");
         }

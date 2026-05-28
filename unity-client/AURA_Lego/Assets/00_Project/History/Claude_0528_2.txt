@@ -1,0 +1,201 @@
+# Claude 대화 기록 — 2025-05-28 (2)
+Date: 2025-05-28
+Branch: test_app
+
+---
+
+## 전체 대화 요약
+
+---
+
+### 1. CharacterRigImporter — FBX Humanoid 자동 설정 (Editor 스크립트)
+
+**배경:** 캐릭터 Inspector에서 Rig > Animation Type을 매번 수동으로 Humanoid로 변경하고 있었음.
+서버에서 캐릭터를 받아올 때 자동화 필요.
+
+**구현:**
+- `Assets/00_Project/Editor/CharacterRigImporter.cs` 신규 생성
+- `AssetPostprocessor` 상속 — `GeneratedCharacters/**/character/*_rigged.fbx` 임포트 시 자동 처리
+  - `OnPreprocessModel()`: Animation Type → Humanoid 자동 설정
+  - `OnPostprocessModel()`: Animator Controller 자동 연결
+    - 경로: `Assets/00_Project/Animations/Character/NPC_AnimatorController.controller`
+- 수동 일괄 적용 메뉴 추가:
+  - `Tools > MINIVERSE > Set Characters Humanoid`
+  - `Tools > MINIVERSE > Connect Character Animator`
+
+---
+
+### 2. SessionManager DontDestroyOnLoad 오류 수정
+
+**오류:** `DontDestroyOnLoad only works for root GameObjects`
+**원인:** SessionManager GameObject가 다른 오브젝트의 자식으로 배치되어 있었음
+**수정:** `DontDestroyOnLoad(gameObject)` 호출 전에 `transform.SetParent(null)` 추가
+
+---
+
+### 3. CharacterAnimationController — Bool/Trigger 자동 감지
+
+**배경:** Animator Controller에 Bool(`isWalking`) 방식과 Trigger(`walk`/`idle`) 방식이 혼재.
+캐릭터가 실제로 움직이지 않는 문제 발생.
+
+**수정 내용 (`CharacterAnimationController.cs`):**
+- `walkBoolParam = "isWalking"`, `walkTrigger = "walk"`, `idleTrigger = "idle"` 필드 추가
+- `Awake()`에서 `DetectAnimatorMode()` 호출 → Animator 파라미터를 스캔해 Bool/Trigger 자동 감지
+- `animation_walk()` / `animation_idle()`: 감지된 방식에 따라 자동 분기
+- Animator Controller 미연결 시 명확한 경고 메시지 출력 (물리 이동은 정상 동작)
+- `AnimatorOverrideController` 초기화 — `PlayMotionClip(clip)`에서 "Motion" 슬롯 교체
+
+**Animator Controller 위치:** `Assets/00_Project/Animations/Character/NPC_AnimatorController.controller`
+**상태머신 구성:** Idle → Walk (Bool: `isWalking`) + Any State → Motion (Trigger: `motion`)
+
+---
+
+### 4. GuideNPCController — 등장 연출 및 이동 구현
+
+**배경:** 캐릭터가 로그만 출력하고 실제로 움직이지 않았음.
+NPC가 씬에 없고 런타임에 스폰되므로 Inspector 연결 불가.
+
+**구현 내용:**
+- `guideArrivalPoint` Transform 필드 추가 (등장 후 걸어가서 멈출 위치)
+- `GuideScenarioRoutine()` Step 0: `guideArrivalPoint`까지 이동 후 플레이어 방향 회전
+- `FacePlayerRoutine(duration)`: `Camera.main` 위치 기준으로 Y축 Slerp 회전
+- `MoveRoutine(target)`: `Vector3.MoveTowards` + `Quaternion.Slerp` 이동
+- Step 3(광장 이동): 대사와 동시에 이동 시작
+- Step 4(창작물): `myCreationWaypoint`에 도착 후 `FacePlayerRoutine()` 호출
+- `moveSpeed` 기본값: `2f` → 최종 `5f`로 변경
+
+**웨이포인트 구조:**
+- `guideSpawnPoint`: NPC 스폰 위치
+- `guideArrivalPoint`: 등장 후 걸어가서 인사하는 위치
+- `plazaPathWaypoints[]`: 광장까지 이동 경로
+- `myCreationWaypoint`: 창작물 앞 위치
+→ 모두 `GeneratedCharacterSpawner` Inspector에서 설정 후 NPC에 자동 주입
+
+---
+
+### 5. GeneratedCharacterSpawner — 웨이포인트 주입 및 컴포넌트 자동 연결
+
+**배경:** NPC가 런타임 스폰이므로 씬에 미리 배치 불가. 웨이포인트를 Spawner에서 관리.
+
+**추가된 필드:**
+- `guideArrivalPoint`, `plazaPathWaypoints[]`, `myCreationWaypoint`
+- `animatorController`: Animator Controller 자동 연결용
+
+**`SetupAsGuide()`:** 스폰 후 웨이포인트 및 Animator Controller를 NPC에 자동 주입
+**`SetupAsPlaced()`:** PlacedCharacterController + motionLibrary 자동 연결
+**`SetupAnimatorController(go)`:** Animator가 Controller 없을 때만 자동 할당
+**`GetOrAdd<T>(go)`:** 컴포넌트 있으면 재사용, 없으면 AddComponent
+**서버 모드:** `LoadFromServer()`는 TODO 상태, Mock Prefab fallback 유지
+
+---
+
+### 6. GeneratedObjectSpawner — 서버 GLB 오브제 스폰
+
+**배경:** 오브제도 캐릭터처럼 서버에서 자동 연결·스폰 필요. 플레이 시작 시 스폰.
+
+**구현 (`GeneratedObjectSpawner.cs` 전면 수정):**
+- `Spawn(ObjectAssetData data)`: model_url 유무로 Mock/Server 분기
+  - Mock: `SpawnMock()` — Inspector Prefab을 spawnPoint 위치에 즉시 Instantiate
+  - Server: `StartCoroutine(SpawnFromServerCoroutine(data))` → glTFast 비동기 로드
+- `SpawnFromServerAsync()`:
+  ```
+  GltfImport.Load(data.model_url) → InstantiateMainSceneAsync(root.transform)
+  로드 실패 시 SpawnMock() fallback
+  ```
+- `spawnScale` 필드로 스폰 크기 조절
+- `GameFlowManager`에서 플레이 시작 시 자동 호출
+
+---
+
+### 7. PlayerFollowGuide — 가이드 모드 플레이어 거리 유지
+
+**배경:** 가이드 모드에서 플레이어가 NPC를 따라가야 함.
+광장 이동 시작 전(인사/소개 구간)에는 따라가면 안 됨.
+
+**구현 변경 이력:**
+
+**1차 — 고정 오프셋 방식 (취소)**
+- NPC 뒤쪽 `followDistance` 위치로 Lerp 이동
+- 사용자 요청으로 즉시 취소
+
+**2차 — NPC 이동 방향 기반 (회전 무관)**
+- 요구사항: NPC 몸 회전에 플레이어 위치가 흔들리면 안 됨
+- `transform.forward` 대신 프레임 간 위치 delta로 이동 방향 계산
+- NPC 정지 회전 시 `_smoothMoveDir` 유지 → 플레이어 고정
+- `followDistance = 10f`
+- 문제: 플레이어가 NPC보다 앞서 나가는 현상 발생
+
+**3차 — 최대 거리 유지(leash) 방식 (현재 적용)**
+- NPC ↔ 플레이어 거리 ≤ `maxDistance`: 아무것도 안 함
+- 초과 시: NPC 방향으로 Lerp 당김
+- 방향/회전에 완전 무관
+- `maxDistance = 5f` → `8f`, `smoothSpeed = 3f` → `5f`
+
+**최소 거리 추가 시도 (롤백)**
+- `minDistance = 2f` 추가 (너무 가까우면 밀어냄)
+- 작동 불량으로 진단용 Debug.Log 버전 시도
+- 사용자 요청으로 롤백 (`maxDistance = 8f`, `smoothSpeed = 5f` 상태 유지)
+
+**활성화 타이밍:**
+- `GuideNPCController`에 `OnPlazaMoveStarted` 이벤트 추가
+  - Step 3(광장 이동) 직전에 `Invoke()`
+- `GameFlowManager`에서 구독 → `_playerFollowGuide?.StartFollowing(npc)` 호출
+- `OnGuideFinished` 발생 시 `StopFollowing()` 자동 호출
+
+```
+Step 1-2  인사 + 월드 소개       → 플레이어 고정 (따라가기 비활성)
+Step 3    광장 이동 시작          → OnPlazaMoveStarted → StartFollowing 활성화
+Step 3~4  광장 이동 + 창작물 앞  → NPC 8m 초과 시 플레이어 자동 당김
+Step 8    가이드 종료             → OnGuideFinished → StopFollowing 자동 해제
+```
+
+---
+
+## 최종 파일 상태
+
+### 신규 생성
+| 파일 | 내용 |
+|---|---|
+| `Editor/CharacterRigImporter.cs` | FBX Humanoid 자동 설정, Animator Controller 자동 연결 |
+| `Scripts/Character/HumanoidAvatarBuilder.cs` | 런타임 Humanoid Avatar 빌드 (Mixamo 본 매핑) |
+| `Scripts/Character/PlayerFollowGuide.cs` | 가이드 모드 플레이어 거리 유지 (leash) |
+
+### 수정
+| 파일 | 주요 변경 내용 |
+|---|---|
+| `Scripts/Character/CharacterAnimationController.cs` | Bool/Trigger 자동 감지, AnimatorOverrideController 초기화 |
+| `Scripts/Character/GuideNPCController.cs` | 등장 연출, 이동, FacePlayerRoutine, OnPlazaMoveStarted 이벤트, moveSpeed 5f |
+| `Scripts/Character/GeneratedCharacterSpawner.cs` | 웨이포인트 주입, 컴포넌트 자동 연결, Animator Controller 자동 할당 |
+| `Scripts/Object/GeneratedObjectSpawner.cs` | glTFast Server Mode, Mock fallback |
+| `Scripts/Managers/SessionManager.cs` | DontDestroyOnLoad 오류 수정 |
+| `Scripts/Managers/GameFlowManager.cs` | PlayerFollowGuide 연결, OnPlazaMoveStarted 구독 |
+
+---
+
+## Unity Inspector 체크리스트
+
+- [ ] `GeneratedCharacterSpawner`: guideSpawnPoint / guideArrivalPoint / plazaPathWaypoints / myCreationWaypoint / placedSpawnPoint 연결
+- [ ] `GeneratedCharacterSpawner`: mockCharacterPrefab / animatorController / motionLibrary 연결
+- [ ] `GeneratedObjectSpawner`: objectPrefab / spawnPoint 연결
+- [ ] XR Origin → Add Component → `PlayerFollowGuide`
+- [ ] `GameFlowManager`: _playerFollowGuide 필드 연결
+- [ ] `NPC_AnimatorController`: Idle / Walk(Bool: isWalking) / Motion(Trigger: motion) 상태머신 구성
+
+---
+
+## 파라미터 정리
+
+| 파라미터 | 컴포넌트 | 현재 값 | 설명 |
+|---|---|---|---|
+| moveSpeed | GuideNPCController | 5f | NPC 이동 속도 (m/s) |
+| rotationSpeed | GuideNPCController | 5f | NPC 회전 속도 |
+| maxDistance | PlayerFollowGuide | 8f | 플레이어 허용 최대 거리 |
+| smoothSpeed | PlayerFollowGuide | 5f | 거리 초과 시 당기는 속도 |
+| spawnScale | GeneratedCharacterSpawner | 6f | 캐릭터 스폰 크기 |
+
+---
+
+## 미해결 / 추후 작업
+
+- GeneratedCharacterSpawner.LoadFromServer() — TriLib/glTFast FBX 런타임 로드 미구현(TODO), Mock fallback 중
+- VR(Meta XR SDK) 환경에서 XR Origin 이동 동작 검증 필요
