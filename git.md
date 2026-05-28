@@ -138,6 +138,55 @@ git checkout -- .
 git clean -f
 ```
 
+### RULE-07: 파일 누락 방지 — add / commit / pull / push 전 검증
+
+#### git add 전
+
+```bash
+# 변경 파일 전체 확인
+git status
+
+# 추적되지 않은 파일 확인 (누락 위험 — 특히 신규 .meta, 새 에셋)
+git ls-files --others --exclude-standard
+```
+
+> Unity의 경우 본 파일과 `.meta`가 함께 표시되는지 반드시 확인한다.  
+> `.meta` 누락 시 Unity가 새 GUID를 생성해 씬/프리팹 참조가 깨진다.
+
+#### git add 후, commit 전
+
+```bash
+# 스테이징된 파일 목록 확인 (A=추가, M=수정, D=삭제)
+git diff --cached --name-status
+
+# 변경량 요약으로 이상 여부 확인
+git diff --cached --stat
+```
+
+의도한 파일이 모두 포함되었는지, 불필요한 파일(Logs, Library 등)이 없는지 확인한다.
+
+#### git pull 전
+
+```bash
+# 로컬 미저장 변경사항 확인 (pull 시 충돌·덮어쓰기 위험)
+git status
+
+# 변경사항이 있으면 임시 저장 후 pull
+git stash
+git pull origin <브랜치>
+git stash pop
+```
+
+#### git push 전
+
+```bash
+# push될 커밋 목록 확인 (누락 커밋 없는지 검증)
+git log origin/<브랜치>..HEAD --oneline
+
+# 워킹 트리가 깨끗한지 확인 (미커밋 파일 없어야 함)
+git status
+```
+
 ### RULE-08: 브랜치 폴더 교체 절차
 
 특정 브랜치의 디렉토리 전체를 현재 브랜치로 가져올 때 반드시 아래 순서를 따른다.
@@ -180,12 +229,22 @@ git diff --name-only origin/<브랜치> -- <경로>/ | head -20
 
 ## 커밋 전 체크리스트
 
-- [ ] `git status` 확인
-- [ ] 변경 파일 목록 확인
-- [ ] 의도하지 않은 파일 포함 여부 확인
+**add 전**
+- [ ] `git status` — 변경 파일 전체 목록 파악
+- [ ] `git ls-files --others --exclude-standard` — 누락 가능한 untracked 파일 확인
+- [ ] Unity: 본 파일과 `.meta` 파일이 함께 표시되는지 확인
+
+**add 후, commit 전**
+- [ ] `git diff --cached --name-status` — 스테이징된 파일 목록 재확인
+- [ ] `git diff --cached --stat` — 변경량 요약으로 이상 여부 확인
+- [ ] 의도하지 않은 파일 포함 여부 확인 (Logs, Library, node_modules 등)
 - [ ] `.env` 포함 여부 확인
 - [ ] Unity `Library/Temp/obj/Logs` 포함 여부 확인
 - [ ] 관련 README 업데이트 여부 확인
+
+**push 전**
+- [ ] `git log origin/<브랜치>..HEAD --oneline` — push될 커밋 목록 확인
+- [ ] `git status` — 워킹 트리 깨끗한지 확인 (미커밋 파일 없어야 함)
 
 ---
 
@@ -226,4 +285,12 @@ AGENT-GIT-09: 브랜치 생성·삭제·merge·rebase 전 반드시 사용자에
 AGENT-GIT-10: 브랜치 폴더 교체 후 git diff --name-status origin/<브랜치> -- <경로>/ 로
              누락 파일(D 표시)이 없는지 반드시 검증한다.
              누락 파일이 있으면 추가 checkout 후 함께 커밋한다.
+AGENT-GIT-11: git add 전 git ls-files --others --exclude-standard 로 누락 가능한
+             untracked 파일(특히 .meta, 새 에셋)이 없는지 확인한다.
+AGENT-GIT-12: git add 후 커밋 전 git diff --cached --name-status 로 스테이징된
+             파일 목록을 반드시 확인하고, 의도하지 않은 파일이 없는지 검증한다.
+AGENT-GIT-13: git push 전 git log origin/<브랜치>..HEAD --oneline 으로 push될
+             커밋 목록을 확인하고 누락된 커밋이 없는지 검증한다.
+AGENT-GIT-14: git pull 전 git status 로 로컬 변경사항을 확인한다.
+             변경사항이 있으면 commit 또는 stash 처리 후 pull한다.
 ```
