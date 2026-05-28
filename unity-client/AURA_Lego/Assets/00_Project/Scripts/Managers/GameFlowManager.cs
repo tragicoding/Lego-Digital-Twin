@@ -47,6 +47,9 @@ namespace LegoTwin.Managers
         [Tooltip("자유 모드 전환 시 표시할 팝업 — FreeModePopupUI 컴포넌트가 붙은 GameObject 연결")]
         [SerializeField] private FreeModePopupUI _freeModePopup;
 
+        [Tooltip("모션 프롬프트 입력 UI — MotionPromptUI 컴포넌트가 붙은 GameObject 연결")]
+        [SerializeField] private MotionPromptUI _motionPromptUI;
+
         // ── 런타임 참조 (이벤트 해제용) ─────────────────────────────
         private GuideNPCController _currentNPC;
         private string             _currentNpcName;
@@ -191,13 +194,21 @@ namespace LegoTwin.Managers
             _playerFollowGuide.transform.position = destination;
         }
 
+        /// <summary>
+        /// [Step 3] 모션 프롬프트 입력 요청.
+        /// MotionPromptUI 입력창을 열고, 플레이어가 확인을 누르면 callback(text) 가 호출된다.
+        /// </summary>
         private void OnMotionPromptRequested(Action<string> callback)
         {
-            Debug.Log("[GameFlowManager] 모션 입력 요청 (임시: '춤춰줘' 즉시 반환)");
+            if (_motionPromptUI == null)
+            {
+                Debug.LogWarning("[GameFlowManager] _motionPromptUI 미연결 — Inspector에서 연결하세요. 임시로 '춤춰줘' 반환.");
+                callback?.Invoke("춤춰줘");
+                return;
+            }
 
-            // ── 임시 더미 ─────────────────────────────────────────────
-            callback?.Invoke("춤춰줘");
-            // ──────────────────────────────────────────────────────────
+            Debug.Log("[GameFlowManager] 모션 입력 UI 표시");
+            _motionPromptUI.Show(callback);
         }
 
         // ════════════════════════════════════════════════════════════
