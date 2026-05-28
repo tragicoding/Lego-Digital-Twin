@@ -50,10 +50,16 @@ form 안에는
 asset_type: "character"
 file: 이미지 파일
 */
-export const uploadAsset = (sessionId: string, assetType: string, file: File) => {
+export const uploadAsset = (
+  sessionId: string,
+  assetType: string,
+  file: File,
+  view: "front" | "back" | "left" | "right" = "front",
+) => {
   const form = new FormData();
   form.append("asset_type", assetType);
   form.append("file", file);
+  form.append("view", view);
   return api.post(`/sessions/${sessionId}/assets`, form);
 };
 
