@@ -13,7 +13,7 @@ namespace LegoTwin.Managers
     /// 역할:
     ///   1. SessionManager.OnSessionLoaded 구독
     ///   2. 캐릭터(가이드 + 배치) · 오브제 스폰 지시
-    ///   3. GuideNPCController 이벤트 구독 (말풍선, 입력 UI, 자유 모드 전환)
+    ///   3. GuideNPCController 이벤트 구독 (말풍선, 모션 입력, 자유 모드 전환)
     ///   4. StartGuideScenario() 호출 → 등장 씬부터 자동 진행
     ///
     /// Mock → Server 전환 시 이 파일은 수정하지 않는다.
@@ -23,6 +23,7 @@ namespace LegoTwin.Managers
     ///   [ ] 씬에 이 컴포넌트를 가진 GameFlowManager GameObject 배치
     ///   [ ] _characterSpawner 필드에 GeneratedCharacterSpawner 연결
     ///   [ ] _objectSpawner    필드에 GeneratedObjectSpawner    연결 (없으면 스킵)
+    ///   [ ] _freeModePopup    필드에 자유모드 팝업 GameObject   연결
     /// </summary>
     public class GameFlowManager : MonoBehaviour
     {
@@ -42,6 +43,9 @@ namespace LegoTwin.Managers
         [Header("UI")]
         [Tooltip("말풍선 UI — DialogueUI 컴포넌트가 붙은 Canvas GameObject 연결")]
         [SerializeField] private DialogueUI _dialogueUI;
+
+        [Tooltip("자유 모드 전환 시 표시할 팝업 — FreeModePopupUI 컴포넌트가 붙은 GameObject 연결")]
+        [SerializeField] private FreeModePopupUI _freeModePopup;
 
         // ── 런타임 참조 (이벤트 해제용) ─────────────────────────────
         private GuideNPCController _currentNPC;
@@ -73,7 +77,6 @@ namespace LegoTwin.Managers
 
         private void OnDestroy()
         {
-            // 이벤트 구독 해제 (메모리 누수 방지)
             if (SessionManager.Instance != null)
                 SessionManager.Instance.OnSessionLoaded -= OnSessionLoaded;
 
@@ -90,7 +93,6 @@ namespace LegoTwin.Managers
             _currentNpcName = session.character_npc_name;
 
             // ① 배치 캐릭터 스폰 (광장 오브제 옆, 모션 씬에서 사용)
-            // SpawnPlaced 가 컴포넌트 자동 주입 후 PlacedCharacterController 를 바로 반환한다.
             PlacedCharacterController placedCharacter = null;
             if (_characterSpawner != null)
                 placedCharacter = _characterSpawner.SpawnPlaced(session);
@@ -117,20 +119,18 @@ namespace LegoTwin.Managers
                 return;
             }
 
-            // ④ 배치 캐릭터 → NPC에 연결 (모션 씬 Step 5 에서 사용)
+            // ④ 배치 캐릭터 → NPC에 연결 (모션 씬 Step 3 에서 사용)
             npc.placedCharacter = placedCharacter;
 
             // ⑤ NPC 이벤트 구독
             _currentNPC = npc;
-            npc.OnDialogueChanged         += OnDialogueChanged;
-            npc.OnGuideFinished           += OnGuideFinished;
-            npc.OnBubbleTextInputRequested += OnBubbleTextInputRequested;
-            npc.OnMotionPromptRequested   += OnMotionPromptRequested;
-            // 광장 이동 시작 시점에만 따라가기 활성화 (인사·소개 구간은 제외)
-            npc.OnPlazaMoveStarted        += OnPlazaMoveStarted;
+            npc.OnDialogueChanged           += OnDialogueChanged;
+            npc.OnFreeModeSwitched          += OnFreeModeSwitched;
+            npc.OnGuideFinished             += OnGuideFinished;
+            npc.OnMotionPromptRequested     += OnMotionPromptRequested;
+            npc.OnPlayerTeleportRequested   += OnPlayerTeleportRequested;
 
             // ⑥ 시나리오 시작 ── GuideScenarioRoutine() 코루틴 실행
-            //    등장 씬(Step 1) 부터 자유 모드 전환(Step 8) 까지 자동 진행
             npc.StartGuideScenario();
         }
 
@@ -138,9 +138,6 @@ namespace LegoTwin.Managers
         // NPC 이벤트 핸들러
         // ════════════════════════════════════════════════════════════
 
-        /// <summary>
-        /// [Step 1·2·3…] 말풍선 텍스트 변경 시 호출.
-        /// </summary>
         private void OnDialogueChanged(string text)
         {
             Debug.Log($"[말풍선] {text}");
@@ -148,15 +145,17 @@ namespace LegoTwin.Managers
         }
 
         /// <summary>
-        /// [Step 3] 광장 이동 시작 → 플레이어 따라가기 활성화.
+        /// [Step 5] 자유 모드 팝업 표시.
+        /// "자유모드로 전환되었습니다." 팝업을 _freeModePopup에 연결하면 자동 활성화된다.
         /// </summary>
-        private void OnPlazaMoveStarted()
+        private void OnFreeModeSwitched()
         {
-            _playerFollowGuide?.StartFollowing(_currentNPC);
+            Debug.Log("[GameFlowManager] 자유 모드 전환 팝업 표시");
+            _freeModePopup?.Show();   // 페이드 인 → displayDuration 대기 → 페이드 아웃 자동 실행
         }
 
         /// <summary>
-        /// [Step 8] 가이드 시나리오 완료 → 자유 모드 전환.
+        /// [Step 5] 가이드 시나리오 완료 → 자유 모드 전환.
         ///
         /// TODO: PlazaManager 구현 후 아래 주석 해제:
         ///   LegoTwin.Plaza.PlazaManager.Instance.EnterPlaza();
@@ -171,29 +170,27 @@ namespace LegoTwin.Managers
         }
 
         /// <summary>
-        /// [Step 6] 인사말(bubble_text) 입력 요청.
+        /// [Step 3] 모션 프롬프트 입력 요청.
         /// VR 키보드 또는 입력 UI를 열고, 입력 완료 시 callback(text) 를 호출한다.
         ///
         /// TODO: VR 입력 UI 연동 후 아래 더미 코드 교체:
         ///   _inputUI.Open(inputText => callback(inputText));
         /// </summary>
-        private void OnBubbleTextInputRequested(Action<string> callback)
+        /// <summary>
+        /// [Step 2] 창작물 위치로 플레이어 순간이동.
+        /// _playerFollowGuide 가 XR Origin 루트에 붙어있으므로 그 transform 을 직접 이동한다.
+        /// </summary>
+        private void OnPlayerTeleportRequested(Vector3 destination)
         {
-            Debug.Log("[GameFlowManager] 인사말 입력 요청 (임시: 더미 텍스트 즉시 반환)");
-
-            // ── 임시 더미 ─────────────────────────────────────────────
-            // VR 입력 UI 완성 전까지 즉시 반환해 시나리오가 멈추지 않게 함
-            callback?.Invoke("안녕하세요!");
-            // ──────────────────────────────────────────────────────────
+            if (_playerFollowGuide == null)
+            {
+                Debug.LogWarning("[GameFlowManager] _playerFollowGuide 미연결 — 플레이어 순간이동 생략");
+                return;
+            }
+            Debug.Log($"[GameFlowManager] 플레이어 순간이동 → {destination}");
+            _playerFollowGuide.transform.position = destination;
         }
 
-        /// <summary>
-        /// [Step 5] 모션 프롬프트 입력 요청.
-        /// VR 키보드 또는 입력 UI를 열고, 입력 완료 시 callback(text) 를 호출한다.
-        ///
-        /// TODO: VR 입력 UI 연동 후 아래 더미 코드 교체:
-        ///   _inputUI.Open(inputText => callback(inputText));
-        /// </summary>
         private void OnMotionPromptRequested(Action<string> callback)
         {
             Debug.Log("[GameFlowManager] 모션 입력 요청 (임시: '춤춰줘' 즉시 반환)");
@@ -210,11 +207,11 @@ namespace LegoTwin.Managers
         private void UnsubscribeNPCEvents()
         {
             if (_currentNPC == null) return;
-            _currentNPC.OnDialogueChanged          -= OnDialogueChanged;
-            _currentNPC.OnGuideFinished            -= OnGuideFinished;
-            _currentNPC.OnBubbleTextInputRequested -= OnBubbleTextInputRequested;
-            _currentNPC.OnMotionPromptRequested    -= OnMotionPromptRequested;
-            _currentNPC.OnPlazaMoveStarted         -= OnPlazaMoveStarted;
+            _currentNPC.OnDialogueChanged           -= OnDialogueChanged;
+            _currentNPC.OnFreeModeSwitched          -= OnFreeModeSwitched;
+            _currentNPC.OnGuideFinished             -= OnGuideFinished;
+            _currentNPC.OnMotionPromptRequested     -= OnMotionPromptRequested;
+            _currentNPC.OnPlayerTeleportRequested   -= OnPlayerTeleportRequested;
             _currentNPC = null;
         }
     }

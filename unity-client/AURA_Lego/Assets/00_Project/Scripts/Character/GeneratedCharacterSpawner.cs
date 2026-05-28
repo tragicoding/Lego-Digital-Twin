@@ -38,10 +38,10 @@ namespace LegoTwin.Character
         public Transform guideSpawnPoint;
         [Tooltip("가이드 NPC 가 걸어가서 멈출 위치 (인사 위치). 비워두면 스폰 위치에서 즉시 인사.")]
         public Transform   guideArrivalPoint;
-        [Tooltip("광장까지 이동 경로 웨이포인트 (순서대로 연결)")]
-        public Transform[] plazaPathWaypoints;
-        [Tooltip("내 창작물 앞 위치 (캐릭터+오브제 확인 위치)")]
+        [Tooltip("내 창작물 앞 위치 — NPC 순간이동 대상")]
         public Transform   myCreationWaypoint;
+        [Tooltip("창작물 확인 시 플레이어가 순간이동할 위치. 비워두면 myCreationWaypoint 위치 사용.")]
+        public Transform   playerTeleportPoint;
         [Tooltip("광장 배치 캐릭터 위치 (오브제 옆)")]
         public Transform placedSpawnPoint;
 
@@ -127,10 +127,10 @@ namespace LegoTwin.Character
             // 웨이포인트 전달 — 씬에 배치된 Transform 을 NPC 에 주입
             if (guideArrivalPoint != null)
                 npc.guideArrivalPoint = guideArrivalPoint;
-            if (plazaPathWaypoints is { Length: > 0 })
-                npc.plazaPathWaypoints = plazaPathWaypoints;
             if (myCreationWaypoint != null)
                 npc.myCreationWaypoint = myCreationWaypoint;
+            if (playerTeleportPoint != null)
+                npc.playerTeleportPoint = playerTeleportPoint;
 
             Debug.Log($"[CharacterSpawner] Guide 설정 완료: {session.character_npc_name}");
             return npc;
