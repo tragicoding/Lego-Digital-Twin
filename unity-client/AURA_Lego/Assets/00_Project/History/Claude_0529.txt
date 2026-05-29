@@ -1,0 +1,331 @@
+================================================================
+Claude Code 작업 기록
+날짜: 2026-05-29
+브랜치: feature/unity
+================================================================
+
+────────────────────────────────────────────────────────────────
+[세션 1] 시나리오 0529 버전 분석
+────────────────────────────────────────────────────────────────
+
+## 참고 문서
+  DevelopmentHelp_0528.md (이전 시나리오)
+  DevelopmentHelp_0529.md (신규 시나리오)
+  Claude_0528.txt / Claude_0528_2.txt (이전 작업 기록)
+
+## 0528 vs 0529 핵심 차이
+
+  | 구분              | 0528 (변경 전)                        | 0529 (변경 후)                     |
+  |------------------|--------------------------------------|-----------------------------------|
+  | 인사 대사          | 3문장 + 월드 소개 4문장                  | 3문장 (내용 변경)                   |
+  | 광장 이동          | plazaPathWaypoints 따라 걸어서 이동     | 순간이동(텔레포트)                   |
+  | 창작물 대사         | "저기 당신이 만든 오브제가 보이네요…"       | "짜잔! 당신이 만든 오브제에요"         |
+  | 모션 대사          | "여러분의 시그니처 동작을…"               | "캐릭터에는 원하는 동작을 입력할 수 있어요…" |
+  | 인사말 입력         | OnBubbleTextInputRequested 단계 있음   | 삭제                               |
+  | 투표 설명          | "들어가기 전, 광장에서는…"               | "광장에서는 다른 창작자들이…"           |
+  | 자유모드 전환       | OnGuideFinished만 발행                | 팝업 추가 ("자유모드로 전환되었습니다.")  |
+
+
+────────────────────────────────────────────────────────────────
+[세션 2] GuideNPCController.cs 전면 수정
+────────────────────────────────────────────────────────────────
+
+## 수정 파일
+  Scripts/Character/GuideNPCController.cs
+
+## 삭제된 내용
+  - 이벤트: OnBubbleTextInputRequested (인사말 입력 삭제)
+  - 이벤트: OnPlazaMoveStarted (걷기 이동 없으므로 불필요)
+  - 필드: plazaPathWaypoints[] (걷기 이동 경로 - 사용 안 함)
+  - Step 2: 월드 소개 4문장 블록 전체
+  - Step 6: 인사말 입력(bubble_text) 단계 전체
+  - ApiClient.UpdateBubbleText() 호출 코드
+
+## 추가된 내용
+  - 이벤트: OnFreeModeSwitched (자유모드 팝업 표시용)
+  - 이벤트: OnPlayerTeleportRequested(Vector3) (플레이어 동반 순간이동)
+  - 필드: public Transform playerTeleportPoint
+  - 메서드: TeleportTo(Vector3) — NPC 즉시 이동 + 플레이어 이벤트 발행
+
+## 최종 GuideScenarioRoutine() 단계
+
+  Step 0: 등장 — guideArrivalPoint까지 걸어서 이동 + FacePlayerRoutine()
+  Step 1: 입장 인사
+          Say("MINIVERSE에 오신 걸 환영해요!")                          → 3초
+          Say("저는 당신이 만든 '{_npcName}'이에요.")                    → 3초
+          Say("광장에 가서 오브제들을 확인해볼까요?")                     → 3초
+  Step 2: 순간이동
+          TeleportTo(myCreationWaypoint.position)
+          OnPlayerTeleportRequested 이벤트 발행 → 플레이어도 이동
+          FacePlayerRoutine()
+          Say("짜잔! 당신이 만든 오브제에요")                            → 3초
+  Step 3: 모션 프롬프트 입력
+          Say("캐릭터에는 원하는 동작을 입력할 수 있어요, 한번 해볼까요?") → 3초
+          OnMotionPromptRequested 이벤트 발행 → 입력 대기
+          placedCharacter.PlayMotionFromPrompt(motionInput)           → 2초
+  Step 4: 투표 설명
+          Say("광장에서는 다른 창작자들이 만든 오브제들도 볼 수 있어요.") → 3초
+          Say("다가가서 마음에 드는 오브제에게 투표를 해보세요!")          → 3초
+  Step 5: 자유 모드 전환
+          OnFreeModeSwitched 이벤트 발행 → 팝업 표시
+          1.5초 대기
+          OnGuideFinished 이벤트 발행 → 자유 모드 전환
+
+
+────────────────────────────────────────────────────────────────
+[세션 3] GameFlowManager.cs 수정
+────────────────────────────────────────────────────────────────
+
+## 수정 파일
+  Scripts/Managers/GameFlowManager.cs
+
+## 삭제된 내용
+  - OnBubbleTextInputRequested 핸들러 및 구독/해제
+  - OnPlazaMoveStarted 핸들러 및 구독/해제
+
+## 추가된 내용
+  - [SerializeField] private FreeModePopupUI _freeModePopup
+  - [SerializeField] private MotionPromptUI  _motionPromptUI
+  - OnFreeModeSwitched() → _freeModePopup.Show()
+  - OnPlayerTeleportRequested(Vector3) → _playerFollowGuide.transform.position 이동
+  - OnMotionPromptRequested() → 더미 코드 삭제, _motionPromptUI.Show(callback) 호출
+
+## Inspector 체크리스트 (추가 필드)
+  [ ] GameFlowManager → _freeModePopup   : FreeModePopupUI GameObject 연결
+  [ ] GameFlowManager → _motionPromptUI  : MotionPromptUI GameObject 연결
+  [ ] GameFlowManager → _playerFollowGuide: XR Origin 루트 연결 (기존)
+
+
+────────────────────────────────────────────────────────────────
+[세션 4] GeneratedCharacterSpawner.cs 수정
+────────────────────────────────────────────────────────────────
+
+## 수정 파일
+  Scripts/Character/GeneratedCharacterSpawner.cs
+
+## 변경 내용
+  - Inspector 필드 plazaPathWaypoints[] 삭제
+    (GuideNPCController에서 해당 필드 삭제됨 → 컴파일 에러 수정)
+  - SetupAsGuide() 내 npc.plazaPathWaypoints 주입 코드 삭제
+  - Inspector 필드 playerTeleportPoint 추가
+  - SetupAsGuide() 내 npc.playerTeleportPoint 주입 코드 추가
+
+## Inspector 체크리스트
+  [ ] My Creation Waypoint  : NPC가 순간이동할 위치 (창작물 옆)
+  [ ] Player Teleport Point : 플레이어가 순간이동할 위치 (NPC와 마주보는 위치)
+      비워두면 myCreationWaypoint 위치 그대로 사용
+
+
+────────────────────────────────────────────────────────────────
+[세션 5] FreeModePopupUI.cs 신규 생성
+────────────────────────────────────────────────────────────────
+
+## 생성 파일
+  Scripts/UI/FreeModePopupUI.cs
+
+## 주요 기능
+  - Show() → 페이드 인 → displayDuration 대기 → 페이드 아웃 → 비활성화 자동 실행
+  - Hide() → 즉시 페이드 아웃 + 비활성화
+  - gameObject.SetActive(true) 자동 처리
+    (Canvas 비활성 시 StartCoroutine 실패 에러 방지)
+
+## Inspector 필드
+  _popupRoot      (GameObject) — 비활성 상태로 시작
+  _popupText      (TMP_Text)   — "자유모드로 전환되었습니다." 기본값
+  _canvasGroup    (CanvasGroup)
+  _fadeDuration   (float, 기본 0.4초)
+  _displayDuration(float, 기본 2.0초)
+  _message        (string)     — Inspector에서 텍스트 변경 가능
+
+## Unity Hierarchy 구조
+  FreeModePopupUI  ☑ (Canvas — 항상 활성)
+    └── PopupRoot  ☐ (비활성으로 시작 + CanvasGroup)
+         └── PopupPanel
+              └── PopupText (TMP_Text)
+
+## 트러블슈팅
+  오류: "Coroutine couldn't be started because the game object 'FreeModePopup' is inactive!"
+  원인: Canvas 전체를 Inspector에서 비활성화함
+  해결: Show() 내부에 gameObject.SetActive(true) 추가
+        Canvas는 항상 활성, PopupRoot만 비활성 상태로 시작
+
+
+────────────────────────────────────────────────────────────────
+[세션 6] 플레이어 동반 순간이동 구현
+────────────────────────────────────────────────────────────────
+
+## 배경
+  TeleportTo() 호출 시 NPC만 순간이동하고 플레이어는 제자리에 남는 문제
+
+## 구현 흐름
+
+  GuideNPCController.TeleportTo(npcPosition)
+    → transform.position = npcPosition          (NPC 이동)
+    → OnPlayerTeleportRequested?.Invoke(dest)   (이벤트 발행)
+        dest = playerTeleportPoint.position
+               (없으면 npcPosition)
+
+  GameFlowManager.OnPlayerTeleportRequested(destination)
+    → _playerFollowGuide.transform.position = destination
+      (_playerFollowGuide가 XR Origin 루트에 붙어있으므로 바로 이동)
+
+## 관련 파일
+  GuideNPCController.cs  — TeleportTo(), OnPlayerTeleportRequested 이벤트
+  GameFlowManager.cs     — OnPlayerTeleportRequested 핸들러
+  GeneratedCharacterSpawner.cs — playerTeleportPoint Inspector 필드 + NPC 주입
+
+
+────────────────────────────────────────────────────────────────
+[세션 7] MotionPromptUI.cs 신규 생성 (실제 키보드 입력)
+────────────────────────────────────────────────────────────────
+
+## 생성 파일
+  Scripts/UI/MotionPromptUI.cs
+
+## 주요 기능
+  - Show(Action<string> callback): 입력창 표시 + 콜백 등록
+  - 확인 버튼 클릭 또는 Enter/KeypadEnter 키로 제출
+  - 빈 입력 시 제출 무시
+  - 제출 후 자동으로 창 닫힘 + callback(inputText) 호출
+
+## Inspector 필드
+  _popupRoot    (GameObject)     — 비활성으로 시작
+  _inputField   (TMP_InputField) — 텍스트 입력창
+  _submitButton (Button)         — 확인 버튼
+  _canvasGroup  (CanvasGroup)    — 페이드 인/아웃
+  _fadeDuration (float, 기본 0.2초)
+
+## Unity Hierarchy 구조
+  MotionPromptUI  ☑ (Canvas + CanvasGroup + MotionPromptUI 스크립트)
+    └── PopupRoot ☐ (비활성으로 시작)
+         └── Panel
+              ├── TitleText    (TMP_Text — "원하는 동작을 입력하세요")
+              ├── InputField   (TMP_InputField)
+              └── SubmitButton (Button)
+                   └── ButtonText (TMP_Text — "확인")
+
+## GameFlowManager 연동
+  - _motionPromptUI 미연결 시: 경고 로그 + fallback("춤춰줘") 반환
+  - 연결 시: _motionPromptUI.Show(callback) 호출 → 실제 입력 대기
+
+
+────────────────────────────────────────────────────────────────
+[세션 8] Animator Controller 구성 안내
+────────────────────────────────────────────────────────────────
+
+## 파일 경로
+  Assets/00_Project/Animations/Character/NPC_AnimatorController.controller
+
+## 필요 파라미터
+  isWalking (Bool)    — 걷기/멈춤 전환
+  motion    (Trigger) — Mixamo 클립 교체 재생
+
+## 상태머신 구성
+  [Entry] → [Idle]
+  Idle → Walk: Condition isWalking = true,  Has Exit Time 해제
+  Walk → Idle: Condition isWalking = false, Has Exit Time 해제
+  Any State → Motion: Condition motion(Trigger), Has Exit Time 해제
+  Motion → Idle: Has Exit Time ☑, Exit Time 1.0
+
+## 핵심 주의사항
+  Motion 스테이트의 클립 이름이 반드시 "Motion" 이어야 함
+  → CharacterAnimationController.MOTION_SLOT = "Motion" 상수가
+    AnimatorOverrideController에서 이 이름으로 슬롯을 찾음
+
+
+────────────────────────────────────────────────────────────────
+[세션 9] MixamoMotionLibrary 및 에셋 구성
+────────────────────────────────────────────────────────────────
+
+## 생성된 에셋
+  Assets/00_Project/Animations/Mixamo/
+    Dance.anim, Jump.anim, Jump2.anim
+    Motion.anim (placeholder — 런타임 교체 대상)
+    Run.anim, Run2.anim
+    NPC_MotionLibrary.asset (MixamoMotionLibrary ScriptableObject)
+
+## 연결 방법
+  GeneratedCharacterSpawner Inspector
+    → Motion Library 슬롯에 NPC_MotionLibrary.asset 드래그
+  SetupAsPlaced()에서 placed.motionLibrary에 자동 주입됨
+
+## 트러블슈팅
+  오류: "[PlacedCharacterController] motionLibrary가 연결되지 않았습니다."
+  원인: GeneratedCharacterSpawner.motionLibrary 필드가 Inspector에서 미연결
+  해결: NPC_MotionLibrary.asset 생성 후 Inspector에서 연결
+
+
+────────────────────────────────────────────────────────────────
+[커밋 내역]
+────────────────────────────────────────────────────────────────
+
+  3494d08  feat(unity): 가이드 시나리오 0529 개정 — 순간이동·FreeModePopup·플레이어 동반 텔레포트
+  0d56d9a  feat(unity): Mixamo 모션 클립 추가 및 NPC_AnimatorController·MotionLibrary 구성
+  a044bdd  feat(unity): 모션 프롬프트 키보드 입력 UI 구현
+
+
+────────────────────────────────────────────────────────────────
+[최종 파일 상태]
+────────────────────────────────────────────────────────────────
+
+## 신규 생성
+  | 파일                              | 내용                                        |
+  |----------------------------------|---------------------------------------------|
+  | Scripts/UI/FreeModePopupUI.cs    | 자유모드 전환 팝업 (CanvasGroup 페이드 인/아웃) |
+  | Scripts/UI/MotionPromptUI.cs     | 모션 프롬프트 키보드 입력 UI                   |
+  | Animations/Mixamo/NPC_MotionLibrary.asset | MixamoMotionLibrary ScriptableObject  |
+  | Animations/Mixamo/Dance.anim 외 5개 | Mixamo 모션 클립                          |
+
+## 수정
+  | 파일                                    | 주요 변경 내용                                           |
+  |----------------------------------------|--------------------------------------------------------|
+  | Scripts/Character/GuideNPCController.cs | 시나리오 0529 전면 개정, TeleportTo, 이벤트 추가/삭제      |
+  | Scripts/Managers/GameFlowManager.cs     | 이벤트 구독 수정, MotionPromptUI·FreeModePopup 연결       |
+  | Scripts/Character/GeneratedCharacterSpawner.cs | plazaPathWaypoints 삭제, playerTeleportPoint 추가 |
+  | Animations/Character/NPC_AnimatorController.controller | 상태머신 구성 완료               |
+
+
+────────────────────────────────────────────────────────────────
+[Unity Inspector 최종 체크리스트]
+────────────────────────────────────────────────────────────────
+
+  GeneratedCharacterSpawner
+    [ ] mockCharacterPrefab         연결
+    [ ] guideSpawnPoint             연결
+    [ ] guideArrivalPoint           연결
+    [ ] myCreationWaypoint          연결 (NPC 순간이동 목표)
+    [ ] playerTeleportPoint         연결 (플레이어 순간이동 목표)
+    [ ] placedSpawnPoint            연결
+    [ ] animatorController          NPC_AnimatorController 연결
+    [ ] motionLibrary               NPC_MotionLibrary.asset 연결
+
+  GameFlowManager
+    [ ] _characterSpawner           GeneratedCharacterSpawner 연결
+    [ ] _objectSpawner              GeneratedObjectSpawner 연결
+    [ ] _playerFollowGuide          XR Origin 루트의 PlayerFollowGuide 연결
+    [ ] _dialogueUI                 DialogueUI 연결
+    [ ] _freeModePopup              FreeModePopupUI 연결
+    [ ] _motionPromptUI             MotionPromptUI 연결
+
+  FreeModePopupUI (Canvas — 항상 활성)
+    [ ] _popupRoot                  PopupRoot (비활성으로 시작)
+    [ ] _popupText                  TMP_Text
+    [ ] _canvasGroup                CanvasGroup
+
+  MotionPromptUI (Canvas — 항상 활성)
+    [ ] _popupRoot                  PopupRoot (비활성으로 시작)
+    [ ] _inputField                 TMP_InputField
+    [ ] _submitButton               Button
+    [ ] _canvasGroup                CanvasGroup
+
+
+────────────────────────────────────────────────────────────────
+[미해결 / 추후 작업]
+────────────────────────────────────────────────────────────────
+
+  [ ] PlazaManager 연동 (OnGuideFinished → PlazaManager.Instance.EnterPlaza())
+  [ ] GeneratedCharacterSpawner.LoadFromServer() — TriLib FBX 런타임 로드 미구현
+  [ ] VR 키보드 연동 (MotionPromptUI → Meta XR SDK 키보드로 교체)
+  [ ] 전시 통합 테스트 (Server Mode 전환 후 실제 데이터로 검증)
+
+================================================================
