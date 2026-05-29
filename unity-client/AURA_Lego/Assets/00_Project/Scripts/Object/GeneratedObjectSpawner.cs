@@ -33,6 +33,15 @@ namespace LegoTwin.Object
         [Tooltip("스폰 시 적용할 Scale (x·y·z 동일)")]
         public float spawnScale = 1f;
 
+        [Header("물리 설정")]
+        [Tooltip("true면 스폰 후 Rigidbody를 추가해 중력 적용.\n" +
+                 "Collider가 없으면 MeshCollider(convex)를 자동 추가.\n" +
+                 "Mock 모드: Prefab에 Collider가 있으면 그대로 사용.")]
+        public bool applyGravity = true;
+
+        [Tooltip("Rigidbody Mass 값 (기본 1)")]
+        public float mass = 1f;
+
         private GameObject _spawnedObject;
 
         // ════════════════════════════════════════════════════════════
@@ -81,6 +90,9 @@ namespace LegoTwin.Object
             _spawnedObject.name = $"Object_{data.object_name}";
             _spawnedObject.transform.localScale = Vector3.one * spawnScale;
             Debug.Log($"[GeneratedObjectSpawner] Mock 스폰: {data.object_name} / scale: {spawnScale}");
+
+            if (applyGravity)
+                SetupPhysics(_spawnedObject);
         }
 
         // ════════════════════════════════════════════════════════════
@@ -120,6 +132,51 @@ namespace LegoTwin.Object
             await gltf.InstantiateMainSceneAsync(root.transform);
             _spawnedObject = root;
             Debug.Log($"[GeneratedObjectSpawner] Server GLB 스폰 완료: {data.object_name}");
+
+            if (applyGravity)
+                SetupPhysics(_spawnedObject);
+        }
+        // ════════════════════════════════════════════════════════════
+        // 물리 설정
+        // ════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// 스폰된 오브젝트에 중력을 적용한다.
+        ///   - Rigidbody 없으면 자동 추가 (useGravity = true)
+        ///   - Collider 없으면 하위 MeshFilter마다 MeshCollider(convex) 자동 추가
+        ///     (Dynamic Rigidbody는 convex Collider 필요)
+        /// </summary>
+        private void SetupPhysics(GameObject go)
+        {
+            // ── Rigidbody ─────────────────────────────────────────────
+            var rb = go.GetComponent<Rigidbody>();
+            if (rb == null)
+                rb = go.AddComponent<Rigidbody>();
+
+            rb.mass        = mass;
+            rb.useGravity  = true;
+            rb.constraints = RigidbodyConstraints.FreezeRotation;
+
+            // ── Collider — 없으면 MeshCollider 자동 추가 ──────────────
+            // Mock Prefab에 이미 Collider가 있으면 그대로 사용
+            bool hasCollider = go.GetComponentInChildren<Collider>() != null;
+            if (!hasCollider)
+            {
+                foreach (var mf in go.GetComponentsInChildren<MeshFilter>())
+                {
+                    if (mf.sharedMesh == null) continue;
+
+                    var col = mf.gameObject.GetComponent<MeshCollider>();
+                    if (col == null)
+                        col = mf.gameObject.AddComponent<MeshCollider>();
+
+                    col.sharedMesh = mf.sharedMesh;
+                    // Dynamic Rigidbody는 convex = true 필수
+                    col.convex = true;
+                }
+            }
+
+            Debug.Log($"[GeneratedObjectSpawner] 물리 설정 완료 (gravity): {go.name}");
         }
     }
 }

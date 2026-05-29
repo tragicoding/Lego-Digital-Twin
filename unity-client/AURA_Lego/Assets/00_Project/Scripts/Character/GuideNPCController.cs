@@ -178,9 +178,9 @@ namespace LegoTwin.Character
 
             // ── 5. 자유 모드 전환 ────────────────────────────────────
             Debug.Log("[GuideNPCController] 시나리오 완료");
-            OnFreeModeSwitched?.Invoke();           // 팝업 표시
-            yield return new WaitForSeconds(1.5f);  // 팝업 노출 시간
-            OnGuideFinished?.Invoke();              // 자유 모드 전환
+            OnFreeModeSwitched?.Invoke();
+            yield return new WaitForSeconds(1.5f);
+            OnGuideFinished?.Invoke();
         }
 
         // ════════════════════════════════════════════════════════════
@@ -193,7 +193,6 @@ namespace LegoTwin.Character
             StopMoving();
             transform.position = npcPosition;
 
-            // 플레이어 목표 위치: playerTeleportPoint 가 있으면 그 위치, 없으면 NPC 위치
             var playerDest = playerTeleportPoint != null
                 ? playerTeleportPoint.position
                 : npcPosition;

@@ -79,7 +79,7 @@ namespace LegoTwin.Character
             if (go == null) return null;
 
             _guideInstance = go;
-            return SetupAsGuide(go, session);   // ← 컴포넌트 자동 주입
+            return SetupAsGuide(go, session);
         }
 
         /// <summary>
@@ -97,34 +97,25 @@ namespace LegoTwin.Character
             if (go == null) return null;
 
             _placedInstance = go;
-            return SetupAsPlaced(go, session);  // ← 컴포넌트 자동 주입
+            return SetupAsPlaced(go, session);
         }
 
         // ════════════════════════════════════════════════════════════
         // 컴포넌트 자동 주입
         // ════════════════════════════════════════════════════════════
 
-        /// <summary>
-        /// Guide NPC 에 필요한 컴포넌트를 자동으로 추가·연결한다.
-        /// 서버 FBX 로드 완료 콜백에서도 동일하게 호출하면 된다:
-        ///   SetupAsGuide(serverLoadedGO, session)
-        /// </summary>
         private GuideNPCController SetupAsGuide(GameObject go, SessionData session)
         {
             SetupAnimatorController(go);
 
-            // 있으면 재사용, 없으면 AddComponent
             var anim = GetOrAdd<CharacterAnimationController>(go);
             var npc  = GetOrAdd<GuideNPCController>(go);
 
-            // Animation 필드 — Prefab 에 이미 연결돼 있으면 유지, 없을 때만 주입
             if (npc.Animation == null)
                 npc.Animation = anim;
 
-            // npcName · sessionId 세팅 + anim.Initialize() 내부 호출
             npc.Initialize(session);
 
-            // 웨이포인트 전달 — 씬에 배치된 Transform 을 NPC 에 주입
             if (guideArrivalPoint != null)
                 npc.guideArrivalPoint = guideArrivalPoint;
             if (myCreationWaypoint != null)
@@ -136,25 +127,16 @@ namespace LegoTwin.Character
             return npc;
         }
 
-        /// <summary>
-        /// Placed 캐릭터에 필요한 컴포넌트를 자동으로 추가·연결한다.
-        /// 서버 FBX 로드 완료 콜백에서도 동일하게 호출하면 된다:
-        ///   SetupAsPlaced(serverLoadedGO, session)
-        /// </summary>
         private PlacedCharacterController SetupAsPlaced(GameObject go, SessionData session)
         {
             SetupAnimatorController(go);
 
             var anim   = GetOrAdd<CharacterAnimationController>(go);
             var placed = GetOrAdd<PlacedCharacterController>(go);
-            // PlacedCharacterController.Awake() 가 _animation 을 GetComponent 로 찾으므로
-            // CharacterAnimationController 를 먼저 추가한 뒤 PlacedCharacterController 추가하면 자동 연결됨
 
-            // motionLibrary — Inspector 연결 없을 때만 주입
             if (placed.motionLibrary == null)
                 placed.motionLibrary = motionLibrary;
 
-            // 캐릭터 이름·말풍선 세팅
             anim.Initialize(session.assets?.character, session.bubble_text);
 
             Debug.Log($"[CharacterSpawner] Placed 설정 완료: {session.character_npc_name}");
@@ -174,11 +156,9 @@ namespace LegoTwin.Character
                 return null;
             }
 
-            // Server Mode: model_url 있으면 런타임 로드
             if (!string.IsNullOrEmpty(data.model_url))
                 return LoadFromServer(data, pos, rot, role);
 
-            // Mock Mode: Inspector Prefab 사용
             if (mockCharacterPrefab == null)
             {
                 Debug.LogWarning($"[CharacterSpawner] mockCharacterPrefab 없음 ({role}). " +
@@ -197,30 +177,8 @@ namespace LegoTwin.Character
             CharacterAssetData data, Vector3 pos, Quaternion rot, string role)
         {
             // TODO: TriLib 또는 glTFast 로 FBX/GLB 런타임 로드 후 SetupAsGuide/SetupAsPlaced 호출
-            //
-            // TriLib 예시 (Guide 기준):
-            //   var options = AssetLoaderOptions.CreateInstance();
-            //   AssetLoader.LoadModelFromUri(
-            //       data.model_url,
-            //       ctx => {
-            //           var go = ctx.RootGameObject;
-            //           go.transform.SetPositionAndRotation(pos, rot);
-            //           go.transform.localScale = Vector3.one * spawnScale;
-            //           HumanoidAvatarBuilder.Build(go);   // ← Humanoid Avatar 자동 구성
-            //           _guideInstance = go;
-            //           SetupAsGuide(go, session);         // ← 컴포넌트 자동 주입
-            //       },
-            //       null, null, null, null, options
-            //   );
-            //
-            // 텍스처(GLB) 적용 — glTFast:
-            //   var gltf = new GltfImport();
-            //   await gltf.Load(data.texture_url);
-            //   renderer.material = gltf.GetMaterial(0);
-
             Debug.Log($"[CharacterSpawner] Server Mode ({role}): {data.model_url} — TODO: TriLib 연동");
 
-            // 임시 fallback: FBX 로더 미구현 시 Mock Prefab 사용
             if (mockCharacterPrefab == null) return null;
 
             var fallback = Instantiate(mockCharacterPrefab, pos, rot);
@@ -233,10 +191,6 @@ namespace LegoTwin.Character
         // 유틸
         // ════════════════════════════════════════════════════════════
 
-        /// <summary>
-        /// Animator Controller 가 Inspector 에 연결되어 있고 캐릭터 Animator 에
-        /// 아직 Controller 가 없을 때만 자동으로 할당한다.
-        /// </summary>
         private void SetupAnimatorController(GameObject go)
         {
             if (animatorController == null) return;
@@ -248,10 +202,6 @@ namespace LegoTwin.Character
             Debug.Log($"[CharacterSpawner] Animator Controller 자동 연결: {go.name}");
         }
 
-        /// <summary>
-        /// T 컴포넌트가 go 에 있으면 반환, 없으면 AddComponent 후 반환.
-        /// Mock Prefab / 서버 FBX 모두 동일하게 동작한다.
-        /// </summary>
         private static T GetOrAdd<T>(GameObject go) where T : Component
         {
             var c = go.GetComponent<T>();
