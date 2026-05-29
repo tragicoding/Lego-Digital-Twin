@@ -23,5 +23,6 @@ namespace LegoTwin.Character
         Spin,       // 돌아, 회전
         Cheer,      // 만세, 환호
         Clap,       // 박수
+        Victory,    // 승리, 파이팅
     }
 }

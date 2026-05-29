@@ -30,6 +30,7 @@ namespace LegoTwin.Character
         private Animator _animator;
         private AnimatorOverrideController _overrideController;
         private bool _useBoolParam;
+        private Coroutine _loopCoroutine;
 
         // AnimatorOverrideController에서 교체할 클립 슬롯 이름
         // Base Animator Controller의 "Motion" 스테이트 클립 이름과 일치해야 함
@@ -144,6 +145,56 @@ namespace LegoTwin.Character
             _overrideController[MOTION_SLOT] = clip;
             _animator.SetTrigger("motion");
             Debug.Log($"[CharacterAnimationController] {npcName}: Motion → {clip.name}");
+        }
+
+        /// <summary>
+        /// Mixamo 클립을 무한 루프 재생한다.
+        /// normalizedTime이 0.95에 도달하면 같은 상태를 처음부터 재시작해
+        /// Idle로 빠져나가지 않고 매끄럽게 반복한다.
+        /// StopMotionLoop() 또는 animation_idle()로 중단한다.
+        /// </summary>
+        public void PlayMotionClipLooping(AnimationClip clip)
+        {
+            if (clip == null || _overrideController == null) return;
+
+            if (_loopCoroutine != null)
+                StopCoroutine(_loopCoroutine);
+
+            _overrideController[MOTION_SLOT] = clip;
+            _animator.SetTrigger("motion");
+            _loopCoroutine = StartCoroutine(LoopRoutine());
+            Debug.Log($"[CharacterAnimationController] {npcName}: MotionLoop 시작 → {clip.name}");
+        }
+
+        /// <summary>루프 모션을 중단하고 idle 상태로 복귀한다.</summary>
+        public void StopMotionLoop()
+        {
+            if (_loopCoroutine != null)
+            {
+                StopCoroutine(_loopCoroutine);
+                _loopCoroutine = null;
+            }
+            animation_idle();
+        }
+
+        private System.Collections.IEnumerator LoopRoutine()
+        {
+            // Motion 상태 진입 대기
+            yield return new WaitUntil(() =>
+                _animator.GetCurrentAnimatorStateInfo(0).IsName("Motion"));
+
+            while (true)
+            {
+                // normalizedTime이 0.95에 도달하면 처음부터 재시작 → 끊김 없이 반복
+                yield return new WaitUntil(() =>
+                {
+                    var info = _animator.GetCurrentAnimatorStateInfo(0);
+                    return info.IsName("Motion") && info.normalizedTime >= 0.95f;
+                });
+
+                _animator.Play("Motion", 0, 0f);
+                yield return null;
+            }
         }
 
         // ── 초기화 ───────────────────────────────────────────────────

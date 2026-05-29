@@ -122,6 +122,8 @@ namespace LegoTwin.Character
                 npc.myCreationWaypoint = myCreationWaypoint;
             if (playerTeleportPoint != null)
                 npc.playerTeleportPoint = playerTeleportPoint;
+            if (motionLibrary != null)
+                npc.motionLibrary = motionLibrary;
 
             Debug.Log($"[CharacterSpawner] Guide 설정 완료: {session.character_npc_name}");
             return npc;

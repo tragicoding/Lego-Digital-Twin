@@ -26,12 +26,19 @@ namespace LegoTwin.Character
         public MixamoMotionLibrary motionLibrary;
 
         private CharacterAnimationController _animation;
+        private Animator _animator;
 
         private void Awake()
         {
             _animation = GetComponent<CharacterAnimationController>();
             if (_animation == null)
                 _animation = GetComponentInChildren<CharacterAnimationController>();
+
+            _animator = GetComponentInChildren<Animator>();
+
+            // 프롬프트 입력 전까지 애니메이션 비활성
+            if (_animator != null)
+                _animator.enabled = false;
         }
 
         // ════════════════════════════════════════════════════════════
@@ -71,8 +78,12 @@ namespace LegoTwin.Character
                 return;
             }
 
-            Debug.Log($"[PlacedCharacterController] '{input}' → {motionType} → {clip.name}");
-            _animation.PlayMotionClip(clip);
+            // 첫 프롬프트 입력 시 Animator 활성화
+            if (_animator != null && !_animator.enabled)
+                _animator.enabled = true;
+
+            Debug.Log($"[PlacedCharacterController] '{input}' → {motionType} → {clip.name} (loop)");
+            _animation.PlayMotionClipLooping(clip);
         }
 
         /// <summary>

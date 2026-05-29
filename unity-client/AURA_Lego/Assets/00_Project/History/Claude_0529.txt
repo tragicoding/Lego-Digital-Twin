@@ -327,5 +327,132 @@ Claude Code 작업 기록
   [ ] GeneratedCharacterSpawner.LoadFromServer() — TriLib FBX 런타임 로드 미구현
   [ ] VR 키보드 연동 (MotionPromptUI → Meta XR SDK 키보드로 교체)
   [ ] 전시 통합 테스트 (Server Mode 전환 후 실제 데이터로 검증)
+  [ ] playerTeleportPoint 씬에서 정확한 위치 설정
+
+
+────────────────────────────────────────────────────────────────
+[세션 10] FreeModePopupUI Coroutine 에러 수정
+────────────────────────────────────────────────────────────────
+
+## 오류
+  Coroutine couldn't be started because the game object 'FreeModePopup' is inactive!
+
+## 원인
+  Canvas 전체를 Inspector에서 비활성화 → StartCoroutine 호출 불가
+
+## 해결
+  FreeModePopupUI.Show() 내부에 아래 코드 추가:
+    if (!gameObject.activeInHierarchy)
+        gameObject.SetActive(true);
+
+## 올바른 Unity Hierarchy 구조
+  FreeModePopupUI (Canvas) ☑  ← Canvas는 항상 활성
+    └── PopupRoot            ☐  ← 이것만 비활성으로 시작
+
+  동일 규칙이 MotionPromptUI, DialogueUI에도 적용됨.
+
+## 수정 파일
+  Scripts/UI/FreeModePopupUI.cs
+
+
+────────────────────────────────────────────────────────────────
+[세션 11] GeneratedObjectSpawner 물리 설정 추가
+────────────────────────────────────────────────────────────────
+
+## 배경
+  오브제가 생성 후 쓰러지는 문제 발생
+
+## 구현
+  GeneratedObjectSpawner.SetupPhysics(go):
+    - Rigidbody: useGravity = true
+    - rb.constraints = RigidbodyConstraints.FreezeRotation  ← 쓰러짐 방지
+    - MeshCollider(convex = true): 자식 MeshFilter에서 자동 추가
+      Prefab에 이미 Collider 있으면 스킵
+
+## 추가된 Inspector 필드
+  applyGravity (bool, 기본 true) — true면 Rigidbody + MeshCollider 자동 추가
+  mass (float, 기본 1)           — Rigidbody Mass
+
+## 수정 파일
+  Scripts/Object/GeneratedObjectSpawner.cs
+
+
+────────────────────────────────────────────────────────────────
+[세션 12] 캐릭터 중력 설정 시도 → 전체 취소
+────────────────────────────────────────────────────────────────
+
+## 시도한 내용
+  GeneratedCharacterSpawner에 물리 설정 추가 (Rigidbody + CapsuleCollider)
+  GuideNPCController에 isKinematic 전환 코드 추가
+
+## 발생한 문제
+  1. 배치 캐릭터: 공중에 부유 (CapsuleCollider center 오계산)
+  2. 가이드 캐릭터: 몸이 땅에 박힘 (FacePlayerRoutine과 Rigidbody 충돌)
+  3. 캐릭터가 아주 천천히 낙하 (gravityMultiplier로 가속 시도했으나 근본 해결 안 됨)
+
+## 결론
+  Rigidbody + transform 직접 조작 방식이 근본적으로 충돌
+  → 캐릭터 중력 설정 코드 전체 취소 (기본 스폰 방식 유지)
+  → 스폰 포인트를 바닥 높이에 직접 맞추는 방식으로 운용
+
+## 최종 상태 (취소 후)
+  GeneratedCharacterSpawner: 중력 관련 필드/메서드 없음
+  GuideNPCController: _rigidbody 필드/Awake/isKinematic 전환 코드 없음
+
+## 수정 파일
+  Scripts/Character/GeneratedCharacterSpawner.cs (취소)
+  Scripts/Character/GuideNPCController.cs (취소)
+
+
+────────────────────────────────────────────────────────────────
+[세션 13] Mixamo 추가 클립 임포트 및 NPC_MotionLibrary 업데이트
+────────────────────────────────────────────────────────────────
+
+## 추가된 클립
+  Dance2.anim, Dance3.anim
+  Jump3.anim, Jump4.anim, Jump5.anim
+  Kick.anim, Kick2.anim, Kick3.anim, Kick4.anim
+  Sit.anim, Sit2.anim, Sit3.anim, Sit4.anim
+  Wave.anim, Wave2.anim, Wave3.anim
+  sndnj.anim
+
+## 제거된 클립
+  Jump (1).anim, Landing.anim, Standing Jump.anim
+  (새 클립으로 대체)
+
+## NPC_MotionLibrary.asset 업데이트
+  MotionType별 대표 클립 재연결
+
+## 파일 경로
+  Assets/00_Project/Animations/Mixamo/
+
+
+────────────────────────────────────────────────────────────────
+[추가 커밋 내역]
+────────────────────────────────────────────────────────────────
+
+  e482e9f  feat(unity): Mixamo 추가 클립 추가 및 작업 기록 저장
+  d8b195f  feat(unity): Mixamo 모션 클립 확장 및 오브젝트 물리·스크립트 정리
+
+
+────────────────────────────────────────────────────────────────
+[최종 파일 상태 업데이트]
+────────────────────────────────────────────────────────────────
+
+## 추가 신규
+  | 파일                                    | 내용                              |
+  |----------------------------------------|-----------------------------------|
+  | Animations/Mixamo/Dance2~3.anim        | 댄스 모션 추가                      |
+  | Animations/Mixamo/Jump3~5.anim         | 점프 모션 추가                      |
+  | Animations/Mixamo/Kick~4.anim          | 킥 모션 추가                        |
+  | Animations/Mixamo/Sit~4.anim           | 앉기 모션 추가                      |
+  | Animations/Mixamo/Wave~3.anim          | 손흔들기 모션 추가                   |
+  | Animations/Mixamo/sndnj.anim           | 기타 모션                           |
+
+## 추가 수정
+  | 파일                                    | 주요 변경 내용                      |
+  |----------------------------------------|------------------------------------|
+  | Scripts/UI/FreeModePopupUI.cs          | Canvas 비활성 시 Coroutine 에러 수정 |
+  | Scripts/Object/GeneratedObjectSpawner.cs | FreezeRotation + 물리 설정 추가    |
 
 ================================================================
