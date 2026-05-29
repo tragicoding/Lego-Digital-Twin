@@ -25,7 +25,7 @@
 - PR 생성 전 사용자에게 반드시 확인
 - 사용자의 명시적 승인 없이 commit/push하지 않는다.
 - 사용자의 명시적 승인 없이 merge/rebase하지 않는다.
-- `git add .` 사용 금지 — 파일을 명시적으로 지정한다.
+- `git add .` 허용 — commit 전 `git status`로 포함 파일 반드시 확인한다.
 - push 대상: `feature/*` 또는 `test_app` 브랜치만 허용
 - `main`·`develop` 직접 push 금지
 - 파괴적 명령 (`--force`, `reset --hard`, `clean -f` 등): 사용자 확인 필수

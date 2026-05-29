@@ -42,6 +42,7 @@ namespace LegoTwin.Managers
         {
             if (Instance != null) { Destroy(gameObject); return; }
             Instance = this;
+            transform.SetParent(null);   // 자식 오브젝트면 루트로 분리
             DontDestroyOnLoad(gameObject);
 
             // ApiClient 자동 연결

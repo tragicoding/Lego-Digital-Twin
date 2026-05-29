@@ -59,7 +59,7 @@ namespace LegoTwin.EditorTools
                 {
                     // FBX 임포트 완료 → GLB 가 이미 존재하면 적용
                     string glb = path.Replace(FBX_SUFFIX, GLB_SUFFIX);
-                    if (FileExists(glb) && AssetDatabase.LoadAssetAtPath<Object>(glb) != null)
+                    if (FileExists(glb) && AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(glb) != null)
                         EditorApplication.delayCall += () => ApplyGlbTextureToFbx(path, glb);
                 }
             }
@@ -91,7 +91,7 @@ namespace LegoTwin.EditorTools
                 string fbxPath = ToAssetPath(absPath);
                 string glbPath = fbxPath.Replace(FBX_SUFFIX, GLB_SUFFIX);
 
-                if (AssetDatabase.LoadAssetAtPath<Object>(glbPath) == null)
+                if (AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(glbPath) == null)
                 {
                     Debug.LogWarning(
                         $"[CharacterTextureApplier] GLB 미임포트 — 건너뜀: {glbPath}");

@@ -156,14 +156,7 @@ namespace LegoTwin.Plaza
 
         private void HandleLikesUpdated(WsLikesEvent ev)
         {
-            if (ev.@event == "poll_tick")
-            {
-                // 폴링 방식: 전체 다시 로드 (NativeWebSocket 미사용 시)
-                StartCoroutine(RefreshPlaza());
-                return;
-            }
-
-            // WebSocket 방식: 해당 세션만 업데이트
+            // WebSocket push: 해당 세션만 즉시 업데이트
             string newTop = ev.top_session_id;
             foreach (var view in _views)
             {
@@ -173,25 +166,6 @@ namespace LegoTwin.Plaza
                 view.SetTopLiked(view.SessionId == newTop);
             }
             _topSessionId = newTop;
-        }
-
-        private IEnumerator RefreshPlaza()
-        {
-            if (SessionManager.Instance?.dataSourceMode == Managers.DataSourceMode.Mock)
-                yield break;
-
-            PlazaResponse plaza = null;
-            yield return ApiClient.Instance.FetchPlazaSessions(r => plaza = r);
-            if (plaza?.sessions == null) yield break;
-
-            _topSessionId = plaza.top_session_id;
-            foreach (var session in plaza.sessions)
-            {
-                var view = _views.Find(v => v != null && v.SessionId == session.session_id);
-                if (view == null) continue;
-                view.UpdateLikes(session.likes);
-                view.SetTopLiked(session.session_id == _topSessionId);
-            }
         }
 
         // ════════════════════════════════════════════════════════════

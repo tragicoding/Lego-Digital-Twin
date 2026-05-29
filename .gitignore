@@ -92,5 +92,14 @@ apps/engine-vision/Wonder3D/benchmark_log.json
 apps/backend/storage/images/*/
 apps/backend/storage/models/
 
-# --- Frontend build cache ---
+# --- Frontend build cache & dependencies ---
 apps/frontend/.vite/
+apps/frontend/node_modules/
+apps/frontend/dist/
+
+# --- Root level vite cache ---
+.vite/
+
+# --- Windows Zone.Identifier 파일 ---
+*.Zone.Identifier
+*:Zone.Identifier

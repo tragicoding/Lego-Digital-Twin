@@ -1,0 +1,136 @@
+JSON 데이터 활용 흐름
+1. JSON 구조 → C# 클래스 매핑
+
+mock_session.json
+│
+├── session_id          → SessionData.session_id
+├── character_npc_name  → SessionData.character_npc_name
+├── object_name         → SessionData.object_name
+├── bubble_text         → SessionData.bubble_text
+├── likes               → SessionData.likes
+├── ready_for_unity     → SessionData.ready_for_unity
+└── assets
+    ├── character
+    │   ├── asset_id    → CharacterAssetData.asset_id
+    │   ├── model_url   → CharacterAssetData.model_url   (FBX URL or "" in Mock)
+    │   ├── texture_url → CharacterAssetData.texture_url (GLB URL)
+    │   ├── role        → CharacterAssetData.role        ("guide_npc")
+    │   └── npc_name    → CharacterAssetData.npc_name
+    └── object
+        ├── asset_id    → ObjectAssetData.asset_id
+        ├── model_url   → ObjectAssetData.model_url      (GLB URL or "" in Mock)
+        ├── role        → ObjectAssetData.role            ("static_object")
+        └── object_name → ObjectAssetData.object_name
+2. 실제 코드에서 어디서 뭘 쓰는가
+① 로드 진입점 — MockSessionLoader.Load() → SessionManager
+
+
+// MockSessionLoader.cs
+var data = JsonUtility.FromJson<SessionData>(asset.text);
+// → mock_session.json 전체를 SessionData 객체로 역직렬화
+
+// SessionManager.cs — 자동으로 OnSessionLoaded 이벤트 발생
+SessionManager.Instance.OnSessionLoaded += (session) => {
+    // 이 session이 바로 SessionData
+};
+② 가이드 NPC 이름 사용 — GuideNPCController.Initialize(session)
+
+
+// session.character_npc_name → NPC 대사에 직접 삽입
+Say($"저는 당신이 만든 캐릭터 {_npcName}이라고 해요.");
+//                             ↑ session.character_npc_name = "몽글이"
+//  결과: "저는 당신이 만든 캐릭터 몽글이이라고 해요."
+③ 광장 bubble_text 표시 — PlazaSessionView.Initialize(session, isTop)
+
+
+// session.bubble_text → 말풍선 TextMeshPro에 직접 세팅
+bubbleText.text = session.bubble_text ?? "";
+//  결과: "MINIVERSE에 온 걸 환영해!" 말풍선 표시
+
+// session.likes → 좋아요 수 표시
+likesCountText.text = $"♥ {likes}";
+//  결과: "♥ 0"
+④ 좋아요 1위 별 표시 — PlazaResponse.top_session_id
+
+
+// 광장 API 응답: PlazaResponse
+// {
+//   "sessions": [...],
+//   "top_session_id": "session_abc"  ← 현재 1위 세션 ID
+// }
+bool isTop = (session.session_id == plazaResponse.top_session_id);
+view.SetTopLiked(isTop);  // starObject.SetActive(true/false)
+⑤ WebSocket 실시간 업데이트 — WsLikesEvent
+
+
+// 서버가 WS로 보내는 이벤트
+// { "event": "likes_updated", "session_id": "mock_001", "likes": 5, "top_session_id": "mock_001" }
+//              ↓ WsLikesEvent로 역직렬화
+var ev = JsonUtility.FromJson<WsLikesEvent>(json);
+view.UpdateLikes(ev.likes);      // ♥ 5 로 즉시 갱신
+view.SetTopLiked(ev.top_session_id == view.SessionId);
+3. Mock vs Server 모드 분기
+Mock Mode	Server Mode
+데이터 출처	Resources/Mock/mock_session.json	GET /unity/sessions/{id}
+model_url	"" → Inspector에서 Prefab 직접 연결	실제 GLB URL → 런타임 다운로드
+bubble_text	JSON 고정값	관람객 런타임 입력 후 서버 저장
+좋아요 갱신	WebSocket 없이 로컬만	WebSocket ws://{ip}:8000/ws/unity
+Mock에서 model_url이 "" 인 이유: 서버 없이 개발할 때는 URL 다운로드 대신 Unity Inspector에서 FBX Prefab을 직접 GeneratedCharacterSpawner.mockCharacterPrefab에 드래그 연결해서 쓰기 때문.
+
+내가 C# 문법을 잘 몰라서 그러는데, 파이썬에서는 json data에 접근할때 jsonp[assets][npc_name] 이렇게 접근하잖아. 이런것 처럼 내 프로젝트 C#은 어떻게 접근하고 있어?
+Python vs C# JSON 접근 방식 비교
+Python 방식
+
+# JSON을 dict로 파싱
+import json
+data = json.loads(json_string)
+
+# 딕셔너리 key로 접근
+data["assets"]["character"]["npc_name"]   # "몽글이"
+data["character_npc_name"]                # "몽글이"
+data["likes"]                             # 0
+C# 방식 — 클래스로 먼저 "모양" 정의 후 접근
+C#은 dict가 없고, JSON을 클래스 객체로 변환한 뒤 . 으로 접근합니다.
+
+
+// 1단계: JSON 구조와 똑같이 클래스를 먼저 정의해놓음 (SessionData.cs)
+class SessionData {
+    public string character_npc_name;  // JSON 키 이름과 동일
+    public int    likes;
+    public SessionAssets assets;       // 중첩 객체
+}
+
+class SessionAssets {
+    public CharacterAssetData character;
+}
+
+class CharacterAssetData {
+    public string npc_name;
+}
+
+// 2단계: JSON 문자열을 클래스로 변환 (역직렬화)
+SessionData data = JsonUtility.FromJson<SessionData>(json_string);
+
+// 3단계: . 으로 접근
+data.character_npc_name           // Python의 data["character_npc_name"]
+data.assets.character.npc_name    // Python의 data["assets"]["character"]["npc_name"]
+data.likes                        // Python의 data["likes"]
+네 프로젝트 실제 코드에서의 예시
+SessionData.cs에 이미 클래스가 정의되어 있고:
+
+
+// MockSessionLoader.cs 에서 변환
+SessionData data = JsonUtility.FromJson<SessionData>(asset.text);
+//                                      ↑ "이 클래스 모양으로 변환해줘"
+이후 각 스크립트에서 이렇게 접근:
+
+
+// GuideNPCController.cs
+data.character_npc_name             // "몽글이"
+data.session_id                     // "mock_001"
+data.bubble_text                    // "MINIVERSE에 온 걸 환영해!"
+data.assets.character.npc_name      // "몽글이"
+data.assets.character.model_url     // ""
+data.assets.@object.object_name     // "하늘탑"  ← @붙은 이유: object가 C# 예약어라서
+data.likes                          // 0
+data.ready_for_unity                // true
