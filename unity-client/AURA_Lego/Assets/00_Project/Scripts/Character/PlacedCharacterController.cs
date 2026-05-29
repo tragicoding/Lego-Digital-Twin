@@ -36,9 +36,9 @@ namespace LegoTwin.Character
 
             _animator = GetComponentInChildren<Animator>();
 
-            // 프롬프트 입력 전까지 애니메이션 비활성
+            // 프롬프트 입력 전까지 애니메이션 정지 (enabled=false는 재활성 시 회전 초기화 발생)
             if (_animator != null)
-                _animator.enabled = false;
+                _animator.speed = 0f;
         }
 
         // ════════════════════════════════════════════════════════════
@@ -78,9 +78,9 @@ namespace LegoTwin.Character
                 return;
             }
 
-            // 첫 프롬프트 입력 시 Animator 활성화
-            if (_animator != null && !_animator.enabled)
-                _animator.enabled = true;
+            // 첫 프롬프트 입력 시 애니메이션 재개 (speed=0 → 1)
+            if (_animator != null && _animator.speed == 0f)
+                _animator.speed = 1f;
 
             Debug.Log($"[PlacedCharacterController] '{input}' → {motionType} → {clip.name} (loop)");
             _animation.PlayMotionClipLooping(clip);

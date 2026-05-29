@@ -455,4 +455,158 @@ Claude Code 작업 기록
   | Scripts/UI/FreeModePopupUI.cs          | Canvas 비활성 시 Coroutine 에러 수정 |
   | Scripts/Object/GeneratedObjectSpawner.cs | FreezeRotation + 물리 설정 추가    |
 
+
+────────────────────────────────────────────────────────────────
+[세션 14] 프롬프트 입력 시 가이드 NPC는 idle, 배치 캐릭터만 동작
+────────────────────────────────────────────────────────────────
+
+## 요구사항
+  프롬프트 입력 시 가이드 NPC(가이드 fbx)는 애니메이션을 작동하지 말고
+  광장에 배치된 캐릭터(placedCharacter)만 입력한 모션을 재생
+
+## 구현
+  GuideNPCController.GuideScenarioRoutine() Step 3(모션 프롬프트 입력)에서
+  placedCharacter.PlayMotionFromPrompt(motionInput) 호출 직전에
+  Animation?.animation_idle() 명시 추가 → 가이드 NPC는 idle 고정
+
+## 배경
+  PlacedCharacterController._animation 은 GetComponent로 자기 자신(배치 캐릭터)만
+  참조하므로 모션 호출 대상이 이미 분리됨. 가이드 idle 호출은 방어적 보강.
+
+## 수정 파일
+  Scripts/Character/GuideNPCController.cs
+
+
+────────────────────────────────────────────────────────────────
+[세션 15] 모션 루프 재생 구현
+────────────────────────────────────────────────────────────────
+
+## 문제
+  프롬프트 입력 시 애니메이션이 한 번만 재생되고 다시 Idle로 복귀
+  (Animator의 Motion → Idle 전환이 Exit Time=1.0 이기 때문)
+
+## 구현 (CharacterAnimationController.cs)
+  - 필드 추가: _loopCoroutine
+  - PlayMotionClipLooping(AnimationClip):
+      _overrideController[MOTION_SLOT] = clip
+      SetTrigger("motion")  ← 초기 진입 (세션 17 참고: Play() 대신 SetTrigger 사용)
+      StartCoroutine(LoopRoutine())
+  - StopMotionLoop(): 루프 코루틴 중지 + animation_idle()
+  - LoopRoutine() 코루틴:
+      WaitUntil(IsName("Motion"))  ← Motion 상태 진입 대기
+      Loop: normalizedTime >= 0.95f 감지 → Animator.Play("Motion", 0, 0f) 처음부터 재시작
+      → Idle로 빠져나가지 않고 끊김 없이 무한 반복
+
+## PlacedCharacterController.cs 변경
+  PlayMotionFromPrompt() → 기존 PlayMotionClip() 대신 PlayMotionClipLooping() 호출
+
+## 수정 파일
+  Scripts/Character/CharacterAnimationController.cs
+  Scripts/Character/PlacedCharacterController.cs
+
+
+────────────────────────────────────────────────────────────────
+[세션 16] 프롬프트 입력 전 배치 캐릭터 애니메이션 정지
+────────────────────────────────────────────────────────────────
+
+## 요구사항
+  프롬프트를 입력하기 전까지 광장 배치 캐릭터가 Idle 애니메이션을
+  재생하지 않도록 정지
+
+## 구현 (PlacedCharacterController.cs) — 최종 형태
+  Awake(): _animator = GetComponentInChildren<Animator>();
+           _animator.speed = 0f;   ← 애니메이션 정지 (포즈 유지)
+  PlayMotionFromPrompt(): 첫 입력 시 _animator.speed = 1f 로 재개
+
+## 주의: enabled=false 사용 금지
+  처음엔 _animator.enabled=false 로 시도했으나, 재활성(true) 시
+  Animator가 재초기화되며 90도 회전이 발생 (세션 17 참고).
+  → enabled 대신 speed 토글로 변경하여 해결.
+
+## 수정 파일
+  Scripts/Character/PlacedCharacterController.cs
+
+
+────────────────────────────────────────────────────────────────
+[세션 17] 프롬프트 입력 시 캐릭터 90도 회전 문제 해결
+────────────────────────────────────────────────────────────────
+
+## 문제
+  프롬프트 입력 → 애니메이션 재생과 동시에 배치 캐릭터가 90도 회전
+  (정면을 보던 캐릭터가 오른쪽/왼쪽으로 돌아감)
+
+## 시도 1: applyRootMotion = false (실패)
+  PlayMotionClipLooping()에서 _animator.applyRootMotion = false 설정
+  → 회전이 Root Motion 경로가 아니라서 효과 없음 → 취소
+
+## 시도 2: LateUpdate 회전 잠금 (실패)
+  PlacedCharacterController.LateUpdate()에서 transform.rotation 및
+  _animator.transform.localRotation 을 저장값으로 강제 복원
+  → 여전히 시각적 회전 발생 → 취소
+
+## 시도 3: Play() → SetTrigger() 교체 (부분 성공)
+  PlayMotionClipLooping() 초기 진입을 Animator.Play("Motion",0,0f) →
+  SetTrigger("motion") 으로 변경
+  → 초기 진입 회전은 사라짐 (현재 코드에 반영, 세션 15)
+
+## 최종 원인 분석
+  _animator.enabled = false → true 재활성 시 Animator가 재초기화되며
+  Idle 포즈(frame 0)가 강제 적용되어 90도 회전 발생
+
+## 최종 해결
+  세션 16의 speed=0 / speed=1 방식으로 전환 (enabled 토글 폐기)
+  → Animator 상태가 유지되어 재초기화 없음 → 회전 없음
+
+## 수정 파일
+  Scripts/Character/CharacterAnimationController.cs (SetTrigger 유지, LateUpdate 잠금 제거)
+  Scripts/Character/PlacedCharacterController.cs (speed 토글)
+
+
+────────────────────────────────────────────────────────────────
+[세션 18] MotionType.Victory 추가
+────────────────────────────────────────────────────────────────
+
+## 구현
+  MotionType.cs: enum에 Victory 추가
+  MotionPromptParser.cs: 키워드 추가
+    "승리", "파이팅", "화이팅", "victory" → MotionType.Victory
+
+## Unity Editor 작업 필요
+  NPC_MotionLibrary.asset → Victory 슬롯에 Victory.anim 연결
+
+## 참고
+  "guideArrivalPoint 도착 시 Victory 재생" 연출은 시도했다가 취소함.
+  현재는 enum + 파서 키워드만 추가된 상태 (프롬프트로 "승리" 입력 시 재생).
+
+## 수정 파일
+  Scripts/Character/MotionType.cs
+  Scripts/Character/MotionPromptParser.cs
+
+
+────────────────────────────────────────────────────────────────
+[추가 커밋 내역 — 2차]
+────────────────────────────────────────────────────────────────
+
+  16adbbd  feat(unity): 모션 루프·가이드 Victory 등장 연출·배치 캐릭터 애니메이션 제어 구현
+           (커밋 이후 Victory 등장 연출은 취소, 모션 루프·idle 고정·speed 토글은 유지)
+
+
+────────────────────────────────────────────────────────────────
+[현재 모션 재생 전체 흐름 (세션 14~18 반영)]
+────────────────────────────────────────────────────────────────
+
+  스폰 시: PlacedCharacterController.Awake() → _animator.speed = 0
+           (배치 캐릭터 정지, 정면 포즈 유지)
+
+  프롬프트 입력:
+    GuideNPCController Step 3
+      → Animation?.animation_idle()  (가이드 NPC는 idle)
+      → placedCharacter.PlayMotionFromPrompt(input)
+          → _animator.speed = 1  (애니메이션 재개)
+          → MotionPromptParser.Parse(input) → MotionType
+          → motionLibrary.GetClip(type) → AnimationClip
+          → CharacterAnimationController.PlayMotionClipLooping(clip)
+              → SetTrigger("motion")  (회전 없이 진입)
+              → LoopRoutine: normalizedTime 0.95 → Play("Motion",0,0f) 무한 반복
+
 ================================================================

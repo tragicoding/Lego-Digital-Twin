@@ -48,9 +48,6 @@ namespace LegoTwin.Character
         [Tooltip("광장 오브제 옆 배치 캐릭터의 PlacedCharacterController 연결")]
         public PlacedCharacterController placedCharacter;
 
-        [Header("모션 라이브러리 (등장 연출용)")]
-        [Tooltip("guideArrivalPoint 도착 시 Victory 클립 재생에 사용. GeneratedCharacterSpawner에서 자동 주입.")]
-        public MixamoMotionLibrary motionLibrary;
 
         [Header("플레이어 순간이동 위치")]
         [Tooltip("창작물 확인 시 플레이어가 이동할 위치. 비워두면 NPC와 동일 위치로 이동.")]
@@ -138,12 +135,6 @@ namespace LegoTwin.Character
                 yield return WaitUntilArrived();
             }
             yield return FacePlayerRoutine();
-
-            // 도착 후 Victory 애니메이션 재생 (motionLibrary 연결 시)
-            var victoryClip = motionLibrary?.GetClip(MotionType.Victory);
-            if (victoryClip != null)
-                Animation?.PlayMotionClip(victoryClip);
-
             yield return new WaitForSeconds(0.3f);
 
             // ── 1. 입장 인사 ─────────────────────────────────────────

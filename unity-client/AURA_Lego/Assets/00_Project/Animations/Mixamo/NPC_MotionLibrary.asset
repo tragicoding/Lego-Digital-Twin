@@ -18,7 +18,7 @@ MonoBehaviour:
   - motionType: 2
     clip: {fileID: 7400000, guid: 38611fcec6a16174c8cf13f5ec1a326a, type: 2}
   - motionType: 3
-    clip: {fileID: 7400000, guid: f7c568d83ff114a49a3e2d8de1161152, type: 2}
+    clip: {fileID: 7400000, guid: 1cdcc8a97d196144186a9126f49f7a33, type: 2}
   - motionType: 4
     clip: {fileID: 7400000, guid: 1a93a417dc4fa044f80608aacfd93b66, type: 2}
   - motionType: 5

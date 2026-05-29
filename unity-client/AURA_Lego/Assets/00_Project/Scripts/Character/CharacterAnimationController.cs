@@ -161,6 +161,8 @@ namespace LegoTwin.Character
                 StopCoroutine(_loopCoroutine);
 
             _overrideController[MOTION_SLOT] = clip;
+            // 초기 진입은 SetTrigger — Play()는 첫 프레임 포즈로 스냅해 90도 회전 발생
+            // 루프 재시작(LoopRoutine 내)은 이미 Motion 상태이므로 Play()를 사용해도 무관
             _animator.SetTrigger("motion");
             _loopCoroutine = StartCoroutine(LoopRoutine());
             Debug.Log($"[CharacterAnimationController] {npcName}: MotionLoop 시작 → {clip.name}");
