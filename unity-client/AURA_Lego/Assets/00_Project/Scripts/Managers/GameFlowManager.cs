@@ -54,6 +54,10 @@ namespace LegoTwin.Managers
         private GuideNPCController _currentNPC;
         private string             _currentNpcName;
 
+        // ── 스폰된 오브젝트 참조 (PlazaManager에 전달용) ─────────────
+        private GameObject _spawnedCharacterGO;
+        private GameObject _spawnedObjectGO;
+
         // ════════════════════════════════════════════════════════════
         // Unity 생명주기
         // ════════════════════════════════════════════════════════════
@@ -98,11 +102,17 @@ namespace LegoTwin.Managers
             // ① 배치 캐릭터 스폰 (광장 오브제 옆, 모션 씬에서 사용)
             PlacedCharacterController placedCharacter = null;
             if (_characterSpawner != null)
+            {
                 placedCharacter = _characterSpawner.SpawnPlaced(session);
+                _spawnedCharacterGO = placedCharacter?.gameObject;
+            }
 
             // ② 오브제 스폰
             if (_objectSpawner != null && session.assets?.@object != null)
+            {
                 _objectSpawner.Spawn(session.assets.@object);
+                _spawnedObjectGO = _objectSpawner.GetSpawnedObject();
+            }
             else
                 Debug.Log("[GameFlowManager] ObjectSpawner 없음 또는 오브제 데이터 없음 — 오브제 스폰 생략");
 
@@ -169,16 +179,21 @@ namespace LegoTwin.Managers
             _dialogueUI?.Hide();
             UnsubscribeNPCEvents();
 
-            // TODO: LegoTwin.Plaza.PlazaManager.Instance.EnterPlaza();
+            var plaza = LegoTwin.Plaza.PlazaManager.Instance;
+            if (plaza == null)
+            {
+                Debug.LogWarning("[GameFlowManager] PlazaManager.Instance 없음 — 씬에 PlazaManager GameObject가 있는지 확인하세요.");
+                return;
+            }
+
+            plaza.RegisterCurrentSession(
+                SessionManager.Instance.CurrentSession,
+                _spawnedCharacterGO,
+                _spawnedObjectGO);
+
+            plaza.EnterPlaza();
         }
 
-        /// <summary>
-        /// [Step 3] 모션 프롬프트 입력 요청.
-        /// VR 키보드 또는 입력 UI를 열고, 입력 완료 시 callback(text) 를 호출한다.
-        ///
-        /// TODO: VR 입력 UI 연동 후 아래 더미 코드 교체:
-        ///   _inputUI.Open(inputText => callback(inputText));
-        /// </summary>
         /// <summary>
         /// [Step 2] 창작물 위치로 플레이어 순간이동.
         /// _playerFollowGuide 가 XR Origin 루트에 붙어있으므로 그 transform 을 직접 이동한다.

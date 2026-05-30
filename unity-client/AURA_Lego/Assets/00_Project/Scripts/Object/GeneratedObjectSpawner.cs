@@ -44,6 +44,9 @@ namespace LegoTwin.Object
 
         private GameObject _spawnedObject;
 
+        /// <summary>현재 스폰된 오브제 GameObject 반환. 비동기 로드 중이면 null.</summary>
+        public GameObject GetSpawnedObject() => _spawnedObject;
+
         // ════════════════════════════════════════════════════════════
         // 공개 API
         // ════════════════════════════════════════════════════════════

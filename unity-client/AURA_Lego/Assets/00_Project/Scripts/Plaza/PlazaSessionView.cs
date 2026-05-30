@@ -1,4 +1,5 @@
 using UnityEngine;
+using TMPro;
 using LegoTwin.Data;
 
 namespace LegoTwin.Plaza
@@ -8,9 +9,9 @@ namespace LegoTwin.Plaza
     /// 캐릭터+오브제 위치에 배치되며 좋아요 수, 말풍선, 별 표시를 담당.
     ///
     /// 유니티 개발자 체크리스트:
-    ///   [ ] likesCountText 에 TextMeshPro 연결 (좋아요 수 표시)
-    ///   [ ] bubbleTextObject 에 말풍선 UI 연결
-    ///   [ ] starObject 에 별 이펙트 GameObject 연결 (1위 표시)
+    ///   [ ] likesCountText 에 TextMeshProUGUI 연결 (Canvas 안의 UI 텍스트)
+    ///   [ ] bubbleText 에 TextMeshProUGUI 연결
+    ///   [ ] starObject 에 별 표시 GameObject 연결 (1위 표시)
     ///   [ ] LikeSystem 컴포넌트가 같은 GameObject에 있어야 함
     /// </summary>
     public class PlazaSessionView : MonoBehaviour
@@ -18,11 +19,11 @@ namespace LegoTwin.Plaza
         public string SessionId { get; private set; }
 
         [Header("UI 연결")]
-        [Tooltip("좋아요 수 텍스트 — TextMeshPro 연결")]
-        public TMPro.TextMeshPro likesCountText;
+        [Tooltip("좋아요 수 텍스트 — Canvas 안의 TextMeshProUGUI 연결")]
+        public TextMeshProUGUI likesCountText;
 
-        [Tooltip("말풍선 텍스트 — TextMeshPro 연결")]
-        public TMPro.TextMeshPro bubbleText;
+        [Tooltip("말풍선 텍스트 — Canvas 안의 TextMeshProUGUI 연결")]
+        public TextMeshProUGUI bubbleText;
 
         [Tooltip("좋아요 1위 별 표시 오브젝트")]
         public GameObject starObject;

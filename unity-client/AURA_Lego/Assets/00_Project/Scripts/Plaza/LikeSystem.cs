@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using LegoTwin.Managers;
 using LegoTwin.Network;
 
 namespace LegoTwin.Plaza
@@ -31,7 +32,6 @@ namespace LegoTwin.Plaza
 
         private string _sessionId;
         private int    _likes;
-        private bool   _playerNearby;
 
         // ════════════════════════════════════════════════════════════
         // 초기화 (PlazaSessionView에서 호출)
@@ -56,16 +56,13 @@ namespace LegoTwin.Plaza
 
         private void OnTriggerEnter(Collider other)
         {
-            // TODO: 유니티 개발자 — 플레이어 태그 확인 후 활성화
             if (!other.CompareTag("Player")) return;
-            _playerNearby = true;
             if (likeButtonUI != null) likeButtonUI.SetActive(true);
         }
 
         private void OnTriggerExit(Collider other)
         {
             if (!other.CompareTag("Player")) return;
-            _playerNearby = false;
             if (likeButtonUI != null) likeButtonUI.SetActive(false);
         }
 
@@ -85,13 +82,23 @@ namespace LegoTwin.Plaza
 
         private IEnumerator SendLike()
         {
-            if (likeButtonUI != null) likeButtonUI.SetActive(false); // 중복 방지 임시 비활성
+            if (likeButtonUI != null) likeButtonUI.SetActive(false);
 
+            // ── Mock Mode: 서버 없이 로컬에서 처리 ───────────────────
+            if (SessionManager.Instance?.dataSourceMode == DataSourceMode.Mock)
+            {
+                _likes++;
+                var view = GetComponent<PlazaSessionView>();
+                view?.UpdateLikes(_likes);
+                PlazaManager.Instance?.HandleMockLike(_sessionId, _likes);
+                Debug.Log($"[LikeSystem] Mock 좋아요: {_sessionId} → {_likes}");
+                yield break;
+            }
+
+            // ── Server Mode ───────────────────────────────────────────
             yield return ApiClient.Instance.LikeSession(_sessionId, result =>
             {
                 Debug.Log($"[LikeSystem] 좋아요 완료: {result.session_id} → {result.likes}");
-                // WebSocket이 있으면 HandleMessage로 자동 갱신됨.
-                // 없으면 PlazaSessionView 직접 갱신.
                 var view = GetComponent<PlazaSessionView>();
                 view?.UpdateLikes(result.likes);
                 view?.SetTopLiked(result.is_top_liked);
