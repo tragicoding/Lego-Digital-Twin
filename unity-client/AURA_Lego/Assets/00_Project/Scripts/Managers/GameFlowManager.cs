@@ -54,6 +54,9 @@ namespace LegoTwin.Managers
         private GuideNPCController _currentNPC;
         private string             _currentNpcName;
 
+        /// <summary>가이드 모드 진행 중이면 true. FreeCameraController 등에서 이동 제한에 사용.</summary>
+        public static bool IsGuideMode { get; private set; } = true;
+
         // ── 스폰된 오브젝트 참조 (PlazaManager에 전달용) ─────────────
         private GameObject _spawnedCharacterGO;
         private GameObject _spawnedObjectGO;
@@ -175,6 +178,7 @@ namespace LegoTwin.Managers
         /// </summary>
         private void OnGuideFinished()
         {
+            IsGuideMode = false;
             Debug.Log("[GameFlowManager] 가이드 종료 → 자유 모드 전환");
             _dialogueUI?.Hide();
             UnsubscribeNPCEvents();

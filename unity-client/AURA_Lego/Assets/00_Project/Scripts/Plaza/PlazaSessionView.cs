@@ -40,6 +40,19 @@ namespace LegoTwin.Plaza
             _cam = Camera.main;
         }
 
+        private void Start()
+        {
+            // Awake보다 Start에서 Camera.main이 더 안정적으로 초기화됨
+            if (_cam == null) _cam = Camera.main;
+
+            // World Space Canvas는 Event Camera가 설정되어야 마우스 클릭이 동작함
+            foreach (var canvas in GetComponentsInChildren<Canvas>(includeInactive: true))
+            {
+                if (canvas.renderMode == RenderMode.WorldSpace && canvas.worldCamera == null)
+                    canvas.worldCamera = _cam;
+            }
+        }
+
         // World Space Canvas가 항상 카메라를 향하도록 회전
         private void LateUpdate()
         {

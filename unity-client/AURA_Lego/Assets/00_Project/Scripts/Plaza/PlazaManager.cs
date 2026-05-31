@@ -43,6 +43,7 @@ namespace LegoTwin.Plaza
         public float objectSpawnScale       = 12f;
         public float characterForwardOffset = 3f;   // 캐릭터: spawnPoint 앞쪽
         public float objectBackOffset       = 3f;   // 오브제:  spawnPoint 뒤쪽
+        public float viewHeightOffset       = 5f;   // 투표 UI: spawnPoint에서 위로 띄울 높이
 
         [Header("오브제 낙하 설정")]
         [Tooltip("오브제가 스폰되는 높이 (이 높이에서 중력으로 낙하)")]
@@ -263,7 +264,9 @@ namespace LegoTwin.Plaza
                 // PlazaSessionView 생성 (좋아요 UI + 말풍선)
                 if (sessionViewPrefab != null)
                 {
-                    var view = Instantiate(sessionViewPrefab, point.position, point.rotation);
+                    var view = Instantiate(sessionViewPrefab,
+                        new Vector3(point.position.x, viewHeightOffset, point.position.z),
+                        point.rotation);
                     view.Initialize(session, session.session_id == _topSessionId);
                     _views.Add(view);
                 }
@@ -436,10 +439,11 @@ namespace LegoTwin.Plaza
                 assets             = _currentSession.assets
             };
 
-            // 오브제 위치 바로 위에 뷰 배치 (Y 오프셋은 Inspector에서 spawnPoint로 조정)
             _likeCounts[_currentSession.session_id] = _currentSession.likes;
 
-            var pos = _currentObjectGO.transform.position;
+            // 이전 관람객 뷰와 동일한 절대 Y 기준 사용 (object Y 무시)
+            var objPos = _currentObjectGO.transform.position;
+            var pos = new Vector3(objPos.x, viewHeightOffset, objPos.z);
             var rot = _currentObjectGO.transform.rotation;
             var view = Instantiate(sessionViewPrefab, pos, rot);
             view.Initialize(sessionData, sessionData.is_top_liked);
