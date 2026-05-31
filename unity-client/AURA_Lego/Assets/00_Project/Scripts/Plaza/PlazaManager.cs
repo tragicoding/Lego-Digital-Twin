@@ -76,9 +76,14 @@ namespace LegoTwin.Plaza
         {
             StartCoroutine(LoadAndSpawnPlaza());
 
-            // 실시간 좋아요 구독
             if (WebSocketManager.Instance != null)
+            {
+                // Server Mode: WebSocket 연결을 시작해 likes_updated 이벤트 수신
+                if (SessionManager.Instance?.dataSourceMode == DataSourceMode.Server)
+                    WebSocketManager.Instance.StartListening();
+
                 WebSocketManager.Instance.OnLikesUpdated += HandleLikesUpdated;
+            }
         }
 
         public void ExitPlaza()
@@ -136,7 +141,7 @@ namespace LegoTwin.Plaza
                 _likeCounts[session.session_id] = session.likes;
 
                 // 캐릭터 + 오브제 배치
-                SpawnSessionAssets(session, point);
+                yield return SpawnSessionAssets(session, point);
 
                 // PlazaSessionView 생성 (좋아요 UI + 말풍선)
                 if (sessionViewPrefab != null)
@@ -152,12 +157,16 @@ namespace LegoTwin.Plaza
             }
         }
 
-        private void SpawnSessionAssets(PlazaSessionData session, Transform point)
+        private IEnumerator SpawnSessionAssets(PlazaSessionData session, Transform point)
         {
-            // 캐릭터
+            // ── 캐릭터 ─────────────────────────────────────────────────────────
             var charData = session.assets?.character;
             if (charData != null)
             {
+                // FBX 런타임 로드는 TriLib 미구현 → model_url 유무와 관계없이 Mock fallback
+                if (!string.IsNullOrEmpty(charData.model_url))
+                    Debug.LogWarning($"[PlazaManager] 캐릭터 서버 로드 미구현 ({charData.model_url}) — Mock fallback");
+
                 if (mockCharacterPrefab == null)
                     Debug.LogWarning("[PlazaManager] mockCharacterPrefab 미연결 — Inspector에서 연결하세요.");
                 else
@@ -170,21 +179,57 @@ namespace LegoTwin.Plaza
                 }
             }
 
-            // 오브제
+            // ── 오브제 ──────────────────────────────────────────────────────────
             var objData = session.assets?.@object;
             if (objData != null)
             {
-                if (mockObjectPrefab == null)
-                    Debug.LogWarning("[PlazaManager] mockObjectPrefab 미연결 — Inspector에서 연결하세요.");
+                if (!string.IsNullOrEmpty(objData.model_url))
+                {
+                    // Server Mode: glTFast GLB 비동기 로드
+                    var task = SpawnObjectFromServerAsync(session.session_id, objData, point);
+                    yield return new WaitUntil(() => task.IsCompleted);
+                    if (task.IsFaulted)
+                        Debug.LogError($"[PlazaManager] 광장 오브제 GLB 로드 실패: {task.Exception?.InnerException?.Message}");
+                }
                 else
                 {
-                    var objGo = Instantiate(mockObjectPrefab,
-                        point.position + Vector3.right * 3f, point.rotation);
-                    objGo.name = $"PlazaObj_{session.session_id}";
-                    objGo.transform.localScale = Vector3.one * spawnScale;
-                    Debug.Log($"[PlazaManager] 오브제 스폰: {objGo.name}");
+                    if (mockObjectPrefab == null)
+                        Debug.LogWarning("[PlazaManager] mockObjectPrefab 미연결 — Inspector에서 연결하세요.");
+                    else
+                    {
+                        var objGo = Instantiate(mockObjectPrefab,
+                            point.position + Vector3.right * 3f, point.rotation);
+                        objGo.name = $"PlazaObj_{session.session_id}";
+                        objGo.transform.localScale = Vector3.one * spawnScale;
+                        Debug.Log($"[PlazaManager] 오브제 스폰: {objGo.name}");
+                    }
                 }
             }
+        }
+
+        private async System.Threading.Tasks.Task SpawnObjectFromServerAsync(
+            string sessionId, ObjectAssetData data, Transform point)
+        {
+            Debug.Log($"[PlazaManager] 광장 오브제 GLB 로드: {data.model_url}");
+            var gltf = new GLTFast.GltfImport();
+            bool ok = await gltf.Load(data.model_url);
+            if (!ok)
+            {
+                Debug.LogWarning($"[PlazaManager] GLB 로드 실패: {data.model_url} — Mock fallback");
+                if (mockObjectPrefab != null)
+                {
+                    var fallback = Instantiate(mockObjectPrefab,
+                        point.position + Vector3.right * 3f, point.rotation);
+                    fallback.name = $"PlazaObj_{sessionId}";
+                    fallback.transform.localScale = Vector3.one * spawnScale;
+                }
+                return;
+            }
+            var root = new GameObject($"PlazaObj_{sessionId}");
+            root.transform.SetPositionAndRotation(point.position + Vector3.right * 3f, point.rotation);
+            root.transform.localScale = Vector3.one * spawnScale;
+            await gltf.InstantiateMainSceneAsync(root.transform);
+            Debug.Log($"[PlazaManager] 광장 오브제 서버 스폰 완료: {root.name}");
         }
 
         // ════════════════════════════════════════════════════════════
@@ -242,6 +287,29 @@ namespace LegoTwin.Plaza
             _views.Add(view);
 
             Debug.Log($"[PlazaManager] 현재 세션 뷰 부착 완료: {_currentSession.session_id}");
+        }
+
+        // ════════════════════════════════════════════════════════════
+        // Server 모드 — 좋아요 즉시 반영 (LikeResponse 기반)
+        // ════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// Server 모드에서 POST /like 응답 수신 시 LikeSystem이 호출.
+        /// 해당 세션 좋아요 수와 모든 세션의 별 표시를 즉시 갱신한다.
+        /// </summary>
+        public void HandleServerLike(LikeResponse result)
+        {
+            if (result == null) return;
+            string newTop = result.top_session_id;
+            foreach (var view in _views)
+            {
+                if (view == null) continue;
+                if (view.SessionId == result.session_id)
+                    view.UpdateLikes(result.likes);
+                view.SetTopLiked(view.SessionId == newTop);
+            }
+            _topSessionId = newTop;
+            Debug.Log($"[PlazaManager] 서버 좋아요 반영: {result.session_id} → {result.likes}, 1위: {newTop}");
         }
 
         // ════════════════════════════════════════════════════════════

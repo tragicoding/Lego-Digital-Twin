@@ -186,10 +186,14 @@ namespace LegoTwin.Managers
                 return;
             }
 
+            // Server Mode에서 GLB 로드는 비동기 → Spawn() 직후 null이므로
+            // 가이드 시나리오가 끝난 이 시점(~20초 후)에 완료된 참조를 가져온다
+            var objectGO = _spawnedObjectGO ?? _objectSpawner?.GetSpawnedObject();
+
             plaza.RegisterCurrentSession(
                 SessionManager.Instance.CurrentSession,
                 _spawnedCharacterGO,
-                _spawnedObjectGO);
+                objectGO);
 
             plaza.EnterPlaza();
         }

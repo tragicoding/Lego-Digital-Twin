@@ -98,10 +98,8 @@ namespace LegoTwin.Plaza
             // ── Server Mode ───────────────────────────────────────────
             yield return ApiClient.Instance.LikeSession(_sessionId, result =>
             {
-                Debug.Log($"[LikeSystem] 좋아요 완료: {result.session_id} → {result.likes}");
-                var view = GetComponent<PlazaSessionView>();
-                view?.UpdateLikes(result.likes);
-                view?.SetTopLiked(result.is_top_liked);
+                Debug.Log($"[LikeSystem] 좋아요 완료: {result.session_id} → {result.likes}, 1위: {result.top_session_id}");
+                PlazaManager.Instance?.HandleServerLike(result);
             });
         }
     }

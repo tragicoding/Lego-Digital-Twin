@@ -73,8 +73,15 @@ namespace LegoTwin.Managers
                     return;
                 }
 
-                StartCoroutine(_apiClient.FetchUnitySession(sid, data => Apply(data, onLoaded)));
+                StartCoroutine(LoadServerSession(sid, onLoaded));
             }
+        }
+
+        private IEnumerator LoadServerSession(string sid, Action<SessionData> onLoaded)
+        {
+            Debug.Log($"[SessionManager] ready_for_unity 대기 중... (session: {sid})");
+            yield return _apiClient.PollUntilReady(sid, null);
+            yield return _apiClient.FetchUnitySession(sid, data => Apply(data, onLoaded));
         }
 
         private void Apply(SessionData data, Action<SessionData> onLoaded)
