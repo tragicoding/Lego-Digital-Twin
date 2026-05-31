@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using UnityEngine;
 using LegoTwin.Data;
@@ -27,6 +28,8 @@ namespace LegoTwin.Plaza
     public class PlazaManager : MonoBehaviour
     {
         public static PlazaManager Instance { get; private set; }
+
+        private const int MaxPlazaSessions = 31;
 
         [Header("배치 위치 (캐릭터+오브제 쌍, 순서대로)")]
         public Transform[] spawnPoints;
@@ -101,6 +104,113 @@ namespace LegoTwin.Plaza
             foreach (var v in _views)
                 if (v != null) Destroy(v.gameObject);
             _views.Clear();
+        }
+
+        // Mock 모드에서 앱 종료 시 현재 세션을 mock_plaza.json에 자동 저장
+        private void OnApplicationQuit()
+        {
+            if (SessionManager.Instance?.dataSourceMode != DataSourceMode.Mock) return;
+            SaveCurrentSessionToMockPlaza();
+        }
+
+        // ════════════════════════════════════════════════════════════
+        // Mock 모드 — 현재 세션 저장 (다음 관람객에게 이전 창작물로 표시)
+        // ════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// 현재 관람객 세션을 mock_plaza.json에 추가한다.
+        /// Mock 모드 전용. 앱 종료 시 자동 호출되며 수동 호출도 가능.
+        /// </summary>
+        public void SaveCurrentSessionToMockPlaza()
+        {
+            var session = _currentSession ?? SessionManager.Instance?.CurrentSession;
+            if (session == null)
+            {
+                Debug.LogWarning("[PlazaManager] 저장할 현재 세션 없음");
+                return;
+            }
+
+            string path = Path.Combine(Application.dataPath,
+                "00_Project/Resources/Mock/mock_plaza.json");
+
+            // 기존 파일 읽기
+            PlazaResponse plaza = null;
+            if (File.Exists(path))
+            {
+                plaza = JsonUtility.FromJson<PlazaResponse>(File.ReadAllText(path));
+            }
+            if (plaza == null)          plaza = new PlazaResponse();
+            if (plaza.sessions == null) plaza.sessions = new List<PlazaSessionData>();
+
+            // 동일 원본 session_id 중복 방지
+            if (plaza.sessions.Any(s => s.session_id == session.session_id))
+            {
+                Debug.Log($"[PlazaManager] 이미 저장된 세션: {session.session_id} — 저장 생략");
+                return;
+            }
+
+            // 새 plaza_XXX ID 생성 (기존 최대값 + 1)
+            int maxNum = plaza.sessions
+                .Where(s => s.session_id.StartsWith("plaza_"))
+                .Select(s => int.TryParse(s.session_id.Substring(6), out int n) ? n : 0)
+                .DefaultIfEmpty(0)
+                .Max();
+            string newId = $"plaza_{(maxNum + 1):D3}";
+
+            var newSession = new PlazaSessionData
+            {
+                session_id         = newId,
+                character_npc_name = session.character_npc_name,
+                bubble_text        = session.bubble_text ?? "",
+                likes              = 0,
+                is_top_liked       = false,
+                assets             = session.assets
+            };
+            plaza.sessions.Add(newSession);
+
+            // 최대 세션 수 초과 시 — 오래된 순으로 제거 (likes 상위 8위는 보호)
+            if (plaza.sessions.Count > MaxPlazaSessions)
+            {
+                // likes 상위 8개 세션은 제거 대상에서 제외
+                var protectedIds = plaza.sessions
+                    .OrderByDescending(s => s.likes)
+                    .Take(8)
+                    .Select(s => s.session_id)
+                    .ToHashSet();
+
+                // 보호 대상 제외 후 가장 오래된 세션 선택
+                var toRemove = plaza.sessions
+                    .Where(s => !protectedIds.Contains(s.session_id))
+                    .OrderBy(s => PlazaSessionNumber(s.session_id))
+                    .FirstOrDefault();
+
+                // 모두 상위 8위 이내인 극단적 경우 — 보호 없이 가장 오래된 것 제거
+                if (toRemove == null)
+                    toRemove = plaza.sessions
+                        .OrderBy(s => PlazaSessionNumber(s.session_id))
+                        .First();
+
+                plaza.sessions.Remove(toRemove);
+                Debug.Log($"[PlazaManager] 세션 초과 제거: {toRemove.session_id} " +
+                          $"({toRemove.character_npc_name}, likes: {toRemove.likes})");
+            }
+
+            // top_session_id 재계산
+            plaza.top_session_id = plaza.sessions
+                .OrderByDescending(s => s.likes)
+                .First().session_id;
+
+            File.WriteAllText(path, JsonUtility.ToJson(plaza, prettyPrint: true));
+            Debug.Log($"[PlazaManager] mock_plaza.json 저장 완료: {newId} ({session.character_npc_name})" +
+                      $" / 총 세션: {plaza.sessions.Count}");
+        }
+
+        // plaza_XXX 형식에서 숫자 추출 (정렬용). 형식 불일치 시 int.MaxValue 반환.
+        private static int PlazaSessionNumber(string sessionId)
+        {
+            if (sessionId.StartsWith("plaza_") &&
+                int.TryParse(sessionId.Substring(6), out int n)) return n;
+            return int.MaxValue;
         }
 
         // ════════════════════════════════════════════════════════════

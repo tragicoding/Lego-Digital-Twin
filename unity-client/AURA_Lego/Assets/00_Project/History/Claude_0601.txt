@@ -395,6 +395,106 @@ Claude Code 작업 기록
 [커밋 내역 — 2차]
 ────────────────────────────────────────────────────────────────
 
+  46e91c6  feat(unity): 광장 이전 창작물 다양화·배치 개선·낙하 물리 구현
+
+
+────────────────────────────────────────────────────────────────
+[세션 12] 앱 종료 시 현재 세션 mock_plaza.json 자동 저장
+────────────────────────────────────────────────────────────────
+
+## 요청
+  Mock 모드에서 관람객이 나갈 때 현재 세션이 mock_plaza.json에 추가되어
+  다음 관람객에게 이전 창작물로 표시되도록 구현
+
+## 수정 파일: PlazaManager.cs
+
+  OnApplicationQuit() 추가
+    → Mock 모드일 때만 SaveCurrentSessionToMockPlaza() 호출
+
+  SaveCurrentSessionToMockPlaza() 추가 (public — 수동 호출도 가능)
+    1. _currentSession ?? SessionManager.Instance.CurrentSession 참조
+    2. Application.dataPath 기반 절대 경로로 mock_plaza.json 읽기
+    3. 동일 session_id 중복 방지 (같은 세션 두 번 저장 방지)
+    4. 기존 plaza_XXX 최대 번호 + 1로 새 ID 생성 (plaza_006, plaza_007, ...)
+    5. PlazaSessionData 생성 (likes = 0)
+    6. top_session_id 재계산 후 파일 저장
+
+  주의: Application.dataPath 경로는 Editor/개발 빌드 전용
+        Server 모드에서는 OnApplicationQuit에서 즉시 return
+
+## 흐름
+  앱 종료 → OnApplicationQuit → Mock 모드 확인
+    → mock_plaza.json 읽기 → 현재 세션 추가 → 파일 저장
+    → 다음 관람객 입장 시 광장에 표시됨
+
+
+────────────────────────────────────────────────────────────────
+[세션 13] 광장 최대 31개 제한 + likes 상위 8위 보호 로직
+────────────────────────────────────────────────────────────────
+
+## 요청
+  광장 최대 31개 창작물 배치. 초과 시 제거 기준:
+    - 오래된 것부터 제거 (plaza_XXX 번호 낮은 순)
+    - 단, likes 상위 8위는 제거 대상에서 보호
+
+## 수정 파일: PlazaManager.cs
+
+  상수 추가
+    private const int MaxPlazaSessions = 31;
+
+  SaveCurrentSessionToMockPlaza() 내 트리밍 로직 추가
+    1. likes 상위 8개 session_id → protectedIds HashSet
+    2. protectedIds 제외 세션 중 plaza_XXX 번호 가장 낮은 것 선택 → 제거
+    3. 예외: 모두 상위 8위인 경우 → 보호 없이 가장 오래된 것 제거
+
+  PlazaSessionNumber(sessionId) 헬퍼 추가
+    → "plaza_XXX"에서 숫자 추출 (정렬·비교용)
+
+## 예시
+  plaza_001 (likes 2, 비보호) → 제거 대상
+  plaza_002 (likes 15, 상위 8위) → 보호, 건너뜀
+  plaza_003 (likes 0, 비보호) → plaza_001 제거 후 다음 후보
+
+
+────────────────────────────────────────────────────────────────
+[세션 14] Mock 세션 풀 — 관람객마다 다른 캐릭터/오브제
+────────────────────────────────────────────────────────────────
+
+## 문제
+  mock_session.json이 정적 파일이라 매번 같은 캐릭터(몽글이)·오브제(하늘탑)로
+  고정됨 → 관람객마다 다른 세션 데이터 필요
+
+## 구현
+
+  신규 파일: Resources/Mock/mock_session_pool.json
+    - 8개 세션 정의 (몽글이, 별이, 뭉게, 토실, 하늘이, 두루미, 초코, 루나)
+    - 각 세션마다 다른 캐릭터명·오브제명·말풍선 텍스트
+
+  수정 파일: Scripts/Mock/MockSessionLoader.cs
+    - SessionPool 내부 클래스 추가 (List<SessionData> sessions)
+    - PlayerPrefs("MockSessionIndex") 로 순환 인덱스 관리
+    - Load() 우선순위:
+        1. mock_session_pool.json 로드 → sessions[index % count] 반환
+           PlayerPrefs index 1 증가 후 저장
+        2. mock_session.json fallback (풀 없을 시)
+    - 로그: [MockSessionLoader] 풀 로드 [1/8] — character: 몽글이, object: 하늘탑
+
+## 순환 방식
+  1회차: index=0 → pool[0] 몽글이  →  index 1 저장
+  2회차: index=1 → pool[1] 별이    →  index 2 저장
+  ...
+  9회차: index=8 → pool[0] 몽글이  →  순환 반복
+
+## 비고
+  - Server 모드: MockSessionLoader 호출 자체 없음 → 영향 없음
+  - 인덱스 초기화: Unity Editor → Edit → Clear All PlayerPrefs
+  - 풀 세션 추가: mock_session_pool.json에 항목만 추가 (코드 수정 불필요)
+
+
+────────────────────────────────────────────────────────────────
+[커밋 내역 — 3차]
+────────────────────────────────────────────────────────────────
+
   (커밋 예정)
 
 
@@ -403,11 +503,18 @@ Claude Code 작업 기록
 ────────────────────────────────────────────────────────────────
 
 ## 수정
-  | 파일                                 | 주요 변경 내용                                          |
-  |-------------------------------------|-------------------------------------------------------|
-  | Scripts/Plaza/PlazaManager.cs       | 배열 Prefab, 스케일 분리, 앞뒤 배치, 낙하 물리, ?? 버그 수정 |
-  | Scripts/Plaza/PlazaSessionView.cs   | LateUpdate Billboard — 항상 카메라 방향                  |
-  | Resources/Mock/mock_plaza.json      | 세션 3 → 5개 확장                                       |
+  | 파일                                 | 주요 변경 내용                                               |
+  |-------------------------------------|-------------------------------------------------------------|
+  | Scripts/Plaza/PlazaManager.cs       | 배열 Prefab, 스케일 분리, 앞뒤 배치, 낙하 물리, ?? 버그 수정,  |
+  |                                     | OnApplicationQuit 저장, 31개 제한·보호 로직                   |
+  | Scripts/Plaza/PlazaSessionView.cs   | LateUpdate Billboard — 항상 카메라 방향                       |
+  | Scripts/Mock/MockSessionLoader.cs   | SessionPool 순환 로드 (PlayerPrefs 인덱스)                    |
+  | Resources/Mock/mock_plaza.json      | 세션 3 → 5개 확장                                            |
+
+## 신규 생성
+  | 파일                                       | 내용                        |
+  |-------------------------------------------|-----------------------------|
+  | Resources/Mock/mock_session_pool.json      | 8개 세션 풀 (관람객마다 순환)  |
 
 
 ────────────────────────────────────────────────────────────────
@@ -418,5 +525,7 @@ Claude Code 작업 기록
   [ ] PlazaManager.spawnPoints 실제 광장 위치 배치
   [ ] 투표 중복 방지 로직 추가
   [ ] Server Mode 전환 후 통합 테스트
+  [ ] 백엔드에 광장 세션 정렬 정책 요청
+      (최대 표시 수, 우선순위 기준 — 현재 spawnPoints 수로만 제한됨)
 
 ================================================================
