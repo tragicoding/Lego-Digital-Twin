@@ -31,12 +31,19 @@ namespace LegoTwin.Plaza
         [Header("배치 위치 (캐릭터+오브제 쌍, 순서대로)")]
         public Transform[] spawnPoints;
 
-        [Header("Mock Mode Prefab")]
-        public GameObject mockCharacterPrefab;
-        public GameObject mockObjectPrefab;
+        [Header("Mock Mode Prefab (복수 등록 → 세션 순서대로 순환 배정)")]
+        public GameObject[] mockCharacterPrefabs;
+        public GameObject[] mockObjectPrefabs;
 
         [Header("스폰 설정")]
-        public float spawnScale = 12f;
+        public float characterSpawnScale    = 6f;
+        public float objectSpawnScale       = 12f;
+        public float characterForwardOffset = 3f;   // 캐릭터: spawnPoint 앞쪽
+        public float objectBackOffset       = 3f;   // 오브제:  spawnPoint 뒤쪽
+
+        [Header("오브제 낙하 설정")]
+        [Tooltip("오브제가 스폰되는 높이 (이 높이에서 중력으로 낙하)")]
+        public float objectDropHeight = 15f;
 
         [Header("PlazaSessionView 프리팹 (UI + 좋아요 포함)")]
         public PlazaSessionView sessionViewPrefab;
@@ -141,7 +148,7 @@ namespace LegoTwin.Plaza
                 _likeCounts[session.session_id] = session.likes;
 
                 // 캐릭터 + 오브제 배치
-                yield return SpawnSessionAssets(session, point);
+                yield return SpawnSessionAssets(session, point, i);
 
                 // PlazaSessionView 생성 (좋아요 UI + 말풍선)
                 if (sessionViewPrefab != null)
@@ -157,7 +164,7 @@ namespace LegoTwin.Plaza
             }
         }
 
-        private IEnumerator SpawnSessionAssets(PlazaSessionData session, Transform point)
+        private IEnumerator SpawnSessionAssets(PlazaSessionData session, Transform point, int sessionIndex)
         {
             // ── 캐릭터 ─────────────────────────────────────────────────────────
             var charData = session.assets?.character;
@@ -167,15 +174,16 @@ namespace LegoTwin.Plaza
                 if (!string.IsNullOrEmpty(charData.model_url))
                     Debug.LogWarning($"[PlazaManager] 캐릭터 서버 로드 미구현 ({charData.model_url}) — Mock fallback");
 
-                if (mockCharacterPrefab == null)
-                    Debug.LogWarning("[PlazaManager] mockCharacterPrefab 미연결 — Inspector에서 연결하세요.");
+                var charPrefab = PickMockPrefab(mockCharacterPrefabs, sessionIndex);
+                if (charPrefab == null)
+                    Debug.LogWarning("[PlazaManager] mockCharacterPrefabs 미연결 — Inspector에서 연결하세요.");
                 else
                 {
-                    var charGo = Instantiate(mockCharacterPrefab,
-                        point.position + Vector3.left * 3f, point.rotation);
+                    var charGo = Instantiate(charPrefab,
+                        point.position + point.forward * characterForwardOffset, point.rotation);
                     charGo.name = $"PlazaChar_{session.session_id}";
-                    charGo.transform.localScale = Vector3.one * spawnScale;
-                    Debug.Log($"[PlazaManager] 캐릭터 스폰: {charGo.name}");
+                    charGo.transform.localScale = Vector3.one * characterSpawnScale;
+                    Debug.Log($"[PlazaManager] 캐릭터 스폰: {charGo.name} (prefab: {charPrefab.name})");
                 }
             }
 
@@ -186,29 +194,64 @@ namespace LegoTwin.Plaza
                 if (!string.IsNullOrEmpty(objData.model_url))
                 {
                     // Server Mode: glTFast GLB 비동기 로드
-                    var task = SpawnObjectFromServerAsync(session.session_id, objData, point);
+                    var task = SpawnObjectFromServerAsync(session.session_id, objData, point, sessionIndex);
                     yield return new WaitUntil(() => task.IsCompleted);
                     if (task.IsFaulted)
                         Debug.LogError($"[PlazaManager] 광장 오브제 GLB 로드 실패: {task.Exception?.InnerException?.Message}");
                 }
                 else
                 {
-                    if (mockObjectPrefab == null)
-                        Debug.LogWarning("[PlazaManager] mockObjectPrefab 미연결 — Inspector에서 연결하세요.");
+                    var objPrefab = PickMockPrefab(mockObjectPrefabs, sessionIndex);
+                    if (objPrefab == null)
+                        Debug.LogWarning("[PlazaManager] mockObjectPrefabs 미연결 — Inspector에서 연결하세요.");
                     else
                     {
-                        var objGo = Instantiate(mockObjectPrefab,
-                            point.position + Vector3.right * 3f, point.rotation);
+                        var spawnPos = point.position
+                                       - point.forward * objectBackOffset
+                                       + Vector3.up * objectDropHeight;
+                        var objGo = Instantiate(objPrefab, spawnPos, point.rotation);
                         objGo.name = $"PlazaObj_{session.session_id}";
-                        objGo.transform.localScale = Vector3.one * spawnScale;
-                        Debug.Log($"[PlazaManager] 오브제 스폰: {objGo.name}");
+                        objGo.transform.localScale = Vector3.one * objectSpawnScale;
+                        SetupObjectPhysics(objGo);
+                        Debug.Log($"[PlazaManager] 오브제 스폰: {objGo.name} (prefab: {objPrefab.name})");
                     }
                 }
             }
         }
 
+        // 배열에서 index % length 순환 선택. 배열이 없거나 비어 있으면 null 반환.
+        private static GameObject PickMockPrefab(GameObject[] prefabs, int index)
+        {
+            if (prefabs == null || prefabs.Length == 0) return null;
+            return prefabs[index % prefabs.Length];
+        }
+
+        // 오브제에 Rigidbody(중력) + Collider 자동 부착
+        private static void SetupObjectPhysics(GameObject go)
+        {
+            var rb = go.GetComponent<Rigidbody>();
+            if (rb == null) rb = go.AddComponent<Rigidbody>();
+            rb.useGravity  = true;
+            rb.constraints = RigidbodyConstraints.FreezeRotation;
+
+            // 기존 Collider 없을 때만 MeshCollider 자동 추가
+            if (go.GetComponentInChildren<Collider>() == null)
+            {
+                foreach (var mf in go.GetComponentsInChildren<MeshFilter>())
+                {
+                    if (mf.sharedMesh == null) continue;
+                    var col = mf.gameObject.GetComponent<MeshCollider>();
+                    if (col == null) col = mf.gameObject.AddComponent<MeshCollider>();
+                    col.sharedMesh = mf.sharedMesh;
+                    col.convex     = true;   // Dynamic Rigidbody 필수
+                }
+            }
+
+            Debug.Log($"[PlazaManager] 오브제 물리 설정 완료: {go.name}");
+        }
+
         private async System.Threading.Tasks.Task SpawnObjectFromServerAsync(
-            string sessionId, ObjectAssetData data, Transform point)
+            string sessionId, ObjectAssetData data, Transform point, int sessionIndex = 0)
         {
             Debug.Log($"[PlazaManager] 광장 오브제 GLB 로드: {data.model_url}");
             var gltf = new GLTFast.GltfImport();
@@ -216,19 +259,25 @@ namespace LegoTwin.Plaza
             if (!ok)
             {
                 Debug.LogWarning($"[PlazaManager] GLB 로드 실패: {data.model_url} — Mock fallback");
-                if (mockObjectPrefab != null)
+                var fallbackPrefab = PickMockPrefab(mockObjectPrefabs, sessionIndex);
+                if (fallbackPrefab != null)
                 {
-                    var fallback = Instantiate(mockObjectPrefab,
-                        point.position + Vector3.right * 3f, point.rotation);
+                    var fallbackPos = point.position
+                                      - point.forward * objectBackOffset
+                                      + Vector3.up * objectDropHeight;
+                    var fallback = Instantiate(fallbackPrefab, fallbackPos, point.rotation);
                     fallback.name = $"PlazaObj_{sessionId}";
-                    fallback.transform.localScale = Vector3.one * spawnScale;
+                    fallback.transform.localScale = Vector3.one * objectSpawnScale;
+                    SetupObjectPhysics(fallback);
                 }
                 return;
             }
+            var dropPos = point.position - point.forward * objectBackOffset + Vector3.up * objectDropHeight;
             var root = new GameObject($"PlazaObj_{sessionId}");
-            root.transform.SetPositionAndRotation(point.position + Vector3.right * 3f, point.rotation);
-            root.transform.localScale = Vector3.one * spawnScale;
+            root.transform.SetPositionAndRotation(dropPos, point.rotation);
+            root.transform.localScale = Vector3.one * objectSpawnScale;
             await gltf.InstantiateMainSceneAsync(root.transform);
+            SetupObjectPhysics(root);
             Debug.Log($"[PlazaManager] 광장 오브제 서버 스폰 완료: {root.name}");
         }
 

@@ -33,6 +33,28 @@
         "character": { "asset_id": "pc_003", "model_url": "", "texture_url": "", "role": "guide_npc", "npc_name": "토실" },
         "object":    { "asset_id": "po_003", "model_url": "", "role": "static_object", "object_name": "꽃시계" }
       }
+    },
+    {
+      "session_id": "plaza_004",
+      "character_npc_name": "하늘이",
+      "bubble_text": "하늘을 날고 싶어요!",
+      "likes": 5,
+      "is_top_liked": false,
+      "assets": {
+        "character": { "asset_id": "pc_004", "model_url": "", "texture_url": "", "role": "guide_npc", "npc_name": "하늘이" },
+        "object":    { "asset_id": "po_004", "model_url": "", "role": "static_object", "object_name": "달빛 등대" }
+      }
+    },
+    {
+      "session_id": "plaza_005",
+      "character_npc_name": "두루미",
+      "bubble_text": "같이 춤출래요?",
+      "likes": 2,
+      "is_top_liked": false,
+      "assets": {
+        "character": { "asset_id": "pc_005", "model_url": "", "texture_url": "", "role": "guide_npc", "npc_name": "두루미" },
+        "object":    { "asset_id": "po_005", "model_url": "", "role": "static_object", "object_name": "별똥별 로켓" }
+      }
     }
   ]
 }

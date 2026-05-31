@@ -1,0 +1,422 @@
+================================================================
+Claude Code 작업 기록
+날짜: 2026-06-01
+브랜치: feature/unity
+================================================================
+
+────────────────────────────────────────────────────────────────
+[세션 1] 히스토리 파일 분석 및 현재 브랜치 확인
+────────────────────────────────────────────────────────────────
+
+## 참고 문서
+  DevelopmentHelp_0529.md
+  Claude_0528.txt / Claude_0528_2.txt / Claude_0529.txt / Claude_0530.txt
+
+## 현재 브랜치
+  feature/unity (허용 브랜치, 정상)
+
+## 파악한 이전 작업 현황 (0530 기준 미해결 항목)
+  [ ] XR Origin "Player" 태그 설정 확인
+  [ ] PlazaManager.spawnPoints 실제 광장 위치 배치
+  [ ] 투표 중복 방지 로직 미구현
+  [ ] GeneratedCharacterSpawner.LoadFromServer() TriLib 연동 미완
+
+
+────────────────────────────────────────────────────────────────
+[세션 2] 서버 모드 흐름 전체 점검
+────────────────────────────────────────────────────────────────
+
+## 점검 방법
+  모든 스크립트 파일 직접 읽어 서버 데이터 클래스 필드별 연결 현황 추적
+
+## 서버 데이터 클래스 필드 연결 현황 분석 결과
+
+### SessionData
+  | 필드              | 상태       |
+  |-----------------|-----------|
+  | session_id       | 연결됨     |
+  | character_npc_name| 연결됨    |
+  | bubble_text      | 연결됨     |
+  | likes            | 연결됨     |
+  | object_name      | 부분 연결  |
+  | ready_for_unity  | 미사용 ⛔  |
+  | assets.character | 연결됨     |
+  | assets.object    | 연결됨     |
+
+### CharacterAssetData
+  | 필드         | 상태                          |
+  |------------|------------------------------|
+  | npc_name   | 연결됨                        |
+  | model_url  | 경로 있으나 LoadFromServer TODO  |
+  | texture_url| 미사용 ⛔ (코드 없음)            |
+  | asset_id   | 미사용 (의도적)                 |
+  | role       | 미사용 (의도적)                 |
+
+### ObjectAssetData
+  | 필드        | 상태         |
+  |-----------|------------|
+  | model_url | 연결됨       |
+  | object_name| 부분 연결   |
+  | asset_id  | 미사용 (의도적)|
+  | role      | 미사용 (의도적)|
+
+### PlazaSessionData
+  | 필드                  | 상태              |
+  |--------------------|-----------------|
+  | session_id          | 연결됨            |
+  | bubble_text         | 연결됨            |
+  | likes               | 연결됨            |
+  | is_top_liked        | 연결됨            |
+  | assets.*.model_url  | 연결 끊김 ⛔       |
+  | character_npc_name  | 미사용            |
+
+### LikeResponse
+  | 필드             | 상태          |
+  |---------------|-------------|
+  | session_id    | 연결됨        |
+  | likes         | 연결됨        |
+  | is_top_liked  | 연결됨        |
+  | top_session_id| 미사용 ⛔     |
+
+## 식별된 버그 6종
+  1. WebSocketManager.StartListening() 미호출 → likes_updated 수신 불가 ⛔
+  2. 오브제 비동기 타이밍 → _spawnedObjectGO null → AttachViewToCurrentSession 스킵 ⛔
+  3. 캐릭터 서버 로드 미구현 (TriLib TODO) ⚠️
+  4. 광장 배치 오브제 model_url 미사용 ⛔
+  5. texture_url 미사용 ⛔
+  6. ready_for_unity 미체크 ⛔
+
+
+────────────────────────────────────────────────────────────────
+[세션 3] 서버 연동 필드 연결 구현
+────────────────────────────────────────────────────────────────
+
+## 수정 파일 1: SessionManager.cs
+  - LoadServerSession() 코루틴 추가
+  - Server Mode에서 직접 FetchUnitySession 호출 → PollUntilReady → FetchUnitySession 체인으로 변경
+  - ready_for_unity = true 확인 후 세션 데이터 로드
+
+  변경 전:
+    StartCoroutine(_apiClient.FetchUnitySession(sid, data => Apply(data, onLoaded)));
+
+  변경 후:
+    StartCoroutine(LoadServerSession(sid, onLoaded));
+
+    private IEnumerator LoadServerSession(string sid, Action<SessionData> onLoaded)
+    {
+        yield return _apiClient.PollUntilReady(sid, null);
+        yield return _apiClient.FetchUnitySession(sid, data => Apply(data, onLoaded));
+    }
+
+
+## 수정 파일 2: CharacterAnimationController.cs
+  - Initialize()에 texture_url 처리 추가
+  - ApplyTextureFromUrl() 구현
+  - glTFast InstantiateMainSceneAsync 방식 사용 (GetMaterial은 glTFast 6.18에서 미지원)
+
+  동작 방식:
+    1. GltfImport.Load(texture_url) — GLB 비동기 로드
+    2. 비활성 임시 컨테이너(_TempGltfMaterial)에 InstantiateMainSceneAsync
+    3. Renderer.sharedMaterials 추출 → SkinnedMeshRenderer.materials 적용
+    4. 임시 컨테이너 Destroy
+
+
+## 수정 파일 3: PlazaManager.cs (3가지 변경)
+
+  (1) SpawnSessionAssets — void → IEnumerator 변경
+    - 오브제 model_url 있으면 SpawnObjectFromServerAsync() GLB 비동기 로드
+    - 오브제 로드 실패 시 mockObjectPrefab fallback
+    - 캐릭터는 TriLib 미구현 → 경고 로그 + mockCharacterPrefab fallback 유지
+    - LoadAndSpawnPlaza 루프에서 yield return SpawnSessionAssets()로 변경
+
+  (2) SpawnObjectFromServerAsync() 추가
+    private async Task SpawnObjectFromServerAsync(sessionId, data, point)
+      → GltfImport.Load(model_url)
+      → 성공 시 root GameObject 생성 + InstantiateMainSceneAsync
+      → 실패 시 mockObjectPrefab fallback
+
+  (3) HandleServerLike(LikeResponse result) 추가
+    → result.top_session_id 기준으로 전체 _views 별 표시 재계산
+    → 해당 세션 뷰 UpdateLikes() 호출
+    → _topSessionId 갱신
+
+
+## 수정 파일 4: LikeSystem.cs
+  - Server Mode SendLike() 응답 처리 변경
+  변경 전: 개별 뷰만 UpdateLikes + SetTopLiked
+  변경 후: PlazaManager.Instance.HandleServerLike(result) 위임
+           → top_session_id 포함 전체 뷰 업데이트
+
+
+────────────────────────────────────────────────────────────────
+[세션 4] 버그 2종 수정
+────────────────────────────────────────────────────────────────
+
+## 버그 A — 오브제 비동기 타이밍 (GameFlowManager.cs)
+
+  원인:
+    OnSessionLoaded()에서 _objectSpawner.Spawn() 직후 즉시 GetSpawnedObject() 호출
+    → Server Mode에서 GLB 비동기 로드가 끝나기 전 → null 반환
+    → PlazaManager.RegisterCurrentSession(... null) → AttachViewToCurrentSession 스킵
+
+  해결:
+    OnGuideFinished()에서 참조 (가이드 시나리오 ~20초 후 GLB 로드 완료 시점)
+
+    변경 전:
+      plaza.RegisterCurrentSession(session, charGO, _spawnedObjectGO);
+
+    변경 후:
+      var objectGO = _spawnedObjectGO ?? _objectSpawner?.GetSpawnedObject();
+      plaza.RegisterCurrentSession(session, charGO, objectGO);
+
+    동작:
+      - Mock Mode: _spawnedObjectGO 이미 설정됨 → ?? 좌변 반환
+      - Server Mode: _spawnedObjectGO = null → GetSpawnedObject() 반환 (로드 완료본)
+
+
+## 버그 B — WebSocket 미시작 (PlazaManager.cs)
+
+  원인:
+    EnterPlaza()에서 OnLikesUpdated += HandleLikesUpdated 만 있고
+    WebSocketManager.StartListening() 호출 없음
+
+  해결:
+    EnterPlaza()에서 Server Mode 한정 StartListening() 호출
+
+    if (SessionManager.Instance?.dataSourceMode == DataSourceMode.Server)
+        WebSocketManager.Instance.StartListening();
+
+    비고:
+      - StartListening() 내부에 if (_running) return; 가드 있어 중복 호출 안전
+      - Mock Mode에서는 불필요한 WebSocket 연결 방지
+
+
+────────────────────────────────────────────────────────────────
+[세션 5] 컴파일 에러 수정
+────────────────────────────────────────────────────────────────
+
+## 에러
+  CS1061: 'GuideNPCController' does not contain a definition for 'OnFreeModeSwitched'
+  → 이후 'OnPlayerTeleportRequested' 에러로 변경
+
+## 원인 (cascade)
+  CharacterAnimationController.cs 에서 gltf.GetMaterial(0) 호출
+  → glTFast 6.18.0에서 GetMaterial() 메서드 미지원 → 컴파일 실패
+  → CharacterAnimationController를 사용하는 GuideNPCController 컴파일 실패
+  → GuideNPCController를 사용하는 GameFlowManager에서 이벤트 멤버를 못 찾는 에러
+
+## 해결
+  ApplyTextureFromUrl()에서 GetMaterial(0) → InstantiateMainSceneAsync 방식으로 변경
+  (GeneratedObjectSpawner.cs에서 이미 검증된 API 사용)
+
+
+────────────────────────────────────────────────────────────────
+[최종 서버 모드 흐름 점검]
+────────────────────────────────────────────────────────────────
+
+  항목                               | 수정 전 | 수정 후
+  ----------------------------------|--------|--------
+  ready_for_unity 폴링               | ⛔     | ✅
+  캐릭터 texture_url 적용             | ⛔     | ✅
+  광장 이전 관람객 오브제 GLB 로드       | ⛔     | ✅
+  LikeResponse.top_session_id 전체 반영| ⛔    | ✅
+  오브제 비동기 타이밍 버그             | ⛔     | ✅
+  WebSocket StartListening 미호출      | ⛔     | ✅
+  캐릭터 FBX 서버 로드                 | ⛔     | ⚠️ TriLib 미설치 → Mock fallback
+
+
+────────────────────────────────────────────────────────────────
+[커밋 내역]
+────────────────────────────────────────────────────────────────
+
+  bf5322f  fix(unity): 서버 모드 데이터 연결 및 버그 수정
+
+
+────────────────────────────────────────────────────────────────
+[최종 파일 상태]
+────────────────────────────────────────────────────────────────
+
+## 수정
+  | 파일                                    | 주요 변경 내용                                    |
+  |----------------------------------------|------------------------------------------------|
+  | Scripts/Managers/SessionManager.cs      | LoadServerSession() — PollUntilReady 체인        |
+  | Scripts/Character/CharacterAnimationController.cs | ApplyTextureFromUrl() — texture_url 연결  |
+  | Scripts/Managers/GameFlowManager.cs     | objectGO ?? GetSpawnedObject() — 비동기 타이밍 수정|
+  | Scripts/Plaza/PlazaManager.cs           | SpawnObjectFromServerAsync, HandleServerLike,   |
+  |                                        | WebSocket StartListening 추가                    |
+  | Scripts/Plaza/LikeSystem.cs            | HandleServerLike 위임 — top_session_id 연결       |
+
+
+────────────────────────────────────────────────────────────────
+[미해결 / 추후 작업]
+────────────────────────────────────────────────────────────────
+
+  [ ] TriLib 설치 후 GeneratedCharacterSpawner.LoadFromServer() 구현
+      → 가이드/배치 캐릭터 서버 FBX 런타임 로드
+      → 광장 배치 캐릭터 서버 FBX 런타임 로드 (PlazaManager.SpawnSessionAssets)
+  [x] XR Origin "Player" 태그 설정 확인 → 완료
+  [ ] PlazaManager.spawnPoints 실제 광장 위치 배치
+  [ ] 투표 중복 방지 로직 추가
+  [ ] Server Mode 전환 후 통합 테스트
+
+
+────────────────────────────────────────────────────────────────
+[세션 6] 광장 이전 창작물 다양한 Mock 데이터 지원
+────────────────────────────────────────────────────────────────
+
+## 문제
+  광장에 배치되는 이전 창작물들이 캐릭터/오브제 모두 동일한 단일 프리팹 사용
+  → 모든 스폰 포인트에 같은 모양의 캐릭터·오브제 반복 등장
+
+## 수정 파일 1: PlazaManager.cs
+  - 단수 필드 → 배열로 변경
+      mockCharacterPrefab  → mockCharacterPrefabs[]
+      mockObjectPrefab     → mockObjectPrefabs[]
+  - PickMockPrefab(prefabs[], index) 헬퍼 추가
+      → index % prefabs.Length 순환 배정
+  - SpawnSessionAssets(session, point, sessionIndex) — 인덱스 파라미터 추가
+  - SpawnObjectFromServerAsync(sessionIndex) — fallback도 배열 방식 통일
+
+## 수정 파일 2: Resources/Mock/mock_plaza.json
+  - 세션 3개 → 5개 확장
+  - 추가 세션: 하늘이(달빛 등대), 두루미(별똥별 로켓)
+
+## Inspector 설정 (Unity Editor)
+  PlazaManager → Mock Character Prefabs 배열에 npc_3, npc_9 등 연결
+  PlazaManager → Mock Object Prefabs 배열에 여러 오브제 프리팹 연결
+  세션 0→[0], 세션 1→[1], 세션 2→[0] ... 순환 배정
+
+
+────────────────────────────────────────────────────────────────
+[세션 7] 캐릭터·오브제 스폰 스케일 분리
+────────────────────────────────────────────────────────────────
+
+## 문제
+  spawnScale 단일 값(12f)이 캐릭터·오브제 모두에 적용됨
+
+## 수정 파일: PlazaManager.cs
+  - spawnScale 제거 → 두 필드로 분리
+      characterSpawnScale = 6f   (캐릭터)
+      objectSpawnScale    = 12f  (오브제)
+  - Mock/Server/fallback 모든 경로에 각각 적용
+
+
+────────────────────────────────────────────────────────────────
+[세션 8] 오브제 배치 방향 변경 (좌우 → 앞뒤)
+────────────────────────────────────────────────────────────────
+
+## 문제
+  캐릭터가 왼쪽, 오브제가 오른쪽 배치 → 앞(캐릭터)/뒤(오브제) 배치로 변경 요청
+
+## 수정 파일: PlazaManager.cs
+  - Inspector 필드 추가
+      characterForwardOffset = 3f  (캐릭터: spawnPoint 앞쪽)
+      objectBackOffset       = 3f  (오브제: spawnPoint 뒤쪽)
+  - 오프셋 방향 변경 (world space → spawnPoint local 기반)
+      캐릭터: Vector3.left * 3f  → point.forward  * characterForwardOffset
+      오브제: Vector3.right * 3f → -point.forward * objectBackOffset
+  - point.forward 사용으로 spawnPoint 회전 방향 기준 앞/뒤 결정
+
+
+────────────────────────────────────────────────────────────────
+[세션 9] PlazaSessionView 뒤집힘 수정 (Billboard)
+────────────────────────────────────────────────────────────────
+
+## 문제
+  PlazaSessionView(World Space Canvas)가 point.rotation을 그대로 물려받아
+  카메라 반대 방향을 향해 UI가 뒤집혀 보임
+
+## 수정 파일: Scripts/Plaza/PlazaSessionView.cs
+  - _cam 필드 추가 (Camera 캐시)
+  - Awake(): _cam = Camera.main
+  - LateUpdate() 추가:
+      transform.forward = _cam.transform.forward;
+      → 매 프레임 카메라 forward로 정렬 (spawnPoint 회전 무관)
+      → VR에서 플레이어 이동 시에도 항상 UI가 카메라 방향 유지
+
+
+────────────────────────────────────────────────────────────────
+[세션 10] 광장 배치 오브제 낙하 물리 구현
+────────────────────────────────────────────────────────────────
+
+## 요청
+  오브제가 땅에 박혀 있음 → 하늘 위에서 중력으로 낙하시키기
+
+## 수정 파일: PlazaManager.cs
+
+  (1) Inspector 필드 추가
+      objectDropHeight = 15f  (스폰 높이 — 낙하 시작 위치)
+
+  (2) 오브제 스폰 위치 변경
+      변경 전: point.position - point.forward * objectBackOffset
+      변경 후: point.position - point.forward * objectBackOffset + Vector3.up * objectDropHeight
+
+  (3) SetupObjectPhysics(GameObject go) 추가
+      - Rigidbody: useGravity = true, FreezeRotation (쓰러짐 방지)
+      - 기존 Collider 없을 때 자식 MeshFilter마다 MeshCollider(convex) 자동 추가
+      - Mock/Server GLB/fallback 세 경로 모두 호출
+
+  주의: 씬 바닥에 Collider 있어야 정상 착지
+
+
+────────────────────────────────────────────────────────────────
+[세션 11] MissingComponentException 수정
+────────────────────────────────────────────────────────────────
+
+## 에러
+  MissingComponentException: There is no 'Rigidbody' attached to the
+  "PlazaObj_plaza_001" game object
+  LegoTwin.Plaza.PlazaManager.SetupObjectPhysics() 에서 발생
+
+## 원인
+  Unity Object에 C# ?? 연산자 사용
+  → ??는 ReferenceEquals 기반 → Unity null 오브젝트를 null로 인식 못 함
+  → GetComponent<Rigidbody>()가 Unity null 반환해도 ??가 AddComponent를 건너뜀
+  → null Rigidbody에 .useGravity 접근 → 예외 발생
+
+## 해결
+  ?? 연산자 → if (rb == null) 패턴으로 교체 (Unity == 오버로드 활용)
+
+  변경 전:
+    var rb = go.GetComponent<Rigidbody>() ?? go.AddComponent<Rigidbody>();
+    var col = mf.gameObject.GetComponent<MeshCollider>() ?? mf.gameObject.AddComponent<MeshCollider>();
+
+  변경 후:
+    var rb = go.GetComponent<Rigidbody>();
+    if (rb == null) rb = go.AddComponent<Rigidbody>();
+    var col = mf.gameObject.GetComponent<MeshCollider>();
+    if (col == null) col = mf.gameObject.AddComponent<MeshCollider>();
+
+## 수정 파일
+  Scripts/Plaza/PlazaManager.cs
+
+
+────────────────────────────────────────────────────────────────
+[커밋 내역 — 2차]
+────────────────────────────────────────────────────────────────
+
+  (커밋 예정)
+
+
+────────────────────────────────────────────────────────────────
+[최종 파일 상태 업데이트]
+────────────────────────────────────────────────────────────────
+
+## 수정
+  | 파일                                 | 주요 변경 내용                                          |
+  |-------------------------------------|-------------------------------------------------------|
+  | Scripts/Plaza/PlazaManager.cs       | 배열 Prefab, 스케일 분리, 앞뒤 배치, 낙하 물리, ?? 버그 수정 |
+  | Scripts/Plaza/PlazaSessionView.cs   | LateUpdate Billboard — 항상 카메라 방향                  |
+  | Resources/Mock/mock_plaza.json      | 세션 3 → 5개 확장                                       |
+
+
+────────────────────────────────────────────────────────────────
+[미해결 / 추후 작업]
+────────────────────────────────────────────────────────────────
+
+  [ ] TriLib 설치 후 GeneratedCharacterSpawner.LoadFromServer() 구현
+  [ ] PlazaManager.spawnPoints 실제 광장 위치 배치
+  [ ] 투표 중복 방지 로직 추가
+  [ ] Server Mode 전환 후 통합 테스트
+
+================================================================
