@@ -53,15 +53,7 @@ namespace LegoTwin.Plaza
             }
         }
 
-        // World Space Canvas가 항상 카메라를 향하도록 회전
-        private void LateUpdate()
-        {
-            if (_cam == null) _cam = Camera.main;
-            if (_cam != null)
-                transform.forward = _cam.transform.forward;
-        }
-
-        /// <summary>PlazaManager가 세션 생성 시 호출.</summary>
+/// <summary>PlazaManager가 세션 생성 시 호출.</summary>
         public void Initialize(PlazaSessionData session, bool isTop)
         {
             SessionId = session.session_id;

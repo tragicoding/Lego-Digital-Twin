@@ -639,9 +639,137 @@ Claude Code 작업 기록
 ────────────────────────────────────────────────────────────────
 
   [ ] TriLib 설치 후 GeneratedCharacterSpawner.LoadFromServer() 구현
-  [ ] PlazaManager.spawnPoints 실제 광장 위치 배치
+  [x] PlazaManager.spawnPoints 실제 광장 위치 배치 완료
   [ ] Server Mode 전환 후 통합 테스트
   [ ] 백엔드에 광장 세션 정렬 정책 요청
       (최대 표시 수, 우선순위 기준 — 현재 spawnPoints 수로만 제한됨)
+
+================================================================
+
+
+================================================================
+Claude Code 작업 기록 (2차)
+날짜: 2026-06-01
+브랜치: feature/unity
+================================================================
+
+────────────────────────────────────────────────────────────────
+[세션 20] 투표 UI — likeButtonUI → likePanel 로 변경
+────────────────────────────────────────────────────────────────
+
+## 수정 파일: Scripts/Plaza/LikeSystem.cs
+  - likeButtonUI 필드 → likePanel 로 전체 rename
+  - Tooltip 변경: "근접 시 표시할 좋아요 Panel (비활성으로 시작)"
+  - 버튼이 아닌 Panel 전체가 비활성 → 활성 토글되도록 개념 변경
+
+## Inspector
+  LikeSystem → Like Panel 슬롯에 Panel GameObject 연결
+
+
+────────────────────────────────────────────────────────────────
+[세션 21] PlazaSessionView Billboard 제거
+────────────────────────────────────────────────────────────────
+
+## 수정 파일: Scripts/Plaza/PlazaSessionView.cs
+  - LateUpdate() 빌보드 코드 제거 (transform.forward = _cam.transform.forward)
+  - UI가 스폰된 방향 그대로 고정됨
+
+
+────────────────────────────────────────────────────────────────
+[세션 22] UI 회전 보정
+────────────────────────────────────────────────────────────────
+
+## 문제
+  PlazaSessionView가 스폰 시 반대 방향을 향함
+
+## 수정 파일: Scripts/Plaza/PlazaManager.cs
+  - 이전 작품: point.rotation * Quaternion.Euler(0f, 180f, 0f)
+  - 현재 작품: _currentObjectGO.transform.rotation * Quaternion.Euler(0f, 180f, 0f)
+
+## PlazaSessionView.cs
+  - Awake()에서 transform.Rotate(0f, 180f, 0f) 시도 → 제거
+  - 최종적으로 PlazaManager 두 곳에서 각각 보정 적용
+
+
+────────────────────────────────────────────────────────────────
+[세션 23] LikeSystem triggerRadius → SphereCollider 자동 적용
+────────────────────────────────────────────────────────────────
+
+## 문제
+  triggerRadius 필드 선언만 되고 SphereCollider.radius에 미적용 → 인식 거리 좁음
+
+## 수정 파일: Scripts/Plaza/LikeSystem.cs
+  - Start()에서 GetComponent<SphereCollider>().radius = triggerRadius 추가
+  - 기본값 2f → 8f 로 변경
+  - Inspector Trigger Radius 값 변경 시 콜라이더 크기도 함께 변경됨
+
+
+────────────────────────────────────────────────────────────────
+[세션 24] SendLike 후 패널 유지
+────────────────────────────────────────────────────────────────
+
+## 수정 파일: Scripts/Plaza/LikeSystem.cs
+  - SendLike() 시작 시 likePanel.SetActive(false) 제거
+  - 버튼 클릭 후 패널이 유지되고, 범위 벗어날 때만 사라짐
+
+
+────────────────────────────────────────────────────────────────
+[세션 25] Mock likes 파일 저장 구현
+────────────────────────────────────────────────────────────────
+
+## 문제
+  HandleMockLike가 메모리(_likeCounts)만 갱신하고 mock_plaza.json에 저장 안 됨
+
+## 수정 파일: Scripts/Plaza/PlazaManager.cs
+
+  SaveMockLikesToFile(sessionId, newLikes, topSessionId) 추가
+    - mock_plaza.json 읽기 → 해당 세션 likes 갱신 → is_top_liked 재계산 → 파일 저장
+    - try-catch로 파일 쓰기 실패 에러 로그
+    - UNITY_EDITOR에서 AssetDatabase.Refresh() 호출 → IDE 즉시 반영
+
+  HandleMockLike()에서 SaveMockLikesToFile() 호출 추가
+
+  파일 경로 분기 (MockPlazaFilePath):
+    - UNITY_EDITOR: Application.dataPath + "00_Project/Resources/Mock/mock_plaza.json"
+      (IDE에서 즉시 확인 가능)
+    - 빌드: Application.persistentDataPath + "mock_plaza.json"
+      (읽기 전용 번들 우회, 쓰기 가능)
+    - EnsureMockPlazaFile(): 빌드에서만 Resources → persistentDataPath 복사
+
+  현재 세션 처리:
+    - 현재 세션(pool_XXX)은 파일에 없으므로 SaveMockLikesToFile에서 조용히 스킵
+    - SaveCurrentSessionToMockPlaza에서 플레이 중 받은 likes 수 반영
+      변경 전: likes = 0
+      변경 후: _likeCounts.TryGetValue(session.session_id, out int currentLikes)
+
+
+────────────────────────────────────────────────────────────────
+[커밋 내역]
+────────────────────────────────────────────────────────────────
+
+  (커밋 예정)
+
+
+────────────────────────────────────────────────────────────────
+[최종 파일 상태]
+────────────────────────────────────────────────────────────────
+
+## 수정
+  | 파일                               | 주요 변경 내용                                          |
+  |-----------------------------------|--------------------------------------------------------|
+  | Scripts/Plaza/LikeSystem.cs       | likePanel rename, triggerRadius→Collider, 패널 유지     |
+  | Scripts/Plaza/PlazaManager.cs     | UI 회전 보정, SaveMockLikesToFile, 파일 경로 분기        |
+  | Scripts/Plaza/PlazaSessionView.cs | Billboard 제거, Awake 회전 보정                         |
+  | Resources/Mock/mock_plaza.json    | likes 수 업데이트                                       |
+  | Assets/Prefabs/PlazaSessionView.prefab | StarObject 비활성화 설정                          |
+
+
+────────────────────────────────────────────────────────────────
+[미해결 / 추후 작업]
+────────────────────────────────────────────────────────────────
+
+  [ ] TriLib 설치 후 GeneratedCharacterSpawner.LoadFromServer() 구현
+  [ ] Server Mode 전환 후 통합 테스트
+  [ ] 백엔드에 광장 세션 정렬 정책 요청
 
 ================================================================

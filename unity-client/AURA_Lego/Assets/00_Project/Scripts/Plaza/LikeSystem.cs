@@ -16,18 +16,18 @@ namespace LegoTwin.Plaza
     ///   - 중복 시 alreadyLikedUI 안내 표시 후 자동 숨김
     ///
     /// 유니티 개발자 체크리스트:
-    ///   [ ] likeButtonUI    연결 (근접 시 표시할 하트/버튼 UI)
+    ///   [ ] likePanel    연결 (근접 시 표시할 하트/버튼 UI)
     ///   [ ] alreadyLikedUI 연결 ("이미 하트를 누른 오브제입니다" 안내 UI)
     /// </summary>
     public class LikeSystem : MonoBehaviour
     {
         [Header("감지 설정")]
         [Tooltip("좋아요 가능 범위 (미터)")]
-        public float triggerRadius = 2f;
+        public float triggerRadius = 8f;
 
         [Header("UI")]
-        [Tooltip("근접 시 표시할 좋아요 버튼/하트 UI")]
-        public GameObject likeButtonUI;
+        [Tooltip("근접 시 표시할 좋아요 Panel (비활성으로 시작 — 접근 시 활성화)")]
+        public GameObject likePanel;
 
         [Tooltip("중복 투표 시 표시할 안내 UI ('이미 하트를 누른 오브제입니다')")]
         public GameObject alreadyLikedUI;
@@ -51,10 +51,13 @@ namespace LegoTwin.Plaza
         private void Start()
         {
             _cam = Camera.main;
-            // likeButtonUI 안의 Button RectTransform을 캐시 (마우스 감지용)
-            if (likeButtonUI != null)
+
+            var col = GetComponent<SphereCollider>();
+            if (col != null) col.radius = triggerRadius;
+
+            if (likePanel != null)
             {
-                var btn = likeButtonUI.GetComponentInChildren<Button>(includeInactive: true);
+                var btn = likePanel.GetComponentInChildren<Button>(includeInactive: true);
                 if (btn != null) _likeButtonRect = btn.GetComponent<RectTransform>();
             }
         }
@@ -63,7 +66,7 @@ namespace LegoTwin.Plaza
         {
             _sessionId = sessionId;
             _likes     = currentLikes;
-            if (likeButtonUI    != null) likeButtonUI.SetActive(false);
+            if (likePanel    != null) likePanel.SetActive(false);
             if (alreadyLikedUI  != null) alreadyLikedUI.SetActive(false);
         }
 
@@ -77,7 +80,7 @@ namespace LegoTwin.Plaza
         private void Update()
         {
             if (!Input.GetMouseButtonDown(0)) return;
-            if (likeButtonUI == null || !likeButtonUI.activeSelf) return;
+            if (likePanel == null || !likePanel.activeSelf) return;
             if (_likeButtonRect == null) return;
 
             if (_cam == null) _cam = Camera.main;
@@ -97,13 +100,13 @@ namespace LegoTwin.Plaza
         private void OnTriggerEnter(Collider other)
         {
             if (!other.CompareTag("Player")) return;
-            if (likeButtonUI != null) likeButtonUI.SetActive(true);
+            if (likePanel != null) likePanel.SetActive(true);
         }
 
         private void OnTriggerExit(Collider other)
         {
             if (!other.CompareTag("Player")) return;
-            if (likeButtonUI    != null) likeButtonUI.SetActive(false);
+            if (likePanel    != null) likePanel.SetActive(false);
             if (alreadyLikedUI  != null) alreadyLikedUI.SetActive(false);
         }
 
@@ -128,7 +131,6 @@ namespace LegoTwin.Plaza
 
         private IEnumerator SendLike()
         {
-            if (likeButtonUI != null) likeButtonUI.SetActive(false);
 
             // ── Mock Mode ─────────────────────────────────────────────
             if (SessionManager.Instance?.dataSourceMode == DataSourceMode.Mock)

@@ -131,8 +131,8 @@ namespace LegoTwin.Plaza
                 return;
             }
 
-            string path = Path.Combine(Application.dataPath,
-                "00_Project/Resources/Mock/mock_plaza.json");
+            EnsureMockPlazaFile();
+            string path = MockPlazaFilePath;
 
             // 기존 파일 읽기
             PlazaResponse plaza = null;
@@ -158,12 +158,15 @@ namespace LegoTwin.Plaza
                 .Max();
             string newId = $"plaza_{(maxNum + 1):D3}";
 
+            // 플레이 중 받은 좋아요 수 반영
+            _likeCounts.TryGetValue(session.session_id, out int currentLikes);
+
             var newSession = new PlazaSessionData
             {
                 session_id         = newId,
                 character_npc_name = session.character_npc_name,
                 bubble_text        = session.bubble_text ?? "",
-                likes              = 0,
+                likes              = currentLikes,
                 is_top_liked       = false,
                 assets             = session.assets
             };
@@ -266,7 +269,7 @@ namespace LegoTwin.Plaza
                 {
                     var view = Instantiate(sessionViewPrefab,
                         new Vector3(point.position.x, viewHeightOffset, point.position.z),
-                        point.rotation);
+                        point.rotation * Quaternion.Euler(0f, 180f, 0f));
                     view.Initialize(session, session.session_id == _topSessionId);
                     _views.Add(view);
                 }
@@ -444,7 +447,7 @@ namespace LegoTwin.Plaza
             // 이전 관람객 뷰와 동일한 절대 Y 기준 사용 (object Y 무시)
             var objPos = _currentObjectGO.transform.position;
             var pos = new Vector3(objPos.x, viewHeightOffset, objPos.z);
-            var rot = _currentObjectGO.transform.rotation;
+            var rot = _currentObjectGO.transform.rotation * Quaternion.Euler(0f, 180f, 0f);
             var view = Instantiate(sessionViewPrefab, pos, rot);
             view.Initialize(sessionData, sessionData.is_top_liked);
             _views.Add(view);
@@ -496,21 +499,86 @@ namespace LegoTwin.Plaza
                 view.SetTopLiked(view.SessionId == newTop);
             }
             _topSessionId = newTop;
+
+            SaveMockLikesToFile(sessionId, newLikes, newTop);
+        }
+
+        private void SaveMockLikesToFile(string sessionId, int newLikes, string topSessionId)
+        {
+            string path = MockPlazaFilePath;
+
+            if (!File.Exists(path))
+            {
+                Debug.LogWarning($"[SaveMockLikes] 파일 없음: {path}");
+                return;
+            }
+
+            try
+            {
+                var plaza = JsonUtility.FromJson<PlazaResponse>(File.ReadAllText(path));
+                if (plaza?.sessions == null)
+                {
+                    Debug.LogWarning("[SaveMockLikes] 역직렬화 실패 — sessions null");
+                    return;
+                }
+
+                var target = plaza.sessions.Find(s => s.session_id == sessionId);
+                if (target == null) return;  // 현재 세션은 아직 파일에 없음 — 종료 시 저장됨
+
+                target.likes = newLikes;
+                plaza.top_session_id = topSessionId;
+
+                foreach (var s in plaza.sessions)
+                    s.is_top_liked = s.session_id == topSessionId;
+
+                File.WriteAllText(path, JsonUtility.ToJson(plaza, prettyPrint: true));
+                Debug.Log($"[SaveMockLikes] 저장 완료: {sessionId} → {newLikes}, 1위: {topSessionId}");
+
+#if UNITY_EDITOR
+                UnityEditor.AssetDatabase.Refresh();
+#endif
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"[SaveMockLikes] 파일 저장 실패: {e.Message}");
+            }
         }
 
         // ════════════════════════════════════════════════════════════
         // Mock 데이터
         // ════════════════════════════════════════════════════════════
 
+        // Editor: Assets 폴더 직접 읽기/쓰기 (IDE에서 변경 즉시 확인 가능)
+        // Build:  persistentDataPath 사용 (읽기 전용 번들 우회)
+        private static string MockPlazaFilePath =>
+#if UNITY_EDITOR
+            Path.Combine(Application.dataPath, "00_Project/Resources/Mock/mock_plaza.json");
+#else
+            Path.Combine(Application.persistentDataPath, "mock_plaza.json");
+#endif
+
+        private static void EnsureMockPlazaFile()
+        {
+#if UNITY_EDITOR
+            // Editor에서는 Assets 경로 파일이 이미 존재 — 복사 불필요
+#else
+            if (File.Exists(MockPlazaFilePath)) return;
+            var asset = Resources.Load<TextAsset>("Mock/mock_plaza");
+            if (asset == null) { Debug.LogError("[PlazaManager] Resources/Mock/mock_plaza.json 없음"); return; }
+            File.WriteAllText(MockPlazaFilePath, asset.text);
+            Debug.Log($"[PlazaManager] mock_plaza.json 초기화 → {MockPlazaFilePath}");
+#endif
+        }
+
         private static PlazaResponse LoadMockPlaza()
         {
-            var asset = Resources.Load<TextAsset>("Mock/mock_plaza");
-            if (asset == null)
+            EnsureMockPlazaFile();
+            if (!File.Exists(MockPlazaFilePath))
             {
-                Debug.LogError("[PlazaManager] Resources/Mock/mock_plaza.json 없음");
+                Debug.LogError("[PlazaManager] mock_plaza.json 로드 실패");
                 return null;
             }
-            return JsonUtility.FromJson<PlazaResponse>(asset.text);
+            return JsonUtility.FromJson<PlazaResponse>(File.ReadAllText(MockPlazaFilePath));
         }
     }
 }
