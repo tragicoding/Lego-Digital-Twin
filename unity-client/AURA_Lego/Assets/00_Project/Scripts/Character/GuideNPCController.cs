@@ -141,7 +141,7 @@ namespace LegoTwin.Character
             Say("MINIVERSE에 오신 걸 환영해요!");
             yield return new WaitForSeconds(3f);
 
-            Say($"저는 당신이 만든 '{_npcName}'이에요.");
+            Say($"저는 당신이 만든 '{_npcName}'(이)에요.");
             yield return new WaitForSeconds(3f);
 
             Say("광장에 가서 오브제들을 확인해볼까요?");
