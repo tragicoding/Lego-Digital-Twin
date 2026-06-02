@@ -85,7 +85,7 @@ namespace LegoTwin.Character
                 _animator.speed = 1f;
 
             Debug.Log($"[PlacedCharacterController] '{input}' → {motionType} → {clip.name} (loop)");
-            _animation.PlayMotionClipLooping(clip);
+            _animation.PlayMotionClipLooping(clip, BuildResetCallback());
         }
 
         /// <summary>
@@ -130,11 +130,32 @@ namespace LegoTwin.Character
             if (clip == null) return;
 
             if (_animator != null && _animator.speed == 0f) _animator.speed = 1f;
-            _animation.PlayMotionClipLooping(clip);
+            _animation.PlayMotionClipLooping(clip, BuildResetCallback());
             Debug.Log($"[PlacedCharacterController] 시그니처 동작 재생: {_signatureMotionType}");
         }
 
         /// <summary>플레이어 이탈 시 시그니처 동작을 중단하고 idle로 복귀한다.</summary>
         public void StopSignatureMotion() => _animation?.StopMotionLoop();
+
+        // ════════════════════════════════════════════════════════════
+        // 내부 유틸
+        // ════════════════════════════════════════════════════════════
+
+        // 루프 재시작 시 호출될 위치 복원 콜백을 생성한다.
+        // 현재 시점의 position/rotation을 캡처해 루프마다 원래 자리로 되돌린다.
+        private System.Action BuildResetCallback()
+        {
+            var pos          = transform.position;
+            var rot          = transform.rotation;
+            var animLocalPos = _animator != null ? _animator.transform.localPosition : Vector3.zero;
+            var animLocalRot = _animator != null ? _animator.transform.localRotation : Quaternion.identity;
+
+            return () =>
+            {
+                transform.SetPositionAndRotation(pos, rot);
+                if (_animator != null)
+                    _animator.transform.SetLocalPositionAndRotation(animLocalPos, animLocalRot);
+            };
+        }
     }
 }

@@ -1,0 +1,206 @@
+================================================================
+Claude Code 작업 기록
+날짜: 2026-06-03
+브랜치: feature/unity
+================================================================
+
+────────────────────────────────────────────────────────────────
+[세션 1] 자유 모드 내 창작물 동작 프롬프트 · 시그니처 설정 구현
+────────────────────────────────────────────────────────────────
+
+## 목표
+  자유 모드에서 플레이어가 자신의 창작물에 접근했을 때
+  동작 프롬프트 입력 및 시그니처 동작 설정 가능하도록 구현
+
+## 신규 파일: OwnCreationInteractor.cs
+  Scripts/Plaza/OwnCreationInteractor.cs
+
+  - PlazaManager가 AttachViewToCurrentSession()에서 런타임 AddComponent로만 추가
+  - LikeSystem의 기존 SphereCollider 공유 (충돌체 중복 없음)
+  - OnTriggerEnter/Stay(Player 태그): interactPanel 표시 또는 MotionPromptUI 직접 열기
+  - OnTriggerStay: 가이드 모드 종료 시점에 이미 트리거 안에 있는 경우 대비
+  - 동작 흐름:
+      OnMotionInputPressed() → MotionPromptUI.Show(OnMotionSubmitted)
+      OnMotionSubmitted(input) → PlayMotionFromPrompt() → ShowConfirmAfterDelay()
+      ShowSignatureConfirm(): 예/아니오/나가기
+      ShowExitConfirm(): 나가기 확인 (예/아니오만, 메시지 별도)
+  - 아니오 → MotionPromptUI 재표시 (루프)
+  - 예 → SessionManager.SetSignatureMotion() 저장 후 종료
+  - 나가기 → "입력 종료 시 이전 동작으로 유지됩니다." 확인 후 종료
+  - 나가기 확인 아니오 → ShowSignatureConfirm 복귀
+
+## 수정 파일 1: SessionManager.cs
+  - SetSignatureMotion(string motionTypeName) 추가
+    → Mock: CurrentSession.signature_motion 메모리 반영
+    → Server: PATCH /sessions/{id}/signature-motion API 호출
+    → 가이드 모드(GameFlowManager) · 자유 모드(OwnCreationInteractor) 공통 경로
+
+## 수정 파일 2: GameFlowManager.cs
+  - ApplySignatureMotion() → SessionManager.SetSignatureMotion() 위임 (중복 제거)
+  - OnSignatureMotionConfirmRequested 핸들러 파라미터:
+    Action onDismissed → Action<bool> onResult (Yes/No 결과 전달)
+  - showExitButton: false (안내 모드: 나가기 버튼 없음)
+
+## 수정 파일 3: PlazaManager.cs
+  - using LegoTwin.UI 추가
+  - Inspector 필드 3개 추가:
+      motionPromptUI (MotionPromptUI — 미연결 시 FindAnyObjectByType 자동 검색)
+      signatureConfirmUI (SignatureMotionConfirmUI — 미연결 시 자동 검색)
+      ownCreationInteractPanelPrefab (인터랙션 패널 프리팹)
+  - AttachViewToCurrentSession() 완성:
+      LikeSystem.likePanel = null (자기 창작물 투표 불가)
+      view.SetCharacter(placedChar) 연결 (기존 누락 버그 수정)
+      SetupOwnCreationInteractor() 호출
+  - SetupOwnCreationInteractor():
+      FindAnyObjectByType 폴백으로 Inspector 미연결 시에도 자동 동작
+      OwnCreationInteractor AddComponent + Setup()
+
+
+────────────────────────────────────────────────────────────────
+[세션 2] Root Motion 위치 누적 버그 수정
+────────────────────────────────────────────────────────────────
+
+## 문제
+  Mixamo 애니메이션 루프 재생 시 Root Motion으로 인해
+  캐릭터 위치가 매 루프마다 누적되어 점점 땅 속으로 이동
+
+## 해결 방법
+  루프 재시작 시점에 캡처된 위치/회전으로 복원 (Bake Into Pose 대안)
+
+## 수정 파일 1: CharacterAnimationController.cs
+  - _onLoopRestart (System.Action) 필드 추가
+  - PlayMotionClipLooping(AnimationClip clip, System.Action onLoopRestart = null)
+    파라미터 추가 (기존 호출 호환 유지)
+  - LoopRoutine() — normalizedTime >= 0.95f 감지 시
+    _onLoopRestart?.Invoke() 호출 후 Play("Motion", 0, 0f) 재시작
+
+## 수정 파일 2: PlacedCharacterController.cs
+  - BuildResetCallback() 추가
+    → 호출 시점의 transform.position/rotation + animator.localPosition/localRotation 캡처
+    → 루프 재시작마다 캡처값으로 복원 (루트 · Animator 자식 양쪽 대응)
+  - PlayMotionFromPrompt() → PlayMotionClipLooping(clip, BuildResetCallback())
+  - PlaySignatureMotion() → PlayMotionClipLooping(clip, BuildResetCallback())
+
+## 장기 권장 방법 (코드 수정 없이 근본 해결)
+  Unity Import Settings > Animation 탭 > 각 클립:
+    Root Transform Rotation → Bake Into Pose ☑
+    Root Transform Position (Y) → Bake Into Pose ☑
+    Root Transform Position (XZ) → Bake Into Pose ☑
+
+
+────────────────────────────────────────────────────────────────
+[세션 3] 시그니처 동작 설정 UI 개선 — 나가기 버튼 · 루프
+────────────────────────────────────────────────────────────────
+
+## 변경 사항
+
+### SignatureMotionConfirmUI.cs
+  - _exitButton 필드 추가 (기본 비활성)
+  - Show() 시그니처 변경:
+    Show(Action<bool> callback)
+    → Show(Action<bool> callback, bool showExitButton = false,
+            Action onExit = null, string message = null)
+    message: null이면 Inspector _message 사용, 값 전달 시 덮어씀
+  - Exit() 메서드 추가 (_exitButton.onClick 자동 연결)
+  - Awake/OnDestroy: _exitButton 리스너 관리
+
+### GuideNPCController.cs
+  - 이벤트 타입 변경:
+    event Action<string, Action> → event Action<string, Action<bool>>
+  - GuideScenarioRoutine Step 3 while 루프:
+    - 아니오 선택 시 "다른 동작으로 다시 해볼까요?" 후 재입력
+    - 첫 시도에만 "지금 이 동작을 시그니처 동작으로 설정해보세요!" 안내
+    - 예 선택 시 loop 종료 후 Step 4(투표 설명)로 진행
+    - 구독자 없으면 signatureConfirmed = true 로 스킵
+
+## 안내 모드 흐름 (GuideNPCController)
+  모션 입력 → 재생 → 시그니처 확인 (나가기 없음)
+    아니오 → "다른 동작으로 다시 해볼까요?" → 재입력 (루프)
+    예 → 저장 → 다음 단계
+
+## 자유 모드 흐름 (OwnCreationInteractor)
+  모션 입력 → 재생 → 시그니처 확인 (나가기 있음)
+    아니오 → 모션 프롬프트 재표시 → 재입력 (루프)
+    예 → 저장 → 종료
+    나가기 → "입력 종료 시 이전 동작으로 유지됩니다." 확인
+      예 → 종료 (저장 안 함)
+      아니오 → 시그니처 확인으로 복귀
+
+
+────────────────────────────────────────────────────────────────
+[세션 4] StarObject PlayLoop 타이밍 버그 수정
+────────────────────────────────────────────────────────────────
+
+## 에러
+  Coroutine couldn't be started because the game object 'StarObject' is inactive!
+  HeartEffect:PlayLoop() → PlazaSessionView:SetTopLiked() → Initialize()
+
+## 원인
+  starObject.SetActive(true) 직후 같은 프레임에서
+  HeartEffect(StarObject 위) 의 StartCoroutine 호출 →
+  Unity 내부적으로 아직 inactive 상태로 인식
+
+## 수정 파일: PlazaSessionView.cs
+  SetTopLiked(true) 시:
+    기존: heartEffect?.PlayLoop() 직접 호출
+    수정: StartCoroutine(PlayLoopNextFrame(heartEffect))
+          → yield return null (한 프레임 대기)
+          → heartEffect?.PlayLoop() 호출
+  PlayLoopNextFrame()은 PlazaSessionView(항상 활성)에서 실행되므로
+  StartCoroutine 에러 없이 안전하게 동작
+
+
+────────────────────────────────────────────────────────────────
+[최종 파일 상태]
+────────────────────────────────────────────────────────────────
+
+## 신규 생성
+  | 파일                                              | 내용                               |
+  |--------------------------------------------------|-----------------------------------|
+  | Scripts/Plaza/OwnCreationInteractor.cs            | 자유 모드 내 창작물 인터랙션 컴포넌트  |
+
+## 수정
+  | 파일                                              | 주요 변경 내용                                          |
+  |--------------------------------------------------|--------------------------------------------------------|
+  | Scripts/Managers/SessionManager.cs               | SetSignatureMotion() 공통 저장 메서드 추가               |
+  | Scripts/Managers/GameFlowManager.cs              | ApplySignatureMotion 위임, 핸들러 시그니처 변경           |
+  | Scripts/Character/CharacterAnimationController.cs | onLoopRestart 콜백 파라미터 추가                        |
+  | Scripts/Character/PlacedCharacterController.cs   | BuildResetCallback() — 루프 재시작 위치 복원             |
+  | Scripts/Character/GuideNPCController.cs          | 이벤트 타입 변경, Step 3 while 루프                     |
+  | Scripts/Plaza/PlazaManager.cs                    | OwnCreationInteractor 설정, AttachViewToCurrentSession  |
+  | Scripts/Plaza/PlazaSessionView.cs                | PlayLoopNextFrame — SetActive 타이밍 버그 수정           |
+  | Scripts/UI/SignatureMotionConfirmUI.cs            | 나가기 버튼, Show 시그니처 확장                          |
+
+
+────────────────────────────────────────────────────────────────
+[Unity Inspector 체크리스트]
+────────────────────────────────────────────────────────────────
+
+  PlazaManager
+    [ ] Motion Prompt UI          → MotionPromptUI GameObject (미연결 시 자동 검색)
+    [ ] Signature Confirm UI      → SignatureMotionConfirmUI GameObject (미연결 시 자동 검색)
+    [ ] Own Creation Interact Panel Prefab → OwnCreationInteractPanel.prefab
+
+  SignatureMotionConfirmUI
+    [ ] Exit Button → ExitButton GameObject 연결
+    [ ] Message 필드 → "현재 동작을 \n시그니처 동작으로 설정할까요?"
+
+  OwnCreationInteractPanel.prefab
+    [ ] Canvas Render Mode → World Space
+    [ ] Local Position → (0, 0, 0)
+    [ ] Scale → WorldCanvas와 동일 (0.01)
+    [ ] Button OnClick → 비워도 됨 (런타임 자동 연결)
+
+  OwnCreationInteractor
+    → 런타임 AddComponent — Inspector 직접 연결 불필요
+
+
+────────────────────────────────────────────────────────────────
+[미해결 / 추후 작업]
+────────────────────────────────────────────────────────────────
+
+  [ ] Mixamo 클립 Bake Into Pose 설정 (Root Motion 근본 해결)
+  [ ] TriLib 설치 후 GeneratedCharacterSpawner.LoadFromServer() 구현
+  [ ] Server Mode 전환 후 통합 테스트
+
+================================================================

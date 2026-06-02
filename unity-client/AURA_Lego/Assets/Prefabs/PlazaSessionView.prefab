@@ -289,7 +289,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &647485187420878521
 Transform:
   m_ObjectHideFlags: 0
@@ -336,7 +336,7 @@ MonoBehaviour:
   heartCount: 10
   spawnRadius: 15
   floatHeight: 30
-  duration: 5
+  duration: 8
   spawnDelay: 0.08
   heartScale: 0.1
   loopInterval: 5
@@ -441,10 +441,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 242651dde73d3354586da17184fbf2c3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LegoTwin.Plaza.HeartEffect
-  heartPrefab: {fileID: 1848485625970609164, guid: c9d446e09e2b3d34b9ef1a713d55f99b, type: 3}
+  heartPrefab: {fileID: 1848485625970609164, guid: 19cb0a044b1b5fb48839bdab0b23e395, type: 3}
   heartCount: 15
   spawnRadius: 20
-  floatHeight: -50
+  floatHeight: 0
   duration: 3
   spawnDelay: 0.08
   heartScale: 0.1
@@ -1432,15 +1432,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.8490566, g: 0.8490566, b: 0.8490566, a: 0.392}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 1
+  m_Sprite: {fileID: 21300000, guid: f3dec7fc2212b4edb8aba52743b973b6, type: 3}
+  m_Type: 2
   m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4

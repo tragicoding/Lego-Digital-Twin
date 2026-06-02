@@ -7,6 +7,7 @@ using LegoTwin.Character;
 using LegoTwin.Data;
 using LegoTwin.Managers;
 using LegoTwin.Network;
+using LegoTwin.UI;
 
 namespace LegoTwin.Plaza
 {
@@ -58,6 +59,14 @@ namespace LegoTwin.Plaza
         public RuntimeAnimatorController characterAnimatorController;
         [Tooltip("NPC_MotionLibrary 연결 — 시그니처 동작 클립 조회에 필요")]
         public MixamoMotionLibrary motionLibrary;
+
+        [Header("내 창작물 인터랙션 (자유 모드)")]
+        [Tooltip("동작 입력 UI — MotionPromptUI 컴포넌트가 붙은 GameObject 연결")]
+        public MotionPromptUI motionPromptUI;
+        [Tooltip("시그니처 확인 다이얼로그 — SignatureMotionConfirmUI 컴포넌트가 붙은 GameObject 연결")]
+        public SignatureMotionConfirmUI signatureConfirmUI;
+        [Tooltip("내 창작물 접근 시 표시할 인터랙션 패널 프리팹 ('동작 입력하기' 버튼 포함)")]
+        public GameObject ownCreationInteractPanelPrefab;
 
         private readonly List<PlazaSessionView> _views = new();
         private readonly Dictionary<string, int> _likeCounts = new();
@@ -493,7 +502,41 @@ namespace LegoTwin.Plaza
             view.Initialize(sessionData, sessionData.is_top_liked);
             _views.Add(view);
 
+            // ── 내 창작물 전용 설정 ────────────────────────────────────────
+
+            // 자신의 창작물에는 좋아요 버튼 숨김 (자기 자신에게 투표 불가)
+            var likeSystem = view.GetComponent<LikeSystem>();
+            if (likeSystem != null) likeSystem.likePanel = null;
+
+            // 배치 캐릭터 연결: 시그니처 동작 재생 + OwnCreationInteractor 의 모션 대상
+            var placedChar = _currentCharacterGO?.GetComponent<PlacedCharacterController>();
+            view.SetCharacter(placedChar);
+
+            // 동작 프롬프트 · 시그니처 설정 인터랙터 추가
+            SetupOwnCreationInteractor(view.gameObject, placedChar);
+
             Debug.Log($"[PlazaManager] 현재 세션 뷰 부착 완료: {_currentSession.session_id}");
+        }
+
+        private void SetupOwnCreationInteractor(GameObject viewGo, PlacedCharacterController placedChar)
+        {
+            // Inspector 미연결 시 씬에서 자동 검색 (GameFlowManager에 연결된 것과 동일 컴포넌트 사용)
+            var promptUI  = motionPromptUI   != null ? motionPromptUI   : FindAnyObjectByType<MotionPromptUI>();
+            var confirmUI = signatureConfirmUI != null ? signatureConfirmUI : FindAnyObjectByType<SignatureMotionConfirmUI>();
+
+            if (promptUI == null)
+                Debug.LogWarning("[PlazaManager] MotionPromptUI를 찾을 수 없습니다. " +
+                                 "씬에 MotionPromptUI GameObject가 있는지 확인하세요.");
+
+            var interactor = viewGo.AddComponent<OwnCreationInteractor>();
+
+            GameObject panel = null;
+            if (ownCreationInteractPanelPrefab != null)
+                panel = Instantiate(ownCreationInteractPanelPrefab, viewGo.transform);
+
+            interactor.Setup(placedChar, panel, promptUI, confirmUI);
+            Debug.Log($"[PlazaManager] 내 창작물 인터랙터 설정 완료 " +
+                      $"— promptUI:{promptUI != null}, confirmUI:{confirmUI != null}, panel:{panel != null}");
         }
 
         // ════════════════════════════════════════════════════════════

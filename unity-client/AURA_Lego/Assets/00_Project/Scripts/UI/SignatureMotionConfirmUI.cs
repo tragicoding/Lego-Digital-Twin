@@ -40,6 +40,8 @@ namespace LegoTwin.UI
         [SerializeField] private TMP_Text    _messageText;
         [SerializeField] private Button      _yesButton;
         [SerializeField] private Button      _noButton;
+        [Tooltip("자유 모드에서만 표시. 안내 모드에서는 Show() 호출 시 자동으로 숨김.")]
+        [SerializeField] private Button      _exitButton;
         [SerializeField] private CanvasGroup _canvasGroup;
 
         [Header("연출 설정")]
@@ -47,21 +49,25 @@ namespace LegoTwin.UI
         [SerializeField] private string _message      = "현재 동작을 \n시그니처 동작으로 설정할까요?";
 
         private Action<bool> _pendingCallback;
+        private Action       _pendingOnExit;
         private Coroutine    _fadeRoutine;
 
         private void Awake()
         {
-            if (_popupRoot  != null) _popupRoot.SetActive(false);
+            if (_popupRoot   != null) _popupRoot.SetActive(false);
             if (_canvasGroup != null) _canvasGroup.alpha = 0f;
+            if (_exitButton  != null) _exitButton.gameObject.SetActive(false);
 
             _yesButton?.onClick.AddListener(() => Confirm(true));
             _noButton?.onClick.AddListener(()  => Confirm(false));
+            _exitButton?.onClick.AddListener(Exit);
         }
 
         private void OnDestroy()
         {
             _yesButton?.onClick.RemoveAllListeners();
             _noButton?.onClick.RemoveAllListeners();
+            _exitButton?.onClick.RemoveAllListeners();
         }
 
         // ════════════════════════════════════════════════════════════
@@ -70,13 +76,17 @@ namespace LegoTwin.UI
 
         /// <summary>
         /// 확인 다이얼로그를 표시한다.
-        /// 예 → callback(true), 아니오 → callback(false).
+        /// 예 → callback(true) / 아니오 → callback(false) / 나가기 → onExit().
+        /// showExitButton: true 이면 나가기 버튼 표시 (자유 모드), false 이면 숨김 (안내 모드).
+        /// message: null 이면 Inspector 기본 메시지 사용, 값 전달 시 해당 메시지로 덮어씀.
         /// </summary>
-        public void Show(Action<bool> callback)
+        public void Show(Action<bool> callback, bool showExitButton = false, Action onExit = null, string message = null)
         {
             _pendingCallback = callback;
+            _pendingOnExit   = onExit;
 
-            if (_messageText != null) _messageText.text = _message;
+            if (_messageText != null) _messageText.text = message ?? _message;
+            if (_exitButton  != null) _exitButton.gameObject.SetActive(showExitButton);
             if (!gameObject.activeInHierarchy) gameObject.SetActive(true);
             if (_popupRoot   != null) _popupRoot.SetActive(true);
 
@@ -89,12 +99,24 @@ namespace LegoTwin.UI
 
         private void Confirm(bool yes)
         {
-            if (_popupRoot  != null) _popupRoot.SetActive(false);
+            if (_popupRoot   != null) _popupRoot.SetActive(false);
             if (_canvasGroup != null) _canvasGroup.alpha = 0f;
 
             var cb = _pendingCallback;
             _pendingCallback = null;
+            _pendingOnExit   = null;
             cb?.Invoke(yes);
+        }
+
+        private void Exit()
+        {
+            if (_popupRoot   != null) _popupRoot.SetActive(false);
+            if (_canvasGroup != null) _canvasGroup.alpha = 0f;
+
+            var cb = _pendingOnExit;
+            _pendingCallback = null;
+            _pendingOnExit   = null;
+            cb?.Invoke();
         }
 
         private void FadeTo(float target)

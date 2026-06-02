@@ -96,5 +96,29 @@ namespace LegoTwin.Managers
             onLoaded?.Invoke(data);
             OnSessionLoaded?.Invoke(data);
         }
+
+        // ════════════════════════════════════════════════════════════
+        // 시그니처 동작 저장 — 가이드 모드 · 자유 모드 공통 경로
+        // ════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// 현재 세션의 시그니처 동작을 설정한다.
+        /// Mock: 메모리에만 반영 (앱 종료 시 PlazaManager가 파일로 저장).
+        /// Server: 메모리 반영 + PATCH /sessions/{id}/signature-motion API 호출.
+        /// </summary>
+        public void SetSignatureMotion(string motionTypeName)
+        {
+            if (CurrentSession == null)
+            {
+                Debug.LogWarning("[SessionManager] 시그니처 동작 저장 실패 — 현재 세션 없음");
+                return;
+            }
+
+            CurrentSession.signature_motion = motionTypeName;
+            Debug.Log($"[SessionManager] 시그니처 동작 설정: {motionTypeName}");
+
+            if (dataSourceMode == DataSourceMode.Server && _apiClient != null)
+                StartCoroutine(_apiClient.SaveSignatureMotion(CurrentSession.session_id, motionTypeName));
+        }
     }
 }

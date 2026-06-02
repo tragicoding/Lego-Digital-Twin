@@ -246,34 +246,31 @@ namespace LegoTwin.Managers
         /// [Step 3-1] 시그니처 동작 설정 확인 다이얼로그 표시.
         /// 예 선택 시 SessionData에 저장 + Server Mode이면 API 전송.
         /// </summary>
-        private void OnSignatureMotionConfirmRequested(string motionInput, Action onDismissed)
+        // onResult: 예→true, 아니오→false — GuideNPCController가 루프 여부를 판단
+        private void OnSignatureMotionConfirmRequested(string motionInput, Action<bool> onResult)
         {
             if (_signatureConfirmUI == null)
             {
                 Debug.LogWarning("[GameFlowManager] _signatureConfirmUI 미연결 — 시그니처 설정 생략");
-                onDismissed?.Invoke();
+                onResult?.Invoke(false);
                 return;
             }
 
-            _signatureConfirmUI.Show(confirmed =>
-            {
-                if (confirmed) ApplySignatureMotion(motionInput);
-                onDismissed?.Invoke();
-            });
+            // 안내 모드: 나가기 버튼 없음 (showExitButton = false)
+            _signatureConfirmUI.Show(
+                confirmed =>
+                {
+                    if (confirmed) ApplySignatureMotion(motionInput);
+                    onResult?.Invoke(confirmed);
+                },
+                showExitButton: false
+            );
         }
 
         private void ApplySignatureMotion(string motionInput)
         {
-            var session = SessionManager.Instance?.CurrentSession;
-            if (session == null) return;
-
             var motionType = MotionPromptParser.Parse(motionInput);
-            session.signature_motion = motionType.ToString();
-            Debug.Log($"[GameFlowManager] 시그니처 동작 설정: {motionType}");
-
-            if (SessionManager.Instance.dataSourceMode == DataSourceMode.Server)
-                StartCoroutine(ApiClient.Instance.SaveSignatureMotion(
-                    session.session_id, motionType.ToString()));
+            SessionManager.Instance?.SetSignatureMotion(motionType.ToString());
         }
 
         // ════════════════════════════════════════════════════════════

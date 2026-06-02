@@ -85,13 +85,23 @@ namespace LegoTwin.Plaza
 
         public void SetTopLiked(bool isTop)
         {
-            if (starObject != null)
-            {
-                starObject.SetActive(isTop);
-                var heartEffect = starObject.GetComponent<HeartEffect>();
-                if (isTop) heartEffect?.PlayLoop();
-                else        heartEffect?.StopLoop();
-            }
+            if (starObject == null) return;
+
+            starObject.SetActive(isTop);
+            var heartEffect = starObject.GetComponent<HeartEffect>();
+
+            if (isTop)
+                // SetActive(true) 직후 같은 프레임에서 StartCoroutine 하면 inactive 에러 발생
+                // → PlazaSessionView(항상 활성)에서 한 프레임 대기 후 PlayLoop 호출
+                StartCoroutine(PlayLoopNextFrame(heartEffect));
+            else
+                heartEffect?.StopLoop();
+        }
+
+        private System.Collections.IEnumerator PlayLoopNextFrame(HeartEffect heartEffect)
+        {
+            yield return null;
+            heartEffect?.PlayLoop();
         }
 
         // ════════════════════════════════════════════════════════════

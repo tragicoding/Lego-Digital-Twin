@@ -27,7 +27,7 @@
             "session_id": "plaza_002",
             "character_npc_name": "뭉게",
             "bubble_text": "좋아요 눌러줘!",
-            "likes": 11,
+            "likes": 14,
             "is_top_liked": true,
             "signature_motion": "",
             "assets": {
@@ -73,7 +73,7 @@
             "session_id": "plaza_045",
             "character_npc_name": "루나",
             "bubble_text": "반짝반짝 빛나요~",
-            "likes": 6,
+            "likes": 7,
             "is_top_liked": false,
             "signature_motion": "",
             "assets": {
@@ -165,7 +165,7 @@
             "session_id": "plaza_164",
             "character_npc_name": "별이",
             "bubble_text": "안녕! 나는 별이야~",
-            "likes": 4,
+            "likes": 6,
             "is_top_liked": false,
             "signature_motion": "Jump",
             "assets": {
@@ -181,466 +181,6 @@
                     "model_url": "",
                     "role": "static_object",
                     "object_name": "무지개 다리"
-                }
-            }
-        },
-        {
-            "session_id": "plaza_206",
-            "character_npc_name": "하늘이",
-            "bubble_text": "하늘을 날고 싶어요!",
-            "likes": 0,
-            "is_top_liked": false,
-            "signature_motion": "Jump",
-            "assets": {
-                "character": {
-                    "asset_id": "pool_char_005",
-                    "model_url": "",
-                    "texture_url": "",
-                    "role": "guide_npc",
-                    "npc_name": "하늘이"
-                },
-                "object": {
-                    "asset_id": "pool_obj_005",
-                    "model_url": "",
-                    "role": "static_object",
-                    "object_name": "달빛 등대"
-                }
-            }
-        },
-        {
-            "session_id": "plaza_207",
-            "character_npc_name": "두루미",
-            "bubble_text": "같이 춤출래요?",
-            "likes": 0,
-            "is_top_liked": false,
-            "signature_motion": "Jump",
-            "assets": {
-                "character": {
-                    "asset_id": "pool_char_006",
-                    "model_url": "",
-                    "texture_url": "",
-                    "role": "guide_npc",
-                    "npc_name": "두루미"
-                },
-                "object": {
-                    "asset_id": "pool_obj_006",
-                    "model_url": "",
-                    "role": "static_object",
-                    "object_name": "별똥별 로켓"
-                }
-            }
-        },
-        {
-            "session_id": "plaza_208",
-            "character_npc_name": "초코",
-            "bubble_text": "마법을 부려볼게요!",
-            "likes": 0,
-            "is_top_liked": false,
-            "signature_motion": "",
-            "assets": {
-                "character": {
-                    "asset_id": "pool_char_007",
-                    "model_url": "",
-                    "texture_url": "",
-                    "role": "guide_npc",
-                    "npc_name": "초코"
-                },
-                "object": {
-                    "asset_id": "pool_obj_007",
-                    "model_url": "",
-                    "role": "static_object",
-                    "object_name": "마법 빗자루"
-                }
-            }
-        },
-        {
-            "session_id": "plaza_209",
-            "character_npc_name": "루나",
-            "bubble_text": "반짝반짝 빛나요~",
-            "likes": 0,
-            "is_top_liked": false,
-            "signature_motion": "",
-            "assets": {
-                "character": {
-                    "asset_id": "pool_char_008",
-                    "model_url": "",
-                    "texture_url": "",
-                    "role": "guide_npc",
-                    "npc_name": "루나"
-                },
-                "object": {
-                    "asset_id": "pool_obj_008",
-                    "model_url": "",
-                    "role": "static_object",
-                    "object_name": "수정 궁전"
-                }
-            }
-        },
-        {
-            "session_id": "plaza_210",
-            "character_npc_name": "몽글이",
-            "bubble_text": "MINIVERSE에 온 걸 환영해!",
-            "likes": 0,
-            "is_top_liked": false,
-            "signature_motion": "",
-            "assets": {
-                "character": {
-                    "asset_id": "pool_char_001",
-                    "model_url": "",
-                    "texture_url": "",
-                    "role": "guide_npc",
-                    "npc_name": "몽글이"
-                },
-                "object": {
-                    "asset_id": "pool_obj_001",
-                    "model_url": "",
-                    "role": "static_object",
-                    "object_name": "하늘탑"
-                }
-            }
-        },
-        {
-            "session_id": "plaza_211",
-            "character_npc_name": "별이",
-            "bubble_text": "안녕! 나는 별이야~",
-            "likes": 0,
-            "is_top_liked": false,
-            "signature_motion": "",
-            "assets": {
-                "character": {
-                    "asset_id": "pool_char_002",
-                    "model_url": "",
-                    "texture_url": "",
-                    "role": "guide_npc",
-                    "npc_name": "별이"
-                },
-                "object": {
-                    "asset_id": "pool_obj_002",
-                    "model_url": "",
-                    "role": "static_object",
-                    "object_name": "무지개 다리"
-                }
-            }
-        },
-        {
-            "session_id": "plaza_212",
-            "character_npc_name": "뭉게",
-            "bubble_text": "같이 놀자!",
-            "likes": 2,
-            "is_top_liked": false,
-            "signature_motion": "",
-            "assets": {
-                "character": {
-                    "asset_id": "pool_char_003",
-                    "model_url": "",
-                    "texture_url": "",
-                    "role": "guide_npc",
-                    "npc_name": "뭉게"
-                },
-                "object": {
-                    "asset_id": "pool_obj_003",
-                    "model_url": "",
-                    "role": "static_object",
-                    "object_name": "구름성"
-                }
-            }
-        },
-        {
-            "session_id": "plaza_213",
-            "character_npc_name": "토실",
-            "bubble_text": "내 작품 어때요?",
-            "likes": 0,
-            "is_top_liked": false,
-            "signature_motion": "",
-            "assets": {
-                "character": {
-                    "asset_id": "pool_char_004",
-                    "model_url": "",
-                    "texture_url": "",
-                    "role": "guide_npc",
-                    "npc_name": "토실"
-                },
-                "object": {
-                    "asset_id": "pool_obj_004",
-                    "model_url": "",
-                    "role": "static_object",
-                    "object_name": "꽃시계"
-                }
-            }
-        },
-        {
-            "session_id": "plaza_214",
-            "character_npc_name": "하늘이",
-            "bubble_text": "하늘을 날고 싶어요!",
-            "likes": 0,
-            "is_top_liked": false,
-            "signature_motion": "",
-            "assets": {
-                "character": {
-                    "asset_id": "pool_char_005",
-                    "model_url": "",
-                    "texture_url": "",
-                    "role": "guide_npc",
-                    "npc_name": "하늘이"
-                },
-                "object": {
-                    "asset_id": "pool_obj_005",
-                    "model_url": "",
-                    "role": "static_object",
-                    "object_name": "달빛 등대"
-                }
-            }
-        },
-        {
-            "session_id": "plaza_215",
-            "character_npc_name": "두루미",
-            "bubble_text": "같이 춤출래요?",
-            "likes": 0,
-            "is_top_liked": false,
-            "signature_motion": "",
-            "assets": {
-                "character": {
-                    "asset_id": "pool_char_006",
-                    "model_url": "",
-                    "texture_url": "",
-                    "role": "guide_npc",
-                    "npc_name": "두루미"
-                },
-                "object": {
-                    "asset_id": "pool_obj_006",
-                    "model_url": "",
-                    "role": "static_object",
-                    "object_name": "별똥별 로켓"
-                }
-            }
-        },
-        {
-            "session_id": "plaza_216",
-            "character_npc_name": "초코",
-            "bubble_text": "마법을 부려볼게요!",
-            "likes": 0,
-            "is_top_liked": false,
-            "signature_motion": "",
-            "assets": {
-                "character": {
-                    "asset_id": "pool_char_007",
-                    "model_url": "",
-                    "texture_url": "",
-                    "role": "guide_npc",
-                    "npc_name": "초코"
-                },
-                "object": {
-                    "asset_id": "pool_obj_007",
-                    "model_url": "",
-                    "role": "static_object",
-                    "object_name": "마법 빗자루"
-                }
-            }
-        },
-        {
-            "session_id": "plaza_217",
-            "character_npc_name": "루나",
-            "bubble_text": "반짝반짝 빛나요~",
-            "likes": 0,
-            "is_top_liked": false,
-            "signature_motion": "",
-            "assets": {
-                "character": {
-                    "asset_id": "pool_char_008",
-                    "model_url": "",
-                    "texture_url": "",
-                    "role": "guide_npc",
-                    "npc_name": "루나"
-                },
-                "object": {
-                    "asset_id": "pool_obj_008",
-                    "model_url": "",
-                    "role": "static_object",
-                    "object_name": "수정 궁전"
-                }
-            }
-        },
-        {
-            "session_id": "plaza_218",
-            "character_npc_name": "몽글이",
-            "bubble_text": "MINIVERSE에 온 걸 환영해!",
-            "likes": 0,
-            "is_top_liked": false,
-            "signature_motion": "",
-            "assets": {
-                "character": {
-                    "asset_id": "pool_char_001",
-                    "model_url": "",
-                    "texture_url": "",
-                    "role": "guide_npc",
-                    "npc_name": "몽글이"
-                },
-                "object": {
-                    "asset_id": "pool_obj_001",
-                    "model_url": "",
-                    "role": "static_object",
-                    "object_name": "하늘탑"
-                }
-            }
-        },
-        {
-            "session_id": "plaza_219",
-            "character_npc_name": "별이",
-            "bubble_text": "안녕! 나는 별이야~",
-            "likes": 0,
-            "is_top_liked": false,
-            "signature_motion": "",
-            "assets": {
-                "character": {
-                    "asset_id": "pool_char_002",
-                    "model_url": "",
-                    "texture_url": "",
-                    "role": "guide_npc",
-                    "npc_name": "별이"
-                },
-                "object": {
-                    "asset_id": "pool_obj_002",
-                    "model_url": "",
-                    "role": "static_object",
-                    "object_name": "무지개 다리"
-                }
-            }
-        },
-        {
-            "session_id": "plaza_220",
-            "character_npc_name": "뭉게",
-            "bubble_text": "같이 놀자!",
-            "likes": 0,
-            "is_top_liked": false,
-            "signature_motion": "",
-            "assets": {
-                "character": {
-                    "asset_id": "pool_char_003",
-                    "model_url": "",
-                    "texture_url": "",
-                    "role": "guide_npc",
-                    "npc_name": "뭉게"
-                },
-                "object": {
-                    "asset_id": "pool_obj_003",
-                    "model_url": "",
-                    "role": "static_object",
-                    "object_name": "구름성"
-                }
-            }
-        },
-        {
-            "session_id": "plaza_221",
-            "character_npc_name": "토실",
-            "bubble_text": "내 작품 어때요?",
-            "likes": 0,
-            "is_top_liked": false,
-            "signature_motion": "",
-            "assets": {
-                "character": {
-                    "asset_id": "pool_char_004",
-                    "model_url": "",
-                    "texture_url": "",
-                    "role": "guide_npc",
-                    "npc_name": "토실"
-                },
-                "object": {
-                    "asset_id": "pool_obj_004",
-                    "model_url": "",
-                    "role": "static_object",
-                    "object_name": "꽃시계"
-                }
-            }
-        },
-        {
-            "session_id": "plaza_222",
-            "character_npc_name": "하늘이",
-            "bubble_text": "하늘을 날고 싶어요!",
-            "likes": 0,
-            "is_top_liked": false,
-            "signature_motion": "",
-            "assets": {
-                "character": {
-                    "asset_id": "pool_char_005",
-                    "model_url": "",
-                    "texture_url": "",
-                    "role": "guide_npc",
-                    "npc_name": "하늘이"
-                },
-                "object": {
-                    "asset_id": "pool_obj_005",
-                    "model_url": "",
-                    "role": "static_object",
-                    "object_name": "달빛 등대"
-                }
-            }
-        },
-        {
-            "session_id": "plaza_223",
-            "character_npc_name": "두루미",
-            "bubble_text": "같이 춤출래요?",
-            "likes": 0,
-            "is_top_liked": false,
-            "signature_motion": "",
-            "assets": {
-                "character": {
-                    "asset_id": "pool_char_006",
-                    "model_url": "",
-                    "texture_url": "",
-                    "role": "guide_npc",
-                    "npc_name": "두루미"
-                },
-                "object": {
-                    "asset_id": "pool_obj_006",
-                    "model_url": "",
-                    "role": "static_object",
-                    "object_name": "별똥별 로켓"
-                }
-            }
-        },
-        {
-            "session_id": "plaza_224",
-            "character_npc_name": "초코",
-            "bubble_text": "마법을 부려볼게요!",
-            "likes": 1,
-            "is_top_liked": false,
-            "signature_motion": "",
-            "assets": {
-                "character": {
-                    "asset_id": "pool_char_007",
-                    "model_url": "",
-                    "texture_url": "",
-                    "role": "guide_npc",
-                    "npc_name": "초코"
-                },
-                "object": {
-                    "asset_id": "pool_obj_007",
-                    "model_url": "",
-                    "role": "static_object",
-                    "object_name": "마법 빗자루"
-                }
-            }
-        },
-        {
-            "session_id": "plaza_225",
-            "character_npc_name": "루나",
-            "bubble_text": "반짝반짝 빛나요~",
-            "likes": 0,
-            "is_top_liked": false,
-            "signature_motion": "Jump",
-            "assets": {
-                "character": {
-                    "asset_id": "pool_char_008",
-                    "model_url": "",
-                    "texture_url": "",
-                    "role": "guide_npc",
-                    "npc_name": "루나"
-                },
-                "object": {
-                    "asset_id": "pool_obj_008",
-                    "model_url": "",
-                    "role": "static_object",
-                    "object_name": "수정 궁전"
                 }
             }
         },
@@ -648,7 +188,7 @@
             "session_id": "plaza_226",
             "character_npc_name": "몽글이",
             "bubble_text": "MINIVERSE에 온 걸 환영해!",
-            "likes": 0,
+            "likes": 1,
             "is_top_liked": false,
             "signature_motion": "",
             "assets": {
@@ -671,7 +211,7 @@
             "session_id": "plaza_227",
             "character_npc_name": "별이",
             "bubble_text": "안녕! 나는 별이야~",
-            "likes": 0,
+            "likes": 2,
             "is_top_liked": false,
             "signature_motion": "Jump",
             "assets": {
@@ -694,7 +234,7 @@
             "session_id": "plaza_228",
             "character_npc_name": "토실",
             "bubble_text": "내 작품 어때요?",
-            "likes": 1,
+            "likes": 2,
             "is_top_liked": false,
             "signature_motion": "Sit",
             "assets": {
@@ -710,6 +250,466 @@
                     "model_url": "",
                     "role": "static_object",
                     "object_name": "꽃시계"
+                }
+            }
+        },
+        {
+            "session_id": "plaza_229",
+            "character_npc_name": "하늘이",
+            "bubble_text": "하늘을 날고 싶어요!",
+            "likes": 1,
+            "is_top_liked": false,
+            "signature_motion": "Jump",
+            "assets": {
+                "character": {
+                    "asset_id": "pool_char_005",
+                    "model_url": "",
+                    "texture_url": "",
+                    "role": "guide_npc",
+                    "npc_name": "하늘이"
+                },
+                "object": {
+                    "asset_id": "pool_obj_005",
+                    "model_url": "",
+                    "role": "static_object",
+                    "object_name": "달빛 등대"
+                }
+            }
+        },
+        {
+            "session_id": "plaza_230",
+            "character_npc_name": "두루미",
+            "bubble_text": "같이 춤출래요?",
+            "likes": 2,
+            "is_top_liked": false,
+            "signature_motion": "Dance",
+            "assets": {
+                "character": {
+                    "asset_id": "pool_char_006",
+                    "model_url": "",
+                    "texture_url": "",
+                    "role": "guide_npc",
+                    "npc_name": "두루미"
+                },
+                "object": {
+                    "asset_id": "pool_obj_006",
+                    "model_url": "",
+                    "role": "static_object",
+                    "object_name": "별똥별 로켓"
+                }
+            }
+        },
+        {
+            "session_id": "plaza_231",
+            "character_npc_name": "초코",
+            "bubble_text": "마법을 부려볼게요!",
+            "likes": 1,
+            "is_top_liked": false,
+            "signature_motion": "Dance",
+            "assets": {
+                "character": {
+                    "asset_id": "pool_char_007",
+                    "model_url": "",
+                    "texture_url": "",
+                    "role": "guide_npc",
+                    "npc_name": "초코"
+                },
+                "object": {
+                    "asset_id": "pool_obj_007",
+                    "model_url": "",
+                    "role": "static_object",
+                    "object_name": "마법 빗자루"
+                }
+            }
+        },
+        {
+            "session_id": "plaza_232",
+            "character_npc_name": "루나",
+            "bubble_text": "반짝반짝 빛나요~",
+            "likes": 0,
+            "is_top_liked": false,
+            "signature_motion": "",
+            "assets": {
+                "character": {
+                    "asset_id": "pool_char_008",
+                    "model_url": "",
+                    "texture_url": "",
+                    "role": "guide_npc",
+                    "npc_name": "루나"
+                },
+                "object": {
+                    "asset_id": "pool_obj_008",
+                    "model_url": "",
+                    "role": "static_object",
+                    "object_name": "수정 궁전"
+                }
+            }
+        },
+        {
+            "session_id": "plaza_233",
+            "character_npc_name": "몽글이",
+            "bubble_text": "MINIVERSE에 온 걸 환영해!",
+            "likes": 0,
+            "is_top_liked": false,
+            "signature_motion": "Run",
+            "assets": {
+                "character": {
+                    "asset_id": "pool_char_001",
+                    "model_url": "",
+                    "texture_url": "",
+                    "role": "guide_npc",
+                    "npc_name": "몽글이"
+                },
+                "object": {
+                    "asset_id": "pool_obj_001",
+                    "model_url": "",
+                    "role": "static_object",
+                    "object_name": "하늘탑"
+                }
+            }
+        },
+        {
+            "session_id": "plaza_234",
+            "character_npc_name": "별이",
+            "bubble_text": "안녕! 나는 별이야~",
+            "likes": 0,
+            "is_top_liked": false,
+            "signature_motion": "Run",
+            "assets": {
+                "character": {
+                    "asset_id": "pool_char_002",
+                    "model_url": "",
+                    "texture_url": "",
+                    "role": "guide_npc",
+                    "npc_name": "별이"
+                },
+                "object": {
+                    "asset_id": "pool_obj_002",
+                    "model_url": "",
+                    "role": "static_object",
+                    "object_name": "무지개 다리"
+                }
+            }
+        },
+        {
+            "session_id": "plaza_235",
+            "character_npc_name": "뭉게",
+            "bubble_text": "같이 놀자!",
+            "likes": 0,
+            "is_top_liked": false,
+            "signature_motion": "Kick",
+            "assets": {
+                "character": {
+                    "asset_id": "pool_char_003",
+                    "model_url": "",
+                    "texture_url": "",
+                    "role": "guide_npc",
+                    "npc_name": "뭉게"
+                },
+                "object": {
+                    "asset_id": "pool_obj_003",
+                    "model_url": "",
+                    "role": "static_object",
+                    "object_name": "구름성"
+                }
+            }
+        },
+        {
+            "session_id": "plaza_236",
+            "character_npc_name": "토실",
+            "bubble_text": "내 작품 어때요?",
+            "likes": 0,
+            "is_top_liked": false,
+            "signature_motion": "Wave",
+            "assets": {
+                "character": {
+                    "asset_id": "pool_char_004",
+                    "model_url": "",
+                    "texture_url": "",
+                    "role": "guide_npc",
+                    "npc_name": "토실"
+                },
+                "object": {
+                    "asset_id": "pool_obj_004",
+                    "model_url": "",
+                    "role": "static_object",
+                    "object_name": "꽃시계"
+                }
+            }
+        },
+        {
+            "session_id": "plaza_237",
+            "character_npc_name": "하늘이",
+            "bubble_text": "하늘을 날고 싶어요!",
+            "likes": 0,
+            "is_top_liked": false,
+            "signature_motion": "Dance",
+            "assets": {
+                "character": {
+                    "asset_id": "pool_char_005",
+                    "model_url": "",
+                    "texture_url": "",
+                    "role": "guide_npc",
+                    "npc_name": "하늘이"
+                },
+                "object": {
+                    "asset_id": "pool_obj_005",
+                    "model_url": "",
+                    "role": "static_object",
+                    "object_name": "달빛 등대"
+                }
+            }
+        },
+        {
+            "session_id": "plaza_238",
+            "character_npc_name": "두루미",
+            "bubble_text": "같이 춤출래요?",
+            "likes": 0,
+            "is_top_liked": false,
+            "signature_motion": "",
+            "assets": {
+                "character": {
+                    "asset_id": "pool_char_006",
+                    "model_url": "",
+                    "texture_url": "",
+                    "role": "guide_npc",
+                    "npc_name": "두루미"
+                },
+                "object": {
+                    "asset_id": "pool_obj_006",
+                    "model_url": "",
+                    "role": "static_object",
+                    "object_name": "별똥별 로켓"
+                }
+            }
+        },
+        {
+            "session_id": "plaza_239",
+            "character_npc_name": "초코",
+            "bubble_text": "마법을 부려볼게요!",
+            "likes": 1,
+            "is_top_liked": false,
+            "signature_motion": "Run",
+            "assets": {
+                "character": {
+                    "asset_id": "pool_char_007",
+                    "model_url": "",
+                    "texture_url": "",
+                    "role": "guide_npc",
+                    "npc_name": "초코"
+                },
+                "object": {
+                    "asset_id": "pool_obj_007",
+                    "model_url": "",
+                    "role": "static_object",
+                    "object_name": "마법 빗자루"
+                }
+            }
+        },
+        {
+            "session_id": "plaza_240",
+            "character_npc_name": "루나",
+            "bubble_text": "반짝반짝 빛나요~",
+            "likes": 1,
+            "is_top_liked": false,
+            "signature_motion": "Wave",
+            "assets": {
+                "character": {
+                    "asset_id": "pool_char_008",
+                    "model_url": "",
+                    "texture_url": "",
+                    "role": "guide_npc",
+                    "npc_name": "루나"
+                },
+                "object": {
+                    "asset_id": "pool_obj_008",
+                    "model_url": "",
+                    "role": "static_object",
+                    "object_name": "수정 궁전"
+                }
+            }
+        },
+        {
+            "session_id": "plaza_241",
+            "character_npc_name": "몽글이",
+            "bubble_text": "MINIVERSE에 온 걸 환영해!",
+            "likes": 0,
+            "is_top_liked": false,
+            "signature_motion": "Dance",
+            "assets": {
+                "character": {
+                    "asset_id": "pool_char_001",
+                    "model_url": "",
+                    "texture_url": "",
+                    "role": "guide_npc",
+                    "npc_name": "몽글이"
+                },
+                "object": {
+                    "asset_id": "pool_obj_001",
+                    "model_url": "",
+                    "role": "static_object",
+                    "object_name": "하늘탑"
+                }
+            }
+        },
+        {
+            "session_id": "plaza_242",
+            "character_npc_name": "별이",
+            "bubble_text": "안녕! 나는 별이야~",
+            "likes": 0,
+            "is_top_liked": false,
+            "signature_motion": "Dance",
+            "assets": {
+                "character": {
+                    "asset_id": "pool_char_002",
+                    "model_url": "",
+                    "texture_url": "",
+                    "role": "guide_npc",
+                    "npc_name": "별이"
+                },
+                "object": {
+                    "asset_id": "pool_obj_002",
+                    "model_url": "",
+                    "role": "static_object",
+                    "object_name": "무지개 다리"
+                }
+            }
+        },
+        {
+            "session_id": "plaza_243",
+            "character_npc_name": "뭉게",
+            "bubble_text": "같이 놀자!",
+            "likes": 1,
+            "is_top_liked": false,
+            "signature_motion": "Run",
+            "assets": {
+                "character": {
+                    "asset_id": "pool_char_003",
+                    "model_url": "",
+                    "texture_url": "",
+                    "role": "guide_npc",
+                    "npc_name": "뭉게"
+                },
+                "object": {
+                    "asset_id": "pool_obj_003",
+                    "model_url": "",
+                    "role": "static_object",
+                    "object_name": "구름성"
+                }
+            }
+        },
+        {
+            "session_id": "plaza_244",
+            "character_npc_name": "토실",
+            "bubble_text": "내 작품 어때요?",
+            "likes": 0,
+            "is_top_liked": false,
+            "signature_motion": "Dance",
+            "assets": {
+                "character": {
+                    "asset_id": "pool_char_004",
+                    "model_url": "",
+                    "texture_url": "",
+                    "role": "guide_npc",
+                    "npc_name": "토실"
+                },
+                "object": {
+                    "asset_id": "pool_obj_004",
+                    "model_url": "",
+                    "role": "static_object",
+                    "object_name": "꽃시계"
+                }
+            }
+        },
+        {
+            "session_id": "plaza_245",
+            "character_npc_name": "하늘이",
+            "bubble_text": "하늘을 날고 싶어요!",
+            "likes": 0,
+            "is_top_liked": false,
+            "signature_motion": "Jump",
+            "assets": {
+                "character": {
+                    "asset_id": "pool_char_005",
+                    "model_url": "",
+                    "texture_url": "",
+                    "role": "guide_npc",
+                    "npc_name": "하늘이"
+                },
+                "object": {
+                    "asset_id": "pool_obj_005",
+                    "model_url": "",
+                    "role": "static_object",
+                    "object_name": "달빛 등대"
+                }
+            }
+        },
+        {
+            "session_id": "plaza_246",
+            "character_npc_name": "두루미",
+            "bubble_text": "같이 춤출래요?",
+            "likes": 0,
+            "is_top_liked": false,
+            "signature_motion": "Kick",
+            "assets": {
+                "character": {
+                    "asset_id": "pool_char_006",
+                    "model_url": "",
+                    "texture_url": "",
+                    "role": "guide_npc",
+                    "npc_name": "두루미"
+                },
+                "object": {
+                    "asset_id": "pool_obj_006",
+                    "model_url": "",
+                    "role": "static_object",
+                    "object_name": "별똥별 로켓"
+                }
+            }
+        },
+        {
+            "session_id": "plaza_247",
+            "character_npc_name": "초코",
+            "bubble_text": "마법을 부려볼게요!",
+            "likes": 0,
+            "is_top_liked": false,
+            "signature_motion": "Victory",
+            "assets": {
+                "character": {
+                    "asset_id": "pool_char_007",
+                    "model_url": "",
+                    "texture_url": "",
+                    "role": "guide_npc",
+                    "npc_name": "초코"
+                },
+                "object": {
+                    "asset_id": "pool_obj_007",
+                    "model_url": "",
+                    "role": "static_object",
+                    "object_name": "마법 빗자루"
+                }
+            }
+        },
+        {
+            "session_id": "plaza_248",
+            "character_npc_name": "루나",
+            "bubble_text": "반짝반짝 빛나요~",
+            "likes": 0,
+            "is_top_liked": false,
+            "signature_motion": "Dance",
+            "assets": {
+                "character": {
+                    "asset_id": "pool_char_008",
+                    "model_url": "",
+                    "texture_url": "",
+                    "role": "guide_npc",
+                    "npc_name": "루나"
+                },
+                "object": {
+                    "asset_id": "pool_obj_008",
+                    "model_url": "",
+                    "role": "static_object",
+                    "object_name": "수정 궁전"
                 }
             }
         }

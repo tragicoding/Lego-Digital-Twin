@@ -31,6 +31,7 @@ namespace LegoTwin.Character
         private AnimatorOverrideController _overrideController;
         private bool _useBoolParam;
         private Coroutine _loopCoroutine;
+        private System.Action _onLoopRestart;
 
         // AnimatorOverrideController에서 교체할 클립 슬롯 이름
         // Base Animator Controller의 "Motion" 스테이트 클립 이름과 일치해야 함
@@ -153,13 +154,18 @@ namespace LegoTwin.Character
         /// Idle로 빠져나가지 않고 매끄럽게 반복한다.
         /// StopMotionLoop() 또는 animation_idle()로 중단한다.
         /// </summary>
-        public void PlayMotionClipLooping(AnimationClip clip)
+        /// <summary>
+        /// Mixamo 클립을 무한 루프 재생한다.
+        /// onLoopRestart: 루프가 재시작될 때마다 호출되는 콜백 (위치 복원 등에 사용).
+        /// </summary>
+        public void PlayMotionClipLooping(AnimationClip clip, System.Action onLoopRestart = null)
         {
             if (clip == null || _overrideController == null) return;
 
             if (_loopCoroutine != null)
                 StopCoroutine(_loopCoroutine);
 
+            _onLoopRestart = onLoopRestart;
             _overrideController[MOTION_SLOT] = clip;
             // 초기 진입은 SetTrigger — Play()는 첫 프레임 포즈로 스냅해 90도 회전 발생
             // 루프 재시작(LoopRoutine 내)은 이미 Motion 상태이므로 Play()를 사용해도 무관
@@ -194,6 +200,7 @@ namespace LegoTwin.Character
                     return info.IsName("Motion") && info.normalizedTime >= 0.95f;
                 });
 
+                _onLoopRestart?.Invoke();   // 루프 재시작 전 위치 복원 등 외부 콜백 실행
                 _animator.Play("Motion", 0, 0f);
                 yield return null;
             }
