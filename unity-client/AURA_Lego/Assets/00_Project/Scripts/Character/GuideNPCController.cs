@@ -179,6 +179,13 @@ namespace LegoTwin.Character
 
             yield return new WaitForSeconds(3f);
 
+            Say("지금 이 동작을 \n 시그니처 동작으로 \n 설정해보세요!");
+            yield return new WaitForSeconds(3f);
+
+            Say("자유모드에서는 다른 사람들이 \n당신의 시그니처 동작을\n 볼 수 있답니다!");
+            yield return new WaitForSeconds(3f);
+
+
             // ── 3-1. 시그니처 동작 설정 확인 ─────────────────────────
             bool confirmDone = false;
             OnSignatureMotionConfirmRequested?.Invoke(motionInput, () => confirmDone = true);

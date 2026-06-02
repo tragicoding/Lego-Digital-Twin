@@ -86,7 +86,12 @@ namespace LegoTwin.Plaza
         public void SetTopLiked(bool isTop)
         {
             if (starObject != null)
+            {
                 starObject.SetActive(isTop);
+                var heartEffect = starObject.GetComponent<HeartEffect>();
+                if (isTop) heartEffect?.PlayLoop();
+                else        heartEffect?.StopLoop();
+            }
         }
 
         // ════════════════════════════════════════════════════════════

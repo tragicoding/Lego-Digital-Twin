@@ -44,7 +44,7 @@ namespace LegoTwin.UI
 
         [Header("연출 설정")]
         [SerializeField] private float  _fadeDuration = 0.2f;
-        [SerializeField] private string _message      = "시그니처 동작으로 설정하시겠습니까?";
+        [SerializeField] private string _message      = "현재 동작을 \n시그니처 동작으로 설정할까요?";
 
         private Action<bool> _pendingCallback;
         private Coroutine    _fadeRoutine;

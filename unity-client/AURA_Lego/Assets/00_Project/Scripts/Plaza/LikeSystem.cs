@@ -43,6 +43,7 @@ namespace LegoTwin.Plaza
         private int           _likes;
         private Camera        _cam;
         private RectTransform _likeButtonRect;
+        private HeartEffect   _heartEffect;
 
         // ════════════════════════════════════════════════════════════
         // 초기화 (PlazaSessionView에서 호출)
@@ -51,6 +52,7 @@ namespace LegoTwin.Plaza
         private void Start()
         {
             _cam = Camera.main;
+            _heartEffect = GetComponent<HeartEffect>();
 
             var col = GetComponent<SphereCollider>();
             if (col != null) col.radius = triggerRadius;
@@ -128,14 +130,20 @@ namespace LegoTwin.Plaza
                 return;
             }
 
+            var spawnPos = _likeButtonRect != null
+                ? (Vector3)_likeButtonRect.position
+                : transform.position;
+            _heartEffect?.Play(spawnPos);
             StartCoroutine(SendLike());
         }
 
         private IEnumerator SendLike()
         {
+            // ── Mock Mode (SessionManager 없을 때도 Mock으로 처리) ────
+            bool isMock = SessionManager.Instance == null
+                       || SessionManager.Instance.dataSourceMode == DataSourceMode.Mock;
 
-            // ── Mock Mode ─────────────────────────────────────────────
-            if (SessionManager.Instance?.dataSourceMode == DataSourceMode.Mock)
+            if (isMock)
             {
                 _likes++;
                 _likedSessionIds.Add(_sessionId);
@@ -147,6 +155,12 @@ namespace LegoTwin.Plaza
             }
 
             // ── Server Mode ───────────────────────────────────────────
+            if (ApiClient.Instance == null)
+            {
+                Debug.LogWarning("[LikeSystem] ApiClient.Instance 없음 — 씬에 ApiClient GameObject가 있는지 확인하세요.");
+                yield break;
+            }
+
             yield return ApiClient.Instance.LikeSession(_sessionId, result =>
             {
                 _likedSessionIds.Add(_sessionId);
