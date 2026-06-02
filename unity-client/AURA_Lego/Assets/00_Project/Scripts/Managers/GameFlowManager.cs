@@ -4,6 +4,7 @@ using LegoTwin.Data;
 using LegoTwin.Character;
 using LegoTwin.Object;
 using LegoTwin.UI;
+using LegoTwin.Network;
 
 namespace LegoTwin.Managers
 {
@@ -49,6 +50,9 @@ namespace LegoTwin.Managers
 
         [Tooltip("모션 프롬프트 입력 UI — MotionPromptUI 컴포넌트가 붙은 GameObject 연결")]
         [SerializeField] private MotionPromptUI _motionPromptUI;
+
+        [Tooltip("시그니처 동작 설정 확인 UI — SignatureMotionConfirmUI 컴포넌트가 붙은 GameObject 연결")]
+        [SerializeField] private SignatureMotionConfirmUI _signatureConfirmUI;
 
         // ── 런타임 참조 (이벤트 해제용) ─────────────────────────────
         private GuideNPCController _currentNPC;
@@ -138,13 +142,17 @@ namespace LegoTwin.Managers
             // ④ 배치 캐릭터 → NPC에 연결 (모션 씬 Step 3 에서 사용)
             npc.placedCharacter = placedCharacter;
 
+            // ④-1. 말풍선 UI가 NPC 머리 위를 따라다니도록 타겟 주입
+            _dialogueUI?.SetFollowTarget(npc.transform);
+
             // ⑤ NPC 이벤트 구독
             _currentNPC = npc;
-            npc.OnDialogueChanged           += OnDialogueChanged;
-            npc.OnFreeModeSwitched          += OnFreeModeSwitched;
-            npc.OnGuideFinished             += OnGuideFinished;
-            npc.OnMotionPromptRequested     += OnMotionPromptRequested;
-            npc.OnPlayerTeleportRequested   += OnPlayerTeleportRequested;
+            npc.OnDialogueChanged                   += OnDialogueChanged;
+            npc.OnFreeModeSwitched                  += OnFreeModeSwitched;
+            npc.OnGuideFinished                     += OnGuideFinished;
+            npc.OnMotionPromptRequested             += OnMotionPromptRequested;
+            npc.OnPlayerTeleportRequested           += OnPlayerTeleportRequested;
+            npc.OnSignatureMotionConfirmRequested   += OnSignatureMotionConfirmRequested;
 
             // ⑥ 시나리오 시작 ── GuideScenarioRoutine() 코루틴 실행
             npc.StartGuideScenario();
@@ -234,6 +242,40 @@ namespace LegoTwin.Managers
             _motionPromptUI.Show(callback);
         }
 
+        /// <summary>
+        /// [Step 3-1] 시그니처 동작 설정 확인 다이얼로그 표시.
+        /// 예 선택 시 SessionData에 저장 + Server Mode이면 API 전송.
+        /// </summary>
+        private void OnSignatureMotionConfirmRequested(string motionInput, Action onDismissed)
+        {
+            if (_signatureConfirmUI == null)
+            {
+                Debug.LogWarning("[GameFlowManager] _signatureConfirmUI 미연결 — 시그니처 설정 생략");
+                onDismissed?.Invoke();
+                return;
+            }
+
+            _signatureConfirmUI.Show(confirmed =>
+            {
+                if (confirmed) ApplySignatureMotion(motionInput);
+                onDismissed?.Invoke();
+            });
+        }
+
+        private void ApplySignatureMotion(string motionInput)
+        {
+            var session = SessionManager.Instance?.CurrentSession;
+            if (session == null) return;
+
+            var motionType = MotionPromptParser.Parse(motionInput);
+            session.signature_motion = motionType.ToString();
+            Debug.Log($"[GameFlowManager] 시그니처 동작 설정: {motionType}");
+
+            if (SessionManager.Instance.dataSourceMode == DataSourceMode.Server)
+                StartCoroutine(ApiClient.Instance.SaveSignatureMotion(
+                    session.session_id, motionType.ToString()));
+        }
+
         // ════════════════════════════════════════════════════════════
         // 내부 유틸
         // ════════════════════════════════════════════════════════════
@@ -241,11 +283,12 @@ namespace LegoTwin.Managers
         private void UnsubscribeNPCEvents()
         {
             if (_currentNPC == null) return;
-            _currentNPC.OnDialogueChanged           -= OnDialogueChanged;
-            _currentNPC.OnFreeModeSwitched          -= OnFreeModeSwitched;
-            _currentNPC.OnGuideFinished             -= OnGuideFinished;
-            _currentNPC.OnMotionPromptRequested     -= OnMotionPromptRequested;
-            _currentNPC.OnPlayerTeleportRequested   -= OnPlayerTeleportRequested;
+            _currentNPC.OnDialogueChanged                   -= OnDialogueChanged;
+            _currentNPC.OnFreeModeSwitched                  -= OnFreeModeSwitched;
+            _currentNPC.OnGuideFinished                     -= OnGuideFinished;
+            _currentNPC.OnMotionPromptRequested             -= OnMotionPromptRequested;
+            _currentNPC.OnPlayerTeleportRequested           -= OnPlayerTeleportRequested;
+            _currentNPC.OnSignatureMotionConfirmRequested   -= OnSignatureMotionConfirmRequested;
             _currentNPC = null;
         }
     }

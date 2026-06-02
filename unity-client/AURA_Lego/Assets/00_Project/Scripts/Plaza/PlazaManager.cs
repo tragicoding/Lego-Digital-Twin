@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using UnityEngine;
+using LegoTwin.Character;
 using LegoTwin.Data;
 using LegoTwin.Managers;
 using LegoTwin.Network;
@@ -52,9 +53,16 @@ namespace LegoTwin.Plaza
         [Header("PlazaSessionView 프리팹 (UI + 좋아요 포함)")]
         public PlazaSessionView sessionViewPrefab;
 
+        [Header("시그니처 동작 — 광장 캐릭터 컴포넌트 자동 주입")]
+        [Tooltip("NPC_AnimatorController 연결 — 모션 Override에 필요")]
+        public RuntimeAnimatorController characterAnimatorController;
+        [Tooltip("NPC_MotionLibrary 연결 — 시그니처 동작 클립 조회에 필요")]
+        public MixamoMotionLibrary motionLibrary;
+
         private readonly List<PlazaSessionView> _views = new();
         private readonly Dictionary<string, int> _likeCounts = new();
         private string _topSessionId;
+        private PlacedCharacterController _lastSpawnedCharController;
 
         // 현재 관람객 창작물 (가이드 모드에서 스폰된 오브젝트)
         private SessionData _currentSession;
@@ -165,7 +173,8 @@ namespace LegoTwin.Plaza
             {
                 session_id         = newId,
                 character_npc_name = session.character_npc_name,
-                bubble_text        = session.bubble_text ?? "",
+                bubble_text        = session.bubble_text        ?? "",
+                signature_motion   = session.signature_motion   ?? "",
                 likes              = currentLikes,
                 is_top_liked       = false,
                 assets             = session.assets
@@ -271,6 +280,7 @@ namespace LegoTwin.Plaza
                         new Vector3(point.position.x, viewHeightOffset, point.position.z),
                         point.rotation * Quaternion.Euler(0f, 180f, 0f));
                     view.Initialize(session, session.session_id == _topSessionId);
+                    view.SetCharacter(_lastSpawnedCharController);
                     _views.Add(view);
                 }
                 else
@@ -299,6 +309,7 @@ namespace LegoTwin.Plaza
                         point.position + point.forward * characterForwardOffset, point.rotation);
                     charGo.name = $"PlazaChar_{session.session_id}";
                     charGo.transform.localScale = Vector3.one * characterSpawnScale;
+                    SetupCharacterForPlaza(charGo, session.signature_motion);
                     Debug.Log($"[PlazaManager] 캐릭터 스폰: {charGo.name} (prefab: {charPrefab.name})");
                 }
             }
@@ -333,6 +344,36 @@ namespace LegoTwin.Plaza
                     }
                 }
             }
+        }
+
+        // 광장 캐릭터에 CharacterAnimationController + PlacedCharacterController 자동 주입
+        private void SetupCharacterForPlaza(GameObject go, string signatureMotionName)
+        {
+            _lastSpawnedCharController = null;
+
+            // Animator Controller 설정 (없을 때만)
+            if (characterAnimatorController != null)
+            {
+                var animator = go.GetComponentInChildren<Animator>();
+                if (animator != null && animator.runtimeAnimatorController == null)
+                    animator.runtimeAnimatorController = characterAnimatorController;
+            }
+
+            // CharacterAnimationController 먼저 — PlacedCharacterController가 Awake에서 참조
+            var anim = go.GetComponent<CharacterAnimationController>();
+            if (anim == null) anim = go.AddComponent<CharacterAnimationController>();
+
+            var placed = go.GetComponent<PlacedCharacterController>();
+            if (placed == null) placed = go.AddComponent<PlacedCharacterController>();
+
+            var motionType = MotionType.Idle;
+            if (!string.IsNullOrEmpty(signatureMotionName) &&
+                System.Enum.TryParse(signatureMotionName, out MotionType parsed))
+                motionType = parsed;
+
+            placed.SetupForPlaza(motionLibrary, motionType);
+            _lastSpawnedCharController = placed;
+            Debug.Log($"[PlazaManager] 캐릭터 시그니처 설정: {go.name} → {motionType}");
         }
 
         // 배열에서 index % length 순환 선택. 배열이 없거나 비어 있으면 null 반환.

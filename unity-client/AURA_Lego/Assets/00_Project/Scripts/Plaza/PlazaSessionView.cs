@@ -1,5 +1,6 @@
 using UnityEngine;
 using TMPro;
+using LegoTwin.Character;
 using LegoTwin.Data;
 
 namespace LegoTwin.Plaza
@@ -28,8 +29,9 @@ namespace LegoTwin.Plaza
         [Tooltip("좋아요 1위 별 표시 오브젝트")]
         public GameObject starObject;
 
-        private LikeSystem _likeSystem;
-        private Camera     _cam;
+        private LikeSystem                _likeSystem;
+        private Camera                    _cam;
+        private PlacedCharacterController _placedCharacter;
 
         // ════════════════════════════════════════════════════════════
         // 초기화
@@ -86,5 +88,15 @@ namespace LegoTwin.Plaza
             if (starObject != null)
                 starObject.SetActive(isTop);
         }
+
+        // ════════════════════════════════════════════════════════════
+        // 시그니처 동작 — LikeSystem이 접근/이탈 시 호출
+        // ════════════════════════════════════════════════════════════
+
+        /// <summary>PlazaManager가 스폰 직후 호출해 배치 캐릭터를 연결한다.</summary>
+        public void SetCharacter(PlacedCharacterController character) => _placedCharacter = character;
+
+        public void PlaySignatureMotion()  => _placedCharacter?.PlaySignatureMotion();
+        public void StopSignatureMotion()  => _placedCharacter?.StopSignatureMotion();
     }
 }

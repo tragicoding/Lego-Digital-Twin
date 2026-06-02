@@ -102,6 +102,21 @@ namespace LegoTwin.Network
         // 말풍선 텍스트 업데이트 (가이드 모드 → 자유 모드 전환 전)
         // ══════════════════════════════════════════════════════════════
 
+        /// <summary>PATCH /sessions/{id}/signature-motion — 시그니처 동작 저장</summary>
+        public IEnumerator SaveSignatureMotion(string sessionId, string motionType, Action onSuccess = null)
+        {
+            var payload = new SignatureMotionRequest { signature_motion = motionType };
+            using var req = new UnityWebRequest(ServerConfig.SignatureMotionUrl(sessionId), "PATCH");
+            req.uploadHandler   = new UploadHandlerRaw(Encoding.UTF8.GetBytes(JsonUtility.ToJson(payload)));
+            req.downloadHandler = new DownloadHandlerBuffer();
+            req.SetRequestHeader("Content-Type", "application/json");
+            yield return req.SendWebRequest();
+            if (req.result != UnityWebRequest.Result.Success)
+                Debug.LogError($"[ApiClient] SaveSignatureMotion 실패: {req.error}");
+            else
+                onSuccess?.Invoke();
+        }
+
         /// <summary>
         /// PATCH /sessions/{id}/profile — bubble_text 업데이트.
         /// 가이드 시나리오 마지막 단계에서 관람객이 인사말 입력 후 호출.
@@ -109,9 +124,9 @@ namespace LegoTwin.Network
         /// </summary>
         public IEnumerator UpdateBubbleText(string sessionId, string bubbleText, Action onSuccess = null)
         {
-            string body = $"{{\"bubble_text\":\"{bubbleText}\"}}";
+            var payload = new BubbleTextRequest { bubble_text = bubbleText };
             using var req = new UnityWebRequest(ServerConfig.BubbleTextUrl(sessionId), "PATCH");
-            req.uploadHandler   = new UploadHandlerRaw(Encoding.UTF8.GetBytes(body));
+            req.uploadHandler   = new UploadHandlerRaw(Encoding.UTF8.GetBytes(JsonUtility.ToJson(payload)));
             req.downloadHandler = new DownloadHandlerBuffer();
             req.SetRequestHeader("Content-Type", "application/json");
             yield return req.SendWebRequest();

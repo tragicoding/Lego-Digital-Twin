@@ -101,13 +101,15 @@ namespace LegoTwin.Plaza
         {
             if (!other.CompareTag("Player")) return;
             if (likePanel != null) likePanel.SetActive(true);
+            GetComponent<PlazaSessionView>()?.PlaySignatureMotion();
         }
 
         private void OnTriggerExit(Collider other)
         {
             if (!other.CompareTag("Player")) return;
-            if (likePanel    != null) likePanel.SetActive(false);
-            if (alreadyLikedUI  != null) alreadyLikedUI.SetActive(false);
+            if (likePanel      != null) likePanel.SetActive(false);
+            if (alreadyLikedUI != null) alreadyLikedUI.SetActive(false);
+            GetComponent<PlazaSessionView>()?.StopSignatureMotion();
         }
 
         // ════════════════════════════════════════════════════════════

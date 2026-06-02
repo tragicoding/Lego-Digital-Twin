@@ -75,6 +75,12 @@ namespace LegoTwin.Character
         /// </summary>
         public event Action<Action<string>> OnMotionPromptRequested;
 
+        /// <summary>
+        /// 모션 확인 후 시그니처 동작으로 설정할지 묻는 다이얼로그 요청.
+        /// (motionInput: 입력된 프롬프트 텍스트, onDismissed: 예/아니오 선택 후 호출)
+        /// </summary>
+        public event Action<string, Action> OnSignatureMotionConfirmRequested;
+
         private Coroutine _moveCoroutine;
 
         // ════════════════════════════════════════════════════════════
@@ -141,10 +147,10 @@ namespace LegoTwin.Character
             Say("MINIVERSE에 오신 걸 환영해요!");
             yield return new WaitForSeconds(3f);
 
-            Say($"저는 당신이 만든 '{_npcName}'(이)에요.");
+            Say($"저는 당신이 만든 \n'{_npcName}'(이)에요.");
             yield return new WaitForSeconds(3f);
 
-            Say("광장에 가서 오브제들을 확인해볼까요?");
+            Say("광장에 가서 \n오브제들을 확인해볼까요?");
             yield return new WaitForSeconds(3f);
 
             // ── 2. 창작물 위치로 순간이동 ────────────────────────────
@@ -152,11 +158,11 @@ namespace LegoTwin.Character
                 TeleportTo(myCreationWaypoint.position);
             yield return FacePlayerRoutine();
 
-            Say("짜잔! 당신이 만든 오브제에요");
+            Say("짜잔! \n당신이 만든 오브제에요");
             yield return new WaitForSeconds(3f);
 
             // ── 3. 모션 프롬프트 입력 ────────────────────────────────
-            Say("캐릭터에는 원하는 동작을 입력할 수 있어요, 한번 해볼까요?");
+            Say("캐릭터에는 \n원하는 동작을 입력할 수 있어요, \n한번 해볼까요?");
             yield return new WaitForSeconds(3f);
 
             string motionInput = null;
@@ -171,13 +177,19 @@ namespace LegoTwin.Character
             else
                 Debug.LogWarning("[GuideNPCController] placedCharacter가 연결되지 않았습니다. Inspector에서 연결하세요.");
 
-            yield return new WaitForSeconds(2f);
-
-            // ── 4. 투표 설명 ─────────────────────────────────────────
-            Say("광장에서는 다른 창작자들이 만든 오브제들도 볼 수 있어요.");
             yield return new WaitForSeconds(3f);
 
-            Say("다가가서 마음에 드는 오브제에게 투표를 해보세요!");
+            // ── 3-1. 시그니처 동작 설정 확인 ─────────────────────────
+            bool confirmDone = false;
+            OnSignatureMotionConfirmRequested?.Invoke(motionInput, () => confirmDone = true);
+            if (OnSignatureMotionConfirmRequested != null)
+                yield return new WaitUntil(() => confirmDone);
+
+            // ── 4. 투표 설명 ─────────────────────────────────────────
+            Say("광장에서는 \n다른 창작자들이 만든 오브제들도 \n볼 수 있어요.");
+            yield return new WaitForSeconds(3f);
+
+            Say("다가가서 마음에 드는 오브제에게 \n투표를 해보세요!");
             yield return new WaitForSeconds(3f);
 
             // ── 5. 자유 모드 전환 ────────────────────────────────────

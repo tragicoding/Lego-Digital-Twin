@@ -32,8 +32,9 @@ namespace LegoTwin.Core
         // ── 세션 ──────────────────────────────────────────────────────
         public static string UnitySessionUrl(string sid)  => $"{BaseUrl}/unity/sessions/{sid}";
         public static string StatusUrl(string sid)        => $"{BaseUrl}/sessions/{sid}/status";
-        public static string LikeUrl(string sid)          => $"{BaseUrl}/sessions/{sid}/like";
+        public static string LikeUrl(string sid)            => $"{BaseUrl}/sessions/{sid}/like";
         public static string BubbleTextUrl(string sid)    => $"{BaseUrl}/sessions/{sid}/profile";
+        public static string SignatureMotionUrl(string sid)=> $"{BaseUrl}/sessions/{sid}/signature-motion";
 
         // ── 광장 ──────────────────────────────────────────────────────
         public static string PlazaSessionsUrl()           => $"{BaseUrl}/unity/plaza/sessions";
