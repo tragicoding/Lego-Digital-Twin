@@ -204,3 +204,165 @@ Claude Code 작업 기록
   [ ] Server Mode 전환 후 통합 테스트
 
 ================================================================
+
+
+────────────────────────────────────────────────────────────────
+[세션 5] 시그니처 동작 설정 — 나가기 확인 다이얼로그 추가
+────────────────────────────────────────────────────────────────
+
+## 요청
+  자유 모드에서 나가기 버튼을 눌렀을 때 바로 종료하지 않고
+  "입력 종료 시 이전 동작으로 유지됩니다." 확인(예/아니오)을 띄움
+
+## 수정 파일 1: SignatureMotionConfirmUI.cs
+  - Show() 시그니처에 message 파라미터 추가:
+    Show(Action<bool> callback, bool showExitButton = false,
+          Action onExit = null, string message = null)
+    → message null이면 Inspector _message 사용, 값 전달 시 덮어씀
+    → 같은 UI를 다른 메시지로 재사용 (별도 UI 불필요)
+
+## 수정 파일 2: OwnCreationInteractor.cs
+  - ShowConfirmAfterDelay → ShowSignatureConfirm + ShowExitConfirm 분리
+  - ShowSignatureConfirm(): 예/아니오/나가기
+      예     → SetSignatureMotion 저장 후 종료
+      아니오 → MotionPromptUI 재표시 (루프)
+      나가기 → ShowExitConfirm 호출
+  - ShowExitConfirm(): 예/아니오 (나가기 버튼 없음, message 전달)
+      예     → 저장 없이 종료
+      아니오 → ShowSignatureConfirm 복귀
+
+## 전체 자유 모드 흐름
+  모션 입력 → 재생 → 시그니처 확인
+    예     → 저장 → 종료
+    아니오 → 모션 프롬프트 재표시 → 재입력 (루프)
+    나가기 → "입력 종료 시 이전 동작으로 유지됩니다." 확인
+              예     → 종료 (저장 안 함)
+              아니오 → 시그니처 확인 복귀
+
+## Inspector 추가 작업
+  SignatureMotionConfirmUI Hierarchy:
+    PopupRoot > Panel > ExitButton (Button — "나가기") 추가
+    Inspector: Exit Button 슬롯 연결
+
+
+────────────────────────────────────────────────────────────────
+[세션 6] FastSky 밤 시간 태양 디스크 완전 제거
+────────────────────────────────────────────────────────────────
+
+## 문제
+  밤이 되면 태양 디스크가 지평선에 걸려 보임
+
+## 시도 1: Shader.SetGlobalVector("_SunDir", Vector3.down) (실패)
+  FastSky는 ShaderGraph 머티리얼 → 글로벌 변수에 반응 안 함
+
+## 시도 2: UpdateSunRotation에서 밤이면 270° 강제 회전 (실패)
+  FastSky는 Light 방향이 아닌 머티리얼 내부 값으로 디스크 위치 계산
+
+## 최종 해결: FastSkyDayNight.cs 전면 수정
+  - Start(): RenderSettings.skybox 머티리얼 런타임 인스턴스 생성
+    (원본 에셋 보호 + 런타임 수정 가능)
+    _originalSunIntensity 캐시
+  - UpdateURPLighting():
+    낮/밤 판정(dotProduct > 0)으로 isDay 결정
+    _skyMat.SetVector("_SunDir", sunDir)        ← 머티리얼 직접 설정
+    _skyMat.SetFloat("_SunIntensity", 밤이면 0) ← 디스크 강도 0 (이중 보호)
+  - UpdateSunRotation(): 밤이면 270° 강제 회전 유지
+
+## 관련 에셋 (참고)
+  External Assets/FastSky/ — ShaderGraph 기반 절차적 스카이
+  머티리얼: RealisticSky.mat (_SunIntensity 100), StylisedSky.mat (150)
+  FastSky_Sun_Color.cs — Light intensity/color 별도 제어 (수정 안 함)
+
+
+────────────────────────────────────────────────────────────────
+[세션 7] 안내 모드 중 배회 NPC 말풍선 숨김
+────────────────────────────────────────────────────────────────
+
+## 요청
+  안내 모드일 때는 가이드 NPC를 제외한 배회 NPC들의 말풍선 숨김
+
+## 수정 파일: NPCSpeechBubble.cs
+  - using LegoTwin.Managers 추가
+  - BubbleRoutine() 루프 시작 시:
+      GameFlowManager.IsGuideMode 이면
+        _canvasGroup.alpha = 0
+        yield return WaitUntil(() => !GameFlowManager.IsGuideMode)
+  - 자유 모드 전환(OnGuideFinished → IsGuideMode = false) 후에만 표시
+
+## 비고
+  가이드 NPC 말풍선은 DialogueUI가 GameFlowManager에서 직접 제어 → 영향 없음
+
+
+────────────────────────────────────────────────────────────────
+[세션 8] 전체 화면 종료 버튼 + 확인 다이얼로그
+────────────────────────────────────────────────────────────────
+
+## 생성 파일: Scripts/UI/QuitButton.cs
+  - [RequireComponent(typeof(Button))]
+  - Awake에서 자체 Button + Yes/No Button 리스너 자동 연결
+  - OnQuitPressed(): _confirmPanel 표시 (없으면 바로 종료)
+  - OnConfirmYes(): 패널 숨김 + Quit()
+  - OnConfirmNo():  패널 숨김
+  - Quit(): Editor → EditorApplication.isPlaying = false
+            빌드   → Application.Quit()
+
+## Inspector 필드
+  _confirmPanel (GameObject — 비활성으로 시작)
+  _yesButton    (Button)
+  _noButton     (Button)
+
+## 씬 Hierarchy 구조
+  QuitUI (Canvas — Screen Space Overlay, Sort Order 99)
+    ├── QuitButton   (Button + QuitButton 스크립트)
+    └── ConfirmPanel (비활성으로 시작)
+         └── Panel
+              ├── MessageText (TMP — "종료하시겠습니까?")
+              ├── YesButton   (Button — "예")
+              └── NoButton    (Button — "아니오")
+
+  모든 Button OnClick → 비워도 됨 (Awake 자동 연결)
+
+
+────────────────────────────────────────────────────────────────
+[기타 — UI 화질 개선 안내 (코드 변경 없음)]
+────────────────────────────────────────────────────────────────
+
+## World Space Canvas 폰트 깨짐
+  - Canvas: Dynamic Pixels Per Unit 1 → 10
+  - TMP 폰트 에셋: Sampling Point Size 90~120, Atlas Resolution 2048
+
+## Game 뷰에서만 폰트 깨짐 (씬 뷰는 정상)
+  - URP Asset: Anti-aliasing (MSAA) → 4x/8x
+  - Game 뷰 해상도 1920x1080 이상
+  - Canvas Dynamic Pixels Per Unit 10
+
+
+────────────────────────────────────────────────────────────────
+[세션 5~8 최종 파일 상태]
+────────────────────────────────────────────────────────────────
+
+## 신규 생성
+  | 파일                       | 내용                          |
+  |---------------------------|-------------------------------|
+  | Scripts/UI/QuitButton.cs   | 종료 버튼 + 확인 다이얼로그     |
+
+## 수정
+  | 파일                                    | 주요 변경 내용                              |
+  |----------------------------------------|--------------------------------------------|
+  | Scripts/UI/SignatureMotionConfirmUI.cs  | Show() message 파라미터 추가                |
+  | Scripts/Plaza/OwnCreationInteractor.cs  | 나가기 확인 다이얼로그 분리 (ShowExitConfirm)|
+  | Scripts/World/FastSkyDayNight.cs        | 밤 태양 디스크 제거 (머티리얼 직접 제어)     |
+  | Scripts/Character/NPCSpeechBubble.cs     | 안내 모드 중 말풍선 숨김                     |
+
+
+────────────────────────────────────────────────────────────────
+[미해결 / 추후 작업]
+────────────────────────────────────────────────────────────────
+
+  [ ] Mixamo 클립 Bake Into Pose 설정 (Root Motion 근본 해결)
+  [ ] TriLib 설치 후 GeneratedCharacterSpawner.LoadFromServer() 구현
+  [ ] Server Mode 전환 후 통합 테스트
+  [ ] World Space Canvas Dynamic Pixels Per Unit · TMP 아틀라스 해상도 적용
+  [ ] QuitButton 씬 배치 및 Inspector 연결
+
+================================================================

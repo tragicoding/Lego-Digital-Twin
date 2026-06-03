@@ -1,6 +1,7 @@
 using System.Collections;
 using TMPro;
 using UnityEngine;
+using LegoTwin.Managers;
 
 namespace LegoTwin.Character
 {
@@ -79,6 +80,13 @@ namespace LegoTwin.Character
         {
             while (true)
             {
+                // 안내 모드 중에는 배회 NPC 말풍선 숨김 — 자유 모드 전환 후에만 표시
+                if (GameFlowManager.IsGuideMode)
+                {
+                    if (_canvasGroup != null) _canvasGroup.alpha = 0f;
+                    yield return new WaitUntil(() => !GameFlowManager.IsGuideMode);
+                }
+
                 // 대사 설정
                 if (_bubbleText != null)
                     _bubbleText.text = _messages[_currentIndex];
