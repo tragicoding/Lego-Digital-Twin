@@ -75,6 +75,12 @@ namespace LegoTwin.Character
         /// </summary>
         public event Action<Action<string>> OnMotionPromptRequested;
 
+        /// <summary>
+        /// 모션 확인 후 시그니처 동작으로 설정할지 묻는 다이얼로그 요청.
+        /// (motionInput: 입력된 프롬프트 텍스트, onResult: 예→true / 아니오→false 선택 후 호출)
+        /// </summary>
+        public event Action<string, Action<bool>> OnSignatureMotionConfirmRequested;
+
         private Coroutine _moveCoroutine;
 
         // ════════════════════════════════════════════════════════════
@@ -141,10 +147,10 @@ namespace LegoTwin.Character
             Say("MINIVERSE에 오신 걸 환영해요!");
             yield return new WaitForSeconds(3f);
 
-            Say($"저는 당신이 만든 '{_npcName}'이에요.");
+            Say($"저는 당신이 만든 \n'{_npcName}'(이)에요.");
             yield return new WaitForSeconds(3f);
 
-            Say("광장에 가서 오브제들을 확인해볼까요?");
+            Say("광장에 가서 \n오브제들을 확인해볼까요?");
             yield return new WaitForSeconds(3f);
 
             // ── 2. 창작물 위치로 순간이동 ────────────────────────────
@@ -152,32 +158,67 @@ namespace LegoTwin.Character
                 TeleportTo(myCreationWaypoint.position);
             yield return FacePlayerRoutine();
 
-            Say("짜잔! 당신이 만든 오브제에요");
+            Say("짜잔! \n당신이 만든 오브제에요");
             yield return new WaitForSeconds(3f);
 
-            // ── 3. 모션 프롬프트 입력 ────────────────────────────────
-            Say("캐릭터에는 원하는 동작을 입력할 수 있어요, 한번 해볼까요?");
+            // ── 3. 모션 프롬프트 입력 + 시그니처 설정 (아니오 선택 시 재시도) ──────────
+            Say("캐릭터에는 \n원하는 동작을 입력할 수 있어요, \n한번 해볼까요?");
             yield return new WaitForSeconds(3f);
 
-            string motionInput = null;
-            OnMotionPromptRequested?.Invoke(text => motionInput = text);
-            yield return new WaitUntil(() => motionInput != null);
+            bool signatureConfirmed = false;
+            bool isRetry            = false;
 
-            // 가이드 NPC는 idle 고정 — 배치 캐릭터(광장 FBX)만 모션 재생
-            Animation?.animation_idle();
+            while (!signatureConfirmed)
+            {
+                if (isRetry)
+                {
+                    Say("다른 동작으로 \n다시 해볼까요?");
+                    yield return new WaitForSeconds(2f);
+                }
 
-            if (placedCharacter != null)
-                placedCharacter.PlayMotionFromPrompt(motionInput);
-            else
-                Debug.LogWarning("[GuideNPCController] placedCharacter가 연결되지 않았습니다. Inspector에서 연결하세요.");
+                // 모션 입력 대기
+                string motionInput = null;
+                OnMotionPromptRequested?.Invoke(text => motionInput = text);
+                yield return new WaitUntil(() => motionInput != null);
 
-            yield return new WaitForSeconds(2f);
+                // 가이드 NPC는 idle 고정 — 배치 캐릭터(광장 FBX)만 모션 재생
+                Animation?.animation_idle();
+                if (placedCharacter != null)
+                    placedCharacter.PlayMotionFromPrompt(motionInput);
+                else
+                    Debug.LogWarning("[GuideNPCController] placedCharacter가 연결되지 않았습니다.");
+
+                yield return new WaitForSeconds(3f);
+
+                if (!isRetry)
+                {
+                    Say("지금 이 동작을 \n 시그니처 동작으로 \n 설정해보세요!");
+                    yield return new WaitForSeconds(3f);
+                    Say("자유모드에서는 다른 사람들이 \n당신의 시그니처 동작을\n 볼 수 있답니다!");
+                    yield return new WaitForSeconds(3f);
+                }
+
+                // 시그니처 확인 (안내 모드: 나가기 버튼 없음)
+                if (OnSignatureMotionConfirmRequested != null)
+                {
+                    bool? confirmed = null;
+                    OnSignatureMotionConfirmRequested.Invoke(motionInput, result => confirmed = result);
+                    yield return new WaitUntil(() => confirmed.HasValue);
+                    signatureConfirmed = confirmed.Value;
+                }
+                else
+                {
+                    signatureConfirmed = true;  // 구독자 없으면 스킵
+                }
+
+                isRetry = true;
+            }
 
             // ── 4. 투표 설명 ─────────────────────────────────────────
-            Say("광장에서는 다른 창작자들이 만든 오브제들도 볼 수 있어요.");
+            Say("광장에서는 \n다른 창작자들이 만든 오브제들도 \n볼 수 있어요.");
             yield return new WaitForSeconds(3f);
 
-            Say("다가가서 마음에 드는 오브제에게 투표를 해보세요!");
+            Say("다가가서 마음에 드는 오브제에게 \n투표를 해보세요!");
             yield return new WaitForSeconds(3f);
 
             // ── 5. 자유 모드 전환 ────────────────────────────────────

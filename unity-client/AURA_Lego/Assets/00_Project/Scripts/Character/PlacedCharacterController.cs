@@ -26,7 +26,8 @@ namespace LegoTwin.Character
         public MixamoMotionLibrary motionLibrary;
 
         private CharacterAnimationController _animation;
-        private Animator _animator;
+        private Animator    _animator;
+        private MotionType  _signatureMotionType = MotionType.Idle;
 
         private void Awake()
         {
@@ -36,7 +37,8 @@ namespace LegoTwin.Character
 
             _animator = GetComponentInChildren<Animator>();
 
-            // 프롬프트 입력 전까지 애니메이션 정지 (enabled=false는 재활성 시 회전 초기화 발생)
+            // 가이드 모드용 배치 캐릭터: 프롬프트 입력 전까지 정지
+            // 광장 배치 캐릭터: SetupForPlaza()에서 즉시 해제됨
             if (_animator != null)
                 _animator.speed = 0f;
         }
@@ -83,7 +85,7 @@ namespace LegoTwin.Character
                 _animator.speed = 1f;
 
             Debug.Log($"[PlacedCharacterController] '{input}' → {motionType} → {clip.name} (loop)");
-            _animation.PlayMotionClipLooping(clip);
+            _animation.PlayMotionClipLooping(clip, BuildResetCallback());
         }
 
         /// <summary>
@@ -102,6 +104,58 @@ namespace LegoTwin.Character
             if (clip == null) return;
 
             _animation?.PlayMotionClip(clip);
+        }
+
+        // ════════════════════════════════════════════════════════════
+        // 광장 배치용 API
+        // ════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// 광장 배치 시 PlazaManager가 호출.
+        /// motionLibrary와 시그니처 동작을 주입하고 애니메이션을 재개한다.
+        /// </summary>
+        public void SetupForPlaza(MixamoMotionLibrary lib, MotionType signatureMotion)
+        {
+            motionLibrary        = lib;
+            _signatureMotionType = signatureMotion;
+            if (_animator != null) _animator.speed = 1f;
+        }
+
+        /// <summary>플레이어 접근 시 시그니처 동작을 루프 재생한다.</summary>
+        public void PlaySignatureMotion()
+        {
+            if (_signatureMotionType == MotionType.Idle || motionLibrary == null || _animation == null) return;
+
+            var clip = motionLibrary.GetClip(_signatureMotionType);
+            if (clip == null) return;
+
+            if (_animator != null && _animator.speed == 0f) _animator.speed = 1f;
+            _animation.PlayMotionClipLooping(clip, BuildResetCallback());
+            Debug.Log($"[PlacedCharacterController] 시그니처 동작 재생: {_signatureMotionType}");
+        }
+
+        /// <summary>플레이어 이탈 시 시그니처 동작을 중단하고 idle로 복귀한다.</summary>
+        public void StopSignatureMotion() => _animation?.StopMotionLoop();
+
+        // ════════════════════════════════════════════════════════════
+        // 내부 유틸
+        // ════════════════════════════════════════════════════════════
+
+        // 루프 재시작 시 호출될 위치 복원 콜백을 생성한다.
+        // 현재 시점의 position/rotation을 캡처해 루프마다 원래 자리로 되돌린다.
+        private System.Action BuildResetCallback()
+        {
+            var pos          = transform.position;
+            var rot          = transform.rotation;
+            var animLocalPos = _animator != null ? _animator.transform.localPosition : Vector3.zero;
+            var animLocalRot = _animator != null ? _animator.transform.localRotation : Quaternion.identity;
+
+            return () =>
+            {
+                transform.SetPositionAndRotation(pos, rot);
+                if (_animator != null)
+                    _animator.transform.SetLocalPositionAndRotation(animLocalPos, animLocalRot);
+            };
         }
     }
 }

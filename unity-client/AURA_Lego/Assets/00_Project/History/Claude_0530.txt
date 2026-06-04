@@ -1,0 +1,184 @@
+================================================================
+Claude Code 작업 기록
+날짜: 2026-05-30
+브랜치: feature/unity
+================================================================
+
+────────────────────────────────────────────────────────────────
+[세션 1] 광장 배치 및 투표 UI 구현 계획 수립
+────────────────────────────────────────────────────────────────
+
+## 참고 문서
+  DevelopmentHelp_0529.md
+  Claude_0528.txt / Claude_0528_2.txt / Claude_0529.txt
+
+## 구현 목표
+  - 자유 모드 진입 시 이전 관람객들의 오브제 광장 배치
+  - 현재 관람객 창작물에도 투표(좋아요) 시스템 부착
+  - Mock 모드에서 서버 없이 투표 동작 테스트
+
+
+────────────────────────────────────────────────────────────────
+[세션 2] mock_plaza.json 확인 및 GameFlowManager 연동
+────────────────────────────────────────────────────────────────
+
+## 확인된 파일
+  Resources/Mock/mock_plaza.json — 세션 3개 (별이, 뭉게, 토실)
+
+## GameFlowManager.cs 수정
+  - _spawnedCharacterGO, _spawnedObjectGO 필드 추가
+  - OnSessionLoaded(): SpawnPlaced/Spawn 후 GO 참조 저장
+  - OnGuideFinished():
+      PlazaManager.RegisterCurrentSession() 호출
+      PlazaManager.EnterPlaza() 호출 (주석 해제)
+
+## GeneratedObjectSpawner.cs 수정
+  - GetSpawnedObject() 프로퍼티 추가 (_spawnedObject 반환)
+
+
+────────────────────────────────────────────────────────────────
+[세션 3] PlazaManager 전면 보강
+────────────────────────────────────────────────────────────────
+
+## PlazaManager.cs 수정
+
+### 추가된 필드
+  - _currentSession, _currentCharacterGO, _currentObjectGO
+    (현재 관람객 창작물 GO 참조)
+  - _likeCounts Dictionary<string, int>
+    (세션별 좋아요 수 추적 — Mock 투표 재계산용)
+
+### 추가된 메서드
+  RegisterCurrentSession(SessionData, GameObject charGo, GameObject objGo)
+    → GameFlowManager가 OnGuideFinished 직전에 호출
+    → 이미 씬에 스폰된 현재 관람객 창작물 GO 전달
+
+  AttachViewToCurrentSession()
+    → 현재 관람객 오브제 위에 PlazaSessionView Instantiate
+    → SessionData → PlazaSessionData 변환 후 Initialize()
+
+  HandleMockLike(string sessionId, int newLikes)
+    → _likeCounts 갱신
+    → LINQ OrderByDescending으로 1위 세션 재계산
+    → 전체 뷰 SetTopLiked() 업데이트
+
+### LoadAndSpawnPlaza() 변경
+  - 세션 배치 시 _likeCounts 딕셔너리에 좋아요 수 등록
+  - AttachViewToCurrentSession() 호출 추가
+  - Debug.Log 강화 (세션 수, spawnPoints 수, 배치 진행상황)
+  - mockCharacterPrefab/mockObjectPrefab 미연결 시 명확한 경고
+
+### SpawnSessionAssets() 변경
+  - 캐릭터: Vector3.left * 3f (기존 0.5f → 간격 확대)
+  - 오브제: Vector3.right * 3f (기존 0.5f → 간격 확대)
+  - spawnScale = 12f 적용 (기존 미적용)
+
+
+────────────────────────────────────────────────────────────────
+[세션 4] PlazaSessionView.cs 수정
+────────────────────────────────────────────────────────────────
+
+## 변경 내용
+  - likesCountText, bubbleText 타입 변경:
+    TextMeshPro → TextMeshProUGUI
+    (Canvas 안의 UI 텍스트와 타입 일치 — Inspector 연결 문제 해결)
+  - using TMPro 추가
+
+
+────────────────────────────────────────────────────────────────
+[세션 5] LikeSystem.cs — Mock 모드 투표 구현
+────────────────────────────────────────────────────────────────
+
+## 변경 내용
+  - _playerNearby 미사용 필드 제거 (CS0414 경고 해결)
+  - using LegoTwin.Managers 추가
+  - SendLike() Mock 분기 추가:
+      SessionManager.dataSourceMode == Mock 이면
+        _likes++ 로컬 증가
+        PlazaSessionView.UpdateLikes() 즉시 갱신
+        PlazaManager.HandleMockLike() 호출 → 1위 재계산
+        yield break (서버 호출 생략)
+      Server 모드이면 기존 ApiClient.LikeSession() 호출
+
+
+────────────────────────────────────────────────────────────────
+[세션 6] PlazaSessionView Prefab 구성 (Unity Editor)
+────────────────────────────────────────────────────────────────
+
+## 생성된 Prefab
+  Assets/Prefabs/PlazaSessionView.prefab
+
+## Prefab 구조
+  PlazaSessionView (GameObject)
+    ├── 컴포넌트: PlazaSessionView, LikeSystem, SphereCollider(Is Trigger)
+    ├── WorldCanvas (Canvas — World Space)
+    │     ├── LikesText   (TextMeshProUGUI — "♥ 0")
+    │     ├── BubbleText  (TextMeshProUGUI — 인사말)
+    │     └── StarObject  (TMP_Text — "★ 1위", 비활성으로 시작)
+    └── LikeButtonUI (Canvas, 비활성으로 시작)
+          └── HeartButton (Button → OnClick: LikeSystem.OnLikePressed())
+
+## Inspector 연결
+  PlazaSessionView: likesCountText, bubbleText, starObject 연결
+  LikeSystem: likeButtonUI 연결
+  PlazaManager: sessionViewPrefab 슬롯에 드래그
+
+
+────────────────────────────────────────────────────────────────
+[전체 흐름 — 자유 모드 투표]
+────────────────────────────────────────────────────────────────
+
+  가이드 종료
+    → GameFlowManager.OnGuideFinished()
+      → PlazaManager.RegisterCurrentSession(session, charGO, objGO)
+      → PlazaManager.EnterPlaza()
+          → LoadAndSpawnPlaza()
+              → AttachViewToCurrentSession()  (내 창작물)
+              → SpawnSessionAssets() × N      (이전 관람객들)
+              → PlazaSessionView.Initialize() × N
+                  → LikeSystem.Initialize()
+
+  플레이어 근접
+    → LikeSystem.OnTriggerEnter("Player")
+      → likeButtonUI.SetActive(true)
+
+  버튼 클릭
+    → LikeSystem.OnLikePressed()
+      → SendLike()
+          [Mock] _likes++ → UpdateLikes() → HandleMockLike() → 별 재계산
+          [Server] ApiClient.LikeSession() → POST /like → LikeResponse
+
+  WebSocket (Server 모드)
+    → PlazaManager.HandleLikesUpdated(WsLikesEvent)
+      → 전체 뷰 UpdateLikes() + SetTopLiked() 재계산
+
+
+────────────────────────────────────────────────────────────────
+[변경된 파일 목록]
+────────────────────────────────────────────────────────────────
+
+  수정:
+    Scripts/Managers/GameFlowManager.cs
+    Scripts/Object/GeneratedObjectSpawner.cs
+    Scripts/Plaza/LikeSystem.cs
+    Scripts/Plaza/PlazaManager.cs
+    Scripts/Plaza/PlazaSessionView.cs
+    Assets/Scenes/Main.unity
+
+  신규 생성:
+    Assets/Prefabs/PlazaSessionView.prefab (+ .meta)
+    Assets/00_Project/History/Claude_0530.txt
+
+
+────────────────────────────────────────────────────────────────
+[미해결 / 추후 작업]
+────────────────────────────────────────────────────────────────
+
+  [ ] XR Origin "Player" 태그 설정 확인
+  [ ] PlazaSessionView Prefab SphereCollider radius 씬 배치 후 조정
+  [ ] PlazaManager.spawnPoints 실제 광장 위치에 맞게 배치
+  [ ] GeneratedCharacterSpawner.LoadFromServer() TriLib 연동 (TODO)
+  [ ] Server 모드 전환 후 통합 테스트
+  [ ] 투표 중복 방지 로직 추가 (현재 미구현)
+
+================================================================

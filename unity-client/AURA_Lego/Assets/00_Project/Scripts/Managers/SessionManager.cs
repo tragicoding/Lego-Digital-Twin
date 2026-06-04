@@ -73,8 +73,15 @@ namespace LegoTwin.Managers
                     return;
                 }
 
-                StartCoroutine(_apiClient.FetchUnitySession(sid, data => Apply(data, onLoaded)));
+                StartCoroutine(LoadServerSession(sid, onLoaded));
             }
+        }
+
+        private IEnumerator LoadServerSession(string sid, Action<SessionData> onLoaded)
+        {
+            Debug.Log($"[SessionManager] ready_for_unity 대기 중... (session: {sid})");
+            yield return _apiClient.PollUntilReady(sid, null);
+            yield return _apiClient.FetchUnitySession(sid, data => Apply(data, onLoaded));
         }
 
         private void Apply(SessionData data, Action<SessionData> onLoaded)
@@ -88,6 +95,30 @@ namespace LegoTwin.Managers
             Debug.Log($"[SessionManager] 로드 완료 — 캐릭터: {data.character_npc_name}, 오브제: {data.object_name}");
             onLoaded?.Invoke(data);
             OnSessionLoaded?.Invoke(data);
+        }
+
+        // ════════════════════════════════════════════════════════════
+        // 시그니처 동작 저장 — 가이드 모드 · 자유 모드 공통 경로
+        // ════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// 현재 세션의 시그니처 동작을 설정한다.
+        /// Mock: 메모리에만 반영 (앱 종료 시 PlazaManager가 파일로 저장).
+        /// Server: 메모리 반영 + PATCH /sessions/{id}/signature-motion API 호출.
+        /// </summary>
+        public void SetSignatureMotion(string motionTypeName)
+        {
+            if (CurrentSession == null)
+            {
+                Debug.LogWarning("[SessionManager] 시그니처 동작 저장 실패 — 현재 세션 없음");
+                return;
+            }
+
+            CurrentSession.signature_motion = motionTypeName;
+            Debug.Log($"[SessionManager] 시그니처 동작 설정: {motionTypeName}");
+
+            if (dataSourceMode == DataSourceMode.Server && _apiClient != null)
+                StartCoroutine(_apiClient.SaveSignatureMotion(CurrentSession.session_id, motionTypeName));
         }
     }
 }
