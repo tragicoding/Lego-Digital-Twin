@@ -18,6 +18,14 @@ STORAGE_MODELS: Path = STORAGE_BASE / "models"
 STORAGE_IMAGES.mkdir(parents=True, exist_ok=True)
 STORAGE_MODELS.mkdir(parents=True, exist_ok=True)
 
+UNITY_GENERATED_MODELS: Path = Path(
+    os.getenv(
+        "UNITY_GENERATED_MODELS",
+        "/mnt/d/Lego-Digital-Twin/unity-client/AURA_Lego/Assets/StreamingAssets/GeneratedModels"
+    )
+)
+UNITY_GENERATED_MODELS.mkdir(parents=True, exist_ok=True)
+
 TRIPO_BASE_URL = "https://api.tripo3d.ai/v2/openapi"
 RQ_QUEUE_NAME = "lego-queue"  # 레거시 — 하위 호환용
 RQ_QUEUE_CHARACTER = "lego-character"

@@ -27,8 +27,17 @@ const STEPS: Step[] = [
   { type: "capture", assetType: "character", label: "캐릭터 우측면", emoji: "↪️", view: "right" },
   { type: "guide",   text: "이제 당신이 조립한\n오브제를 촬영할게요!" },
   { type: "guide",   text: "오브제를 앞에 표시된\n곳에 올려주세요!" },
-  { type: "guide",   text: "오브제 촬영을\n시작합니다" },
-  { type: "capture", assetType: "object", label: "오브제", emoji: "🧱" },
+  { type: "guide",   text: "오브제 정면 촬영을\n시작합니다" },
+  { type: "capture", assetType: "object", label: "오브제 정면", emoji: "🧱", view: "front" },
+  { type: "guide",   text: "오브제를 왼쪽으로\n90도 돌려주세요!" },
+  { type: "guide",   text: "오브제 좌측면 촬영을\n시작합니다" },
+  { type: "capture", assetType: "object", label: "오브제 좌측면", emoji: "↩️", view: "left" },
+  { type: "guide",   text: "오브제를 다시 90도\n돌려주세요!" },
+  { type: "guide",   text: "오브제 후면 촬영을\n시작합니다" },
+  { type: "capture", assetType: "object", label: "오브제 후면", emoji: "🔄", view: "back" },
+  { type: "guide",   text: "오브제를 다시 90도\n돌려주세요!" },
+  { type: "guide",   text: "오브제 우측면 촬영을\n시작합니다" },
+  { type: "capture", assetType: "object", label: "오브제 우측면", emoji: "↪️", view: "right" },
 ];
 
 function GuideScreen({ step, onNext }: { step: GuideStep; onNext: () => void }) {
@@ -172,7 +181,7 @@ export default function CapturePage() {
     if (s.assetType === "character" && (s.view ?? "front") === "front") {
       setCharacterAssetId(assetId);
       setUploaded("character");
-    } else if (s.assetType === "object") {
+    } else if (s.assetType === "object" && (s.view ?? "front") === "front") {
       setObjectAssetId(assetId);
       setUploaded("object");
     }

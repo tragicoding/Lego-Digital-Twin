@@ -24,7 +24,9 @@ from pathlib import Path
 
 from redis import Redis
 
-from ...core.config import STORAGE_MODELS, BACKEND_HOST, REDIS_URL
+import shutil
+
+from ...core.config import STORAGE_MODELS, BACKEND_HOST, REDIS_URL, UNITY_GENERATED_MODELS
 from ...core.database import SessionLocal
 from ...models.asset import Asset
 from ...services import tripo_service as tripo
@@ -85,15 +87,15 @@ async def _process_character_async(asset_id: str):
         for tick in range(90):
             img_dir = front_path.parent
             if not left_path:
-                c = sorted(img_dir.glob("character_left_*"))
+                c = sorted(img_dir.glob("character_left*"))
                 if c:
                     left_path = c[0]
             if not back_path:
-                c = sorted(img_dir.glob("character_back_*"))
+                c = sorted(img_dir.glob("character_back*"))
                 if c:
                     back_path = c[0]
             if not right_path:
-                c = sorted(img_dir.glob("character_right_*"))
+                c = sorted(img_dir.glob("character_right*"))
                 if c:
                     right_path = c[0]
             if left_path and back_path and right_path:
@@ -148,6 +150,11 @@ async def _process_character_async(asset_id: str):
         fbx_path = STORAGE_MODELS / f"{prefix}_rigged.fbx"
         await tripo.download_fbx(rig_result, fbx_path)
         print(f"[char] FBX 저장 완료: {fbx_path.name} (+{time.time()-t_rig_start:.1f}s)", flush=True)
+
+        # 4-1. Unity StreamingAssets로 복사
+        shutil.copy(fbx_path, UNITY_GENERATED_MODELS / fbx_path.name)
+        shutil.copy(texture_glb_path, UNITY_GENERATED_MODELS / texture_glb_path.name)
+        print(f"[char] Unity 복사 완료: {UNITY_GENERATED_MODELS}", flush=True)
 
         # 5. DB 업데이트
         #    model_url     → FBX (리타겟팅용 리깅 캐릭터)

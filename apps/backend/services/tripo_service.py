@@ -66,7 +66,7 @@ async def create_model_task(file_token: str, image_path: Path | None = None) -> 
         resp = await c.post(
             f"{TRIPO_BASE_URL}/task",
             headers={**_HEADERS, "Content-Type": "application/json"},
-            json={"type": "image_to_model", "file": {"type": ext, "file_token": file_token}},
+            json={"type": "image_to_model", "file": {"type": ext, "file_token": file_token}, "model_version": "v2.5-20250123"},
             timeout=60,
         )
         resp.raise_for_status()
