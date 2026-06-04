@@ -85,15 +85,15 @@ async def _process_character_async(asset_id: str):
         for tick in range(90):
             img_dir = front_path.parent
             if not left_path:
-                c = sorted(img_dir.glob("character_left_*"))
+                c = sorted(img_dir.glob("character_left*"))
                 if c:
                     left_path = c[0]
             if not back_path:
-                c = sorted(img_dir.glob("character_back_*"))
+                c = sorted(img_dir.glob("character_back*"))
                 if c:
                     back_path = c[0]
             if not right_path:
-                c = sorted(img_dir.glob("character_right_*"))
+                c = sorted(img_dir.glob("character_right*"))
                 if c:
                     right_path = c[0]
             if left_path and back_path and right_path:
