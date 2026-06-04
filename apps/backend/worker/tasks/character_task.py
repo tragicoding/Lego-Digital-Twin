@@ -75,12 +75,48 @@ async def _process_character_async(asset_id: str):
         prefix = f"npc_{seq}"
 
         # 1. 이미지 업로드
-        token = await tripo.upload_image(Path(asset.input_image_path))
+        front_path = Path(asset.input_image_path)
+        front_token = await tripo.upload_image(front_path)
         if _is_cancelled(cur_session_id):
             return
 
-        # 2. 3D 모델 생성 (image_to_model)
-        model_task_id = await tripo.create_model_task(token)
+        # 2. 나머지 이미지 대기 (최대 90초) — left/back/right 업로드 시간 확보
+        left_path = back_path = right_path = None
+        for tick in range(90):
+            img_dir = front_path.parent
+            if not left_path:
+                c = sorted(img_dir.glob("character_left_*"))
+                if c:
+                    left_path = c[0]
+            if not back_path:
+                c = sorted(img_dir.glob("character_back_*"))
+                if c:
+                    back_path = c[0]
+            if not right_path:
+                c = sorted(img_dir.glob("character_right_*"))
+                if c:
+                    right_path = c[0]
+            if left_path and back_path and right_path:
+                print(f"[char] 4방향 이미지 모두 수신 ({tick+1}s)", flush=True)
+                break
+            await asyncio.sleep(1.0)
+
+        # 3. 3D 모델 생성 — back 이미지가 있으면 multiview, 없으면 single
+        if back_path:
+            found = [p.name for p in [left_path, back_path, right_path] if p]
+            print(f"[char] multiview_to_model: {found}", flush=True)
+            back_token = await tripo.upload_image(back_path)
+            left_token = await tripo.upload_image(left_path) if left_path else None
+            right_token = await tripo.upload_image(right_path) if right_path else None
+            if _is_cancelled(cur_session_id):
+                return
+            model_task_id = await tripo.create_multiview_task(
+                front_token, back_token, left_token, right_token
+            )
+        else:
+            print(f"[char] back 이미지 없음 → image_to_model (fallback)", flush=True)
+            model_task_id = await tripo.create_model_task(front_token, front_path)
+
         _set_stage(db, asset, "generating", 30)
         model_result = await tripo.poll_task(model_task_id)
         if _is_cancelled(cur_session_id):

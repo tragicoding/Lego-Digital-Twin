@@ -74,18 +74,29 @@ async def upload_asset(
     session_id: str,
     asset_type: Literal["character", "building", "vehicle", "object"] = Form(...),
     file: UploadFile = File(...),
+    # view: front(기본, 파이프라인 시작) | left/back/right(파일 저장만, 큐 미등록)
+    view: Literal["front", "back", "left", "right"] = Form("front"),
     db: DBSession = Depends(get_db),
-):  
-    #session_id 확인
-    #DB에서 해당 session_id가 있는지 확인.
+):
     session = db.get(Session, session_id)
     if not session:
         raise HTTPException(404, "세션을 찾을 수 없습니다.")
 
-    # 이미지 저장
-    #예상경로 : storage/images/{session_id}/
     save_dir = STORAGE_IMAGES / session_id
     save_dir.mkdir(parents=True, exist_ok=True)
+
+    # left/back/right 이미지: 파일 저장만, DB/큐 등록 없음 (worker가 polling으로 감지)
+    if view in ("back", "left", "right") and asset_type == "character":
+        save_path = save_dir / f"character_{view}_{file.filename}"
+        with open(save_path, "wb") as f:
+            shutil.copyfileobj(file.file, f)
+        return AssetUploadResponse(
+            asset_id="",
+            status="saved",
+            asset_type=f"character_{view}",
+        )
+
+    # front / 오브제: 기존 파이프라인 그대로
     save_path = save_dir / f"{asset_type}_{file.filename}"
     with open(save_path, "wb") as f:
         shutil.copyfileobj(file.file, f)

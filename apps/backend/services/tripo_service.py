@@ -59,18 +59,59 @@ async def upload_image(image_path: Path) -> str:
         return resp.json()["data"]["image_token"]
 
 #이미지를 3D 모델로 변환하는 task를 생성하는 함수.
-async def create_model_task(file_token: str) -> str:
+async def create_model_task(file_token: str, image_path: Path | None = None) -> str:
     """image_to_model 태스크를 생성하고 task_id를 반환한다."""
+    ext = _file_ext(image_path) if image_path else "png"
     async with httpx.AsyncClient() as c:
         resp = await c.post(
             f"{TRIPO_BASE_URL}/task",
             headers={**_HEADERS, "Content-Type": "application/json"},
-            json={"type": "image_to_model", "file": {"type": "png", "file_token": file_token}},
+            json={"type": "image_to_model", "file": {"type": ext, "file_token": file_token}},
             timeout=60,
         )
         resp.raise_for_status()
         return resp.json()["data"]["task_id"]
     #이 task_id는 나중에 poll_task()로 작업 완료 여부를 확인할 때 사용
+
+
+async def create_multiview_task(
+    front_token: str,
+    back_token: str,
+    left_token: str | None = None,
+    right_token: str | None = None,
+) -> str:
+    """front/left/back/right 이미지로 multiview_to_model 태스크를 생성하고 task_id를 반환한다.
+    left/right 없으면 front로 패딩한다.
+    """
+    files = [
+        {"type": "jpg", "file_token": front_token},                      # front
+        {"type": "jpg", "file_token": left_token or front_token},        # left
+        {"type": "jpg", "file_token": back_token},                       # back
+        {"type": "jpg", "file_token": right_token or front_token},       # right
+    ]
+    payload = {
+        "type": "multiview_to_model",
+        "files": files,
+        "model_version": "v2.5-20250123",
+    }
+    print(f"[tripo] multiview payload: {payload}", flush=True)
+    async with httpx.AsyncClient() as c:
+        resp = await c.post(
+            f"{TRIPO_BASE_URL}/task",
+            headers={**_HEADERS, "Content-Type": "application/json"},
+            json=payload,
+            timeout=60,
+        )
+        if not resp.is_success:
+            print(f"[tripo] multiview 400 response: {resp.text}", flush=True)
+        resp.raise_for_status()
+        return resp.json()["data"]["task_id"]
+
+
+def _file_ext(path: Path) -> str:
+    """파일 경로에서 Tripo API용 type 문자열(확장자)을 반환한다."""
+    ext = path.suffix.lower().lstrip(".")
+    return ext if ext in ("png", "jpg", "jpeg", "webp") else "jpg"
 
 #이미 생성된 3D 모델에 리깅 작업을 요청하는 함수.
 async def create_rig_task(model_task_id: str, out_format: str = "fbx") -> str:

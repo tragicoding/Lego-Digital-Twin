@@ -6,7 +6,7 @@ import { useSessionStore } from "../store/sessionStore";
 import PrimaryButton from "../components/PrimaryButton";
 
 interface GuideStep  { type: "guide";   text: string }
-interface CaptureStep{ type: "capture"; assetType: "character" | "object"; label: string; emoji: string }
+interface CaptureStep{ type: "capture"; assetType: "character" | "object"; label: string; emoji: string; view?: "front" | "back" | "left" | "right" }
 type Step = GuideStep | CaptureStep;
 
 const STEPS: Step[] = [
@@ -14,8 +14,17 @@ const STEPS: Step[] = [
   { type: "guide",   text: "MINIVERSE에 오신걸 환영합니다!" },
   { type: "guide",   text: "먼저 여러분의 NPC가 될\n캐릭터를 촬영할게요!" },
   { type: "guide",   text: "캐릭터를 앞에 표시된\n곳에 올려주세요!" },
-  { type: "guide",   text: "캐릭터 촬영을\n시작합니다" },
-  { type: "capture", assetType: "character", label: "캐릭터", emoji: "🧍" },
+  { type: "guide",   text: "캐릭터 정면 촬영을\n시작합니다" },
+  { type: "capture", assetType: "character", label: "캐릭터 정면", emoji: "🧍", view: "front" },
+  { type: "guide",   text: "캐릭터를 왼쪽으로\n90도 돌려주세요!" },
+  { type: "guide",   text: "캐릭터 좌측면 촬영을\n시작합니다" },
+  { type: "capture", assetType: "character", label: "캐릭터 좌측면", emoji: "↩️", view: "left" },
+  { type: "guide",   text: "캐릭터를 다시 90도\n돌려서 뒷면을 보여주세요!" },
+  { type: "guide",   text: "캐릭터 후면 촬영을\n시작합니다" },
+  { type: "capture", assetType: "character", label: "캐릭터 후면", emoji: "🔄", view: "back" },
+  { type: "guide",   text: "캐릭터를 다시 90도\n돌려서 우측면을 보여주세요!" },
+  { type: "guide",   text: "캐릭터 우측면 촬영을\n시작합니다" },
+  { type: "capture", assetType: "character", label: "캐릭터 우측면", emoji: "↪️", view: "right" },
   { type: "guide",   text: "이제 당신이 조립한\n오브제를 촬영할게요!" },
   { type: "guide",   text: "오브제를 앞에 표시된\n곳에 올려주세요!" },
   { type: "guide",   text: "오브제 촬영을\n시작합니다" },
@@ -94,7 +103,7 @@ function CaptureScreen({ step, onDone }: { step: CaptureStep; onDone: (assetId: 
 
     // 백그라운드 업로드 — await 없이 fire-and-forget
     // worker가 비동기로 처리하므로 응답을 기다릴 필요 없음
-    uploadAsset(sessionId, step.assetType, file).catch((e) => {
+    uploadAsset(sessionId, step.assetType, file, step.view ?? "front").catch((e) => {
       console.error("백그라운드 업로드 실패", e);
     });
 
@@ -160,8 +169,13 @@ export default function CapturePage() {
 
   const handleCaptureDone = (assetId: string) => {
     const s = step as CaptureStep;
-    if (s.assetType === "character") { setCharacterAssetId(assetId); setUploaded("character"); }
-    else { setObjectAssetId(assetId); setUploaded("object"); }
+    if (s.assetType === "character" && (s.view ?? "front") === "front") {
+      setCharacterAssetId(assetId);
+      setUploaded("character");
+    } else if (s.assetType === "object") {
+      setObjectAssetId(assetId);
+      setUploaded("object");
+    }
     if (stepIdx >= STEPS.length - 1) navigate("/profile");
     else next();
   };
