@@ -5,11 +5,12 @@
 GLB 파일명: object_{순서번호}.glb
 """
 import asyncio
+import shutil
 from pathlib import Path
 
 from redis import Redis
 
-from ...core.config import STORAGE_MODELS, BACKEND_HOST, REDIS_URL
+from ...core.config import STORAGE_MODELS, BACKEND_HOST, REDIS_URL, UNITY_GENERATED_MODELS
 from ...core.database import SessionLocal
 from ...models.asset import Asset
 from ...services import tripo_service as tripo
@@ -71,6 +72,10 @@ async def _run(asset_id: str):
 
         glb_path = STORAGE_MODELS / f"{prefix}.glb"
         await tripo.download_glb(result, glb_path)
+
+        # Unity StreamingAssets로 복사
+        shutil.copy(glb_path, UNITY_GENERATED_MODELS / glb_path.name)
+        print(f"[obj] Unity 복사 완료: {glb_path.name}", flush=True)
 
         asset.model_url = f"{BACKEND_HOST}/static/models/{glb_path.name}"
         asset.status = "completed"
