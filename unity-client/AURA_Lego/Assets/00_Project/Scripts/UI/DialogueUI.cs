@@ -5,27 +5,30 @@ using UnityEngine;
 namespace LegoTwin.UI
 {
     /// <summary>
-    /// 가이드 NPC 말풍선 UI.
+    /// 가이드 NPC 말풍선 UI — World Space Canvas.
     ///
     /// 역할:
     ///   - GameFlowManager.OnDialogueChanged 이벤트를 받아 텍스트 표시
-    ///   - 화자 이름(NPC 이름) + 대사 텍스트를 함께 표시
+    ///   - _followTarget(NPC transform)이 설정되면 머리 위 위치를 매 프레임 추적
+    ///   - Billboard 모드: 항상 카메라 방향으로 회전
     ///   - 페이드 인/아웃 연출
-    ///   - Billboard 모드: World Space Canvas 에서 항상 카메라를 향해 회전
     ///
     /// 씬 Hierarchy 구조:
-    ///   DialogueUI              (Canvas — Screen Space Overlay 또는 World Space)
-    ///     └── BubbleRoot        (GameObject — Show/Hide 대상)
-    ///          ├── BubblePanel  (Image — 배경 패널)
-    ///          │    ├── SpeakerNameText  (TMP_Text — NPC 이름)
-    ///          │    └── DialogueText     (TMP_Text — 대사 내용)
-    ///          └── (선택) Tail  (Image — 말풍선 꼬리 이미지)
+    ///   DialogueUI              (Canvas — World Space, Scale ~0.01)
+    ///     └── BubbleRoot        (GameObject — Show/Hide 대상, CanvasGroup)
+    ///          └── BubblePanel  (Image — 배경 패널)
+    ///               ├── SpeakerNameText  (TMP_Text — NPC 이름)
+    ///               └── DialogueText     (TMP_Text — 대사 내용)
     ///
     /// 유니티 개발자 체크리스트:
-    ///   [ ] Canvas 생성 후 이 컴포넌트 추가
+    ///   [ ] Canvas: Render Mode → World Space
+    ///   [ ] Canvas: Event Camera → Main Camera 연결
+    ///   [ ] Canvas Transform: Scale → (0.01, 0.01, 0.01) 또는 원하는 크기로 조정
+    ///   [ ] DialogueUI: Billboard Mode ☑ 체크
+    ///   [ ] DialogueUI: Height Offset — NPC 스케일에 맞게 조정 (기본 2.2)
     ///   [ ] BubbleRoot / SpeakerNameText / DialogueText / CanvasGroup 연결
     ///   [ ] GameFlowManager._dialogueUI 에 이 GameObject 드래그
-    ///   [ ] VR 전환 시 Canvas → World Space 로 변경 + billboardMode = true
+    ///   ※ SetFollowTarget()은 NPC 스폰 시 GameFlowManager가 자동으로 호출함
     /// </summary>
     public class DialogueUI : MonoBehaviour
     {
@@ -48,8 +51,18 @@ namespace LegoTwin.UI
         [Tooltip("페이드 인/아웃 시간 (초)")]
         [SerializeField] private float _fadeDuration = 0.25f;
 
-        [Tooltip("World Space Canvas 사용 시 true — 항상 카메라를 향해 회전")]
-        [SerializeField] private bool  _billboardMode = false;
+        [Tooltip("World Space Canvas 사용 시 true — 항상 카메라 방향으로 회전")]
+        [SerializeField] private bool  _billboardMode = true;
+
+        [Header("NPC 말풍선 추적")]
+        [Tooltip("말풍선이 따라갈 NPC Transform. GameFlowManager가 스폰 후 SetFollowTarget()으로 주입.")]
+        [SerializeField] private Transform _followTarget;
+
+        [Tooltip("_followTarget 기준 머리 위 높이 오프셋 (NPC 스케일에 맞게 조정)")]
+        [SerializeField] private float _heightOffset = 2.2f;
+
+        [Tooltip("NPC 오른쪽 방향 오프셋 (NPC의 로컬 right 기준, 음수면 왼쪽)")]
+        [SerializeField] private float _rightOffset = 0f;
 
         // ── 런타임 ───────────────────────────────────────────────────
         private Coroutine _fadeCoroutine;
@@ -73,16 +86,28 @@ namespace LegoTwin.UI
 
         private void LateUpdate()
         {
-            // Billboard: World Space Canvas 에서 카메라 방향으로 회전
+            // NPC 머리 위 + 오른쪽 오프셋 추적
+            if (_followTarget != null)
+                transform.position = _followTarget.position
+                    + Vector3.up          * _heightOffset
+                    + _followTarget.right * _rightOffset;
+
+            // Billboard: 카메라와 같은 방향으로 정렬 (World Space Canvas 표준)
             if (!_billboardMode) return;
             if (_mainCamera == null) _mainCamera = Camera.main;
-            if (_mainCamera != null && _bubbleRoot != null && _bubbleRoot.activeSelf)
+            if (_mainCamera != null)
                 transform.forward = _mainCamera.transform.forward;
         }
 
         // ════════════════════════════════════════════════════════════
         // 공개 API — GameFlowManager 에서 호출
         // ════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// NPC 스폰 후 말풍선이 따라갈 타겟을 설정한다.
+        /// GameFlowManager.OnSessionLoaded 에서 SpawnGuide 직후 호출.
+        /// </summary>
+        public void SetFollowTarget(Transform target) => _followTarget = target;
 
         /// <summary>
         /// 말풍선을 표시한다. 이미 표시 중이면 텍스트만 교체한다.

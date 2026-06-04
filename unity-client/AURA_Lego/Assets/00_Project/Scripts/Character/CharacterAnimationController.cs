@@ -31,6 +31,7 @@ namespace LegoTwin.Character
         private AnimatorOverrideController _overrideController;
         private bool _useBoolParam;
         private Coroutine _loopCoroutine;
+        private System.Action _onLoopRestart;
 
         // AnimatorOverrideController에서 교체할 클립 슬롯 이름
         // Base Animator Controller의 "Motion" 스테이트 클립 이름과 일치해야 함
@@ -153,13 +154,18 @@ namespace LegoTwin.Character
         /// Idle로 빠져나가지 않고 매끄럽게 반복한다.
         /// StopMotionLoop() 또는 animation_idle()로 중단한다.
         /// </summary>
-        public void PlayMotionClipLooping(AnimationClip clip)
+        /// <summary>
+        /// Mixamo 클립을 무한 루프 재생한다.
+        /// onLoopRestart: 루프가 재시작될 때마다 호출되는 콜백 (위치 복원 등에 사용).
+        /// </summary>
+        public void PlayMotionClipLooping(AnimationClip clip, System.Action onLoopRestart = null)
         {
             if (clip == null || _overrideController == null) return;
 
             if (_loopCoroutine != null)
                 StopCoroutine(_loopCoroutine);
 
+            _onLoopRestart = onLoopRestart;
             _overrideController[MOTION_SLOT] = clip;
             // 초기 진입은 SetTrigger — Play()는 첫 프레임 포즈로 스냅해 90도 회전 발생
             // 루프 재시작(LoopRoutine 내)은 이미 Motion 상태이므로 Play()를 사용해도 무관
@@ -194,6 +200,7 @@ namespace LegoTwin.Character
                     return info.IsName("Motion") && info.normalizedTime >= 0.95f;
                 });
 
+                _onLoopRestart?.Invoke();   // 루프 재시작 전 위치 복원 등 외부 콜백 실행
                 _animator.Play("Motion", 0, 0f);
                 yield return null;
             }
@@ -208,40 +215,42 @@ namespace LegoTwin.Character
             npcName    = data.npc_name;
             bubbleText = bubble;
 
-            // ── Mock Mode ──────────────────────────────────────────────────────
-            // GeneratedCharacters/**/character/ 폴더의 *_rigged.fbx + *_texture.glb 쌍은
-            // Editor 스크립트 (CharacterTextureApplier) 가 임포트 시 자동으로 텍스쳐를 적용합니다.
-            // Prefab을 GeneratedCharacterSpawner.mockCharacterPrefab 에 연결하면 됩니다.
-            //
-            // ── Server Mode ────────────────────────────────────────────────────
-            // data.model_url   → 리깅된 FBX URL (TriLib 런타임 로드 필요)
-            // data.texture_url → PBR 텍스쳐 GLB URL (glTFast로 머티리얼 추출 후 FBX에 적용)
-            // Server Mode 텍스쳐 URL 이 있을 때:
-            // → 위 TODO 구현 완료 후 ApplyTextureFromUrl(data.texture_url) 호출 추가
+            // Server Mode: texture_url(PBR GLB)이 있으면 SkinnedMeshRenderer에 머티리얼 적용
+            if (!string.IsNullOrEmpty(data.texture_url))
+                ApplyTextureFromUrl(data.texture_url);
         }
 
-        // ── Server Mode — GLB URL 에서 텍스쳐 추출 후 적용 ─────────────────
-        //
-        // TODO: 유니티 개발자 — 아래 주석을 실제 구현으로 교체하세요.
-        //
-        // glTFast 6.x 비동기 로드 예시:
-        //
-        //   private async void ApplyTextureFromUrl(string url)
-        //   {
-        //       var gltf    = new GLTFast.GltfImport();
-        //       bool success = await gltf.Load(url);
-        //       if (!success) { Debug.LogWarning($"GLB 로드 실패: {url}"); return; }
-        //
-        //       var renderer = GetComponentInChildren<SkinnedMeshRenderer>();
-        //       if (renderer != null)
-        //       {
-        //           var mat = gltf.GetMaterial(0);
-        //           if (mat != null) renderer.material = mat;
-        //       }
-        //   }
-        //
-        // Initialize() 에서 호출:
-        //   if (!string.IsNullOrEmpty(data.texture_url))
-        //       ApplyTextureFromUrl(data.texture_url);
+        private async void ApplyTextureFromUrl(string url)
+        {
+            var gltf = new GLTFast.GltfImport();
+            bool ok = await gltf.Load(url);
+            if (!ok)
+            {
+                Debug.LogWarning($"[CharacterAnimationController] {npcName}: 텍스쳐 GLB 로드 실패: {url}");
+                return;
+            }
+
+            // GLB 씬을 비활성 임시 컨테이너에 인스턴스화해 머티리얼 추출
+            var container = new GameObject("_TempGltfMaterial");
+            container.SetActive(false);
+            await gltf.InstantiateMainSceneAsync(container.transform);
+
+            var srcRenderer = container.GetComponentInChildren<Renderer>();
+            if (srcRenderer != null && srcRenderer.sharedMaterials.Length > 0)
+            {
+                var dstRenderer = GetComponentInChildren<SkinnedMeshRenderer>();
+                if (dstRenderer != null)
+                {
+                    dstRenderer.materials = srcRenderer.sharedMaterials;
+                    Debug.Log($"[CharacterAnimationController] {npcName}: 텍스쳐 적용 완료");
+                }
+                else
+                {
+                    Debug.LogWarning($"[CharacterAnimationController] {npcName}: SkinnedMeshRenderer 없음 — 텍스쳐 적용 생략");
+                }
+            }
+
+            Destroy(container);
+        }
     }
 }

@@ -4,6 +4,7 @@ using LegoTwin.Data;
 using LegoTwin.Character;
 using LegoTwin.Object;
 using LegoTwin.UI;
+using LegoTwin.Network;
 
 namespace LegoTwin.Managers
 {
@@ -50,9 +51,19 @@ namespace LegoTwin.Managers
         [Tooltip("모션 프롬프트 입력 UI — MotionPromptUI 컴포넌트가 붙은 GameObject 연결")]
         [SerializeField] private MotionPromptUI _motionPromptUI;
 
+        [Tooltip("시그니처 동작 설정 확인 UI — SignatureMotionConfirmUI 컴포넌트가 붙은 GameObject 연결")]
+        [SerializeField] private SignatureMotionConfirmUI _signatureConfirmUI;
+
         // ── 런타임 참조 (이벤트 해제용) ─────────────────────────────
         private GuideNPCController _currentNPC;
         private string             _currentNpcName;
+
+        /// <summary>가이드 모드 진행 중이면 true. FreeCameraController 등에서 이동 제한에 사용.</summary>
+        public static bool IsGuideMode { get; private set; } = true;
+
+        // ── 스폰된 오브젝트 참조 (PlazaManager에 전달용) ─────────────
+        private GameObject _spawnedCharacterGO;
+        private GameObject _spawnedObjectGO;
 
         // ════════════════════════════════════════════════════════════
         // Unity 생명주기
@@ -98,11 +109,17 @@ namespace LegoTwin.Managers
             // ① 배치 캐릭터 스폰 (광장 오브제 옆, 모션 씬에서 사용)
             PlacedCharacterController placedCharacter = null;
             if (_characterSpawner != null)
+            {
                 placedCharacter = _characterSpawner.SpawnPlaced(session);
+                _spawnedCharacterGO = placedCharacter?.gameObject;
+            }
 
             // ② 오브제 스폰
             if (_objectSpawner != null && session.assets?.@object != null)
+            {
                 _objectSpawner.Spawn(session.assets.@object);
+                _spawnedObjectGO = _objectSpawner.GetSpawnedObject();
+            }
             else
                 Debug.Log("[GameFlowManager] ObjectSpawner 없음 또는 오브제 데이터 없음 — 오브제 스폰 생략");
 
@@ -125,13 +142,17 @@ namespace LegoTwin.Managers
             // ④ 배치 캐릭터 → NPC에 연결 (모션 씬 Step 3 에서 사용)
             npc.placedCharacter = placedCharacter;
 
+            // ④-1. 말풍선 UI가 NPC 머리 위를 따라다니도록 타겟 주입
+            _dialogueUI?.SetFollowTarget(npc.transform);
+
             // ⑤ NPC 이벤트 구독
             _currentNPC = npc;
-            npc.OnDialogueChanged           += OnDialogueChanged;
-            npc.OnFreeModeSwitched          += OnFreeModeSwitched;
-            npc.OnGuideFinished             += OnGuideFinished;
-            npc.OnMotionPromptRequested     += OnMotionPromptRequested;
-            npc.OnPlayerTeleportRequested   += OnPlayerTeleportRequested;
+            npc.OnDialogueChanged                   += OnDialogueChanged;
+            npc.OnFreeModeSwitched                  += OnFreeModeSwitched;
+            npc.OnGuideFinished                     += OnGuideFinished;
+            npc.OnMotionPromptRequested             += OnMotionPromptRequested;
+            npc.OnPlayerTeleportRequested           += OnPlayerTeleportRequested;
+            npc.OnSignatureMotionConfirmRequested   += OnSignatureMotionConfirmRequested;
 
             // ⑥ 시나리오 시작 ── GuideScenarioRoutine() 코루틴 실행
             npc.StartGuideScenario();
@@ -165,20 +186,30 @@ namespace LegoTwin.Managers
         /// </summary>
         private void OnGuideFinished()
         {
+            IsGuideMode = false;
             Debug.Log("[GameFlowManager] 가이드 종료 → 자유 모드 전환");
             _dialogueUI?.Hide();
             UnsubscribeNPCEvents();
 
-            // TODO: LegoTwin.Plaza.PlazaManager.Instance.EnterPlaza();
+            var plaza = LegoTwin.Plaza.PlazaManager.Instance;
+            if (plaza == null)
+            {
+                Debug.LogWarning("[GameFlowManager] PlazaManager.Instance 없음 — 씬에 PlazaManager GameObject가 있는지 확인하세요.");
+                return;
+            }
+
+            // Server Mode에서 GLB 로드는 비동기 → Spawn() 직후 null이므로
+            // 가이드 시나리오가 끝난 이 시점(~20초 후)에 완료된 참조를 가져온다
+            var objectGO = _spawnedObjectGO ?? _objectSpawner?.GetSpawnedObject();
+
+            plaza.RegisterCurrentSession(
+                SessionManager.Instance.CurrentSession,
+                _spawnedCharacterGO,
+                objectGO);
+
+            plaza.EnterPlaza();
         }
 
-        /// <summary>
-        /// [Step 3] 모션 프롬프트 입력 요청.
-        /// VR 키보드 또는 입력 UI를 열고, 입력 완료 시 callback(text) 를 호출한다.
-        ///
-        /// TODO: VR 입력 UI 연동 후 아래 더미 코드 교체:
-        ///   _inputUI.Open(inputText => callback(inputText));
-        /// </summary>
         /// <summary>
         /// [Step 2] 창작물 위치로 플레이어 순간이동.
         /// _playerFollowGuide 가 XR Origin 루트에 붙어있으므로 그 transform 을 직접 이동한다.
@@ -211,6 +242,37 @@ namespace LegoTwin.Managers
             _motionPromptUI.Show(callback);
         }
 
+        /// <summary>
+        /// [Step 3-1] 시그니처 동작 설정 확인 다이얼로그 표시.
+        /// 예 선택 시 SessionData에 저장 + Server Mode이면 API 전송.
+        /// </summary>
+        // onResult: 예→true, 아니오→false — GuideNPCController가 루프 여부를 판단
+        private void OnSignatureMotionConfirmRequested(string motionInput, Action<bool> onResult)
+        {
+            if (_signatureConfirmUI == null)
+            {
+                Debug.LogWarning("[GameFlowManager] _signatureConfirmUI 미연결 — 시그니처 설정 생략");
+                onResult?.Invoke(false);
+                return;
+            }
+
+            // 안내 모드: 나가기 버튼 없음 (showExitButton = false)
+            _signatureConfirmUI.Show(
+                confirmed =>
+                {
+                    if (confirmed) ApplySignatureMotion(motionInput);
+                    onResult?.Invoke(confirmed);
+                },
+                showExitButton: false
+            );
+        }
+
+        private void ApplySignatureMotion(string motionInput)
+        {
+            var motionType = MotionPromptParser.Parse(motionInput);
+            SessionManager.Instance?.SetSignatureMotion(motionType.ToString());
+        }
+
         // ════════════════════════════════════════════════════════════
         // 내부 유틸
         // ════════════════════════════════════════════════════════════
@@ -218,11 +280,12 @@ namespace LegoTwin.Managers
         private void UnsubscribeNPCEvents()
         {
             if (_currentNPC == null) return;
-            _currentNPC.OnDialogueChanged           -= OnDialogueChanged;
-            _currentNPC.OnFreeModeSwitched          -= OnFreeModeSwitched;
-            _currentNPC.OnGuideFinished             -= OnGuideFinished;
-            _currentNPC.OnMotionPromptRequested     -= OnMotionPromptRequested;
-            _currentNPC.OnPlayerTeleportRequested   -= OnPlayerTeleportRequested;
+            _currentNPC.OnDialogueChanged                   -= OnDialogueChanged;
+            _currentNPC.OnFreeModeSwitched                  -= OnFreeModeSwitched;
+            _currentNPC.OnGuideFinished                     -= OnGuideFinished;
+            _currentNPC.OnMotionPromptRequested             -= OnMotionPromptRequested;
+            _currentNPC.OnPlayerTeleportRequested           -= OnPlayerTeleportRequested;
+            _currentNPC.OnSignatureMotionConfirmRequested   -= OnSignatureMotionConfirmRequested;
             _currentNPC = null;
         }
     }

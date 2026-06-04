@@ -42,6 +42,8 @@ namespace LegoTwin.Character
             // ── 손흔들기 / 인사 ──────────────────────────────────────
             ("손흔",   MotionType.Wave),
             ("인사",   MotionType.Wave),
+            ("하이",   MotionType.Wave),
+            ("hi",   MotionType.Wave),
             ("안녕",   MotionType.Wave),
             ("wave",   MotionType.Wave),
 
