@@ -123,7 +123,6 @@ namespace LegoTwin.Character
             if (playerTeleportPoint != null)
                 npc.playerTeleportPoint = playerTeleportPoint;
 
-            Debug.Log($"[CharacterSpawner] Guide 설정 완료: {session.character_npc_name}");
             return npc;
         }
 
@@ -139,7 +138,6 @@ namespace LegoTwin.Character
 
             anim.Initialize(session.assets?.character, session.bubble_text);
 
-            Debug.Log($"[CharacterSpawner] Placed 설정 완료: {session.character_npc_name}");
             return placed;
         }
 
@@ -169,7 +167,6 @@ namespace LegoTwin.Character
             var go = Instantiate(mockCharacterPrefab, pos, rot);
             go.name = $"Character_{role}";
             go.transform.localScale = Vector3.one * spawnScale;
-            Debug.Log($"[CharacterSpawner] Mock 생성 ({role}): {data.npc_name} / scale: {spawnScale}");
             return go;
         }
 
@@ -177,8 +174,6 @@ namespace LegoTwin.Character
             CharacterAssetData data, Vector3 pos, Quaternion rot, string role)
         {
             // TODO: TriLib 또는 glTFast 로 FBX/GLB 런타임 로드 후 SetupAsGuide/SetupAsPlaced 호출
-            Debug.Log($"[CharacterSpawner] Server Mode ({role}): {data.model_url} — TODO: TriLib 연동");
-
             if (mockCharacterPrefab == null) return null;
 
             var fallback = Instantiate(mockCharacterPrefab, pos, rot);
@@ -199,7 +194,6 @@ namespace LegoTwin.Character
             if (animator == null || animator.runtimeAnimatorController != null) return;
 
             animator.runtimeAnimatorController = animatorController;
-            Debug.Log($"[CharacterSpawner] Animator Controller 자동 연결: {go.name}");
         }
 
         private static T GetOrAdd<T>(GameObject go) where T : Component

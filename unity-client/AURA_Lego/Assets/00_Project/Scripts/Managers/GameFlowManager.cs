@@ -54,6 +54,13 @@ namespace LegoTwin.Managers
         [Tooltip("시그니처 동작 설정 확인 UI — SignatureMotionConfirmUI 컴포넌트가 붙은 GameObject 연결")]
         [SerializeField] private SignatureMotionConfirmUI _signatureConfirmUI;
 
+        [Header("디버그")]
+        [Tooltip("체크 시 지정 키로 가이드 모드를 즉시 스킵. 전시 빌드에서는 해제 권장.")]
+        [SerializeField] private bool _enableGuideSkip = true;
+
+        [Tooltip("가이드 모드 스킵 디버그 키 (노트북 F키는 Fn 가로채기 주의 — 기본 Backspace)")]
+        [SerializeField] private KeyCode _skipGuideKey = KeyCode.Backspace;
+
         // ── 런타임 참조 (이벤트 해제용) ─────────────────────────────
         private GuideNPCController _currentNPC;
         private string             _currentNpcName;
@@ -97,13 +104,39 @@ namespace LegoTwin.Managers
             UnsubscribeNPCEvents();
         }
 
+        private void Update()
+        {
+            // (디버그) 가이드 모드 스킵 — 시나리오 중단 후 즉시 자유 모드 전환
+            // IsGuideMode(static) 대신 _currentNPC 존재로 판단 → 도메인 리로드 설정 영향 없음
+            if (!_enableGuideSkip || _currentNPC == null) return;
+
+            KeyCode key = _skipGuideKey == KeyCode.None ? KeyCode.Backspace : _skipGuideKey;
+            if (Input.GetKeyDown(key))
+                SkipGuide();
+        }
+
+        /// <summary>(디버그) 진행 중인 가이드 시나리오를 중단하고 자유 모드로 즉시 전환.</summary>
+        private void SkipGuide()
+        {
+            _currentNPC.AbortScenario();
+
+            // 정상 흐름 Step 2와 동일하게 창작물 앞으로 순간이동 (이벤트 구독 중인 지금 호출)
+            _currentNPC.JumpToCreationView();
+
+            // 진행 중 열려 있을 수 있는 입력/확인 UI 정리 (콜백 실행 없이 닫음)
+            _motionPromptUI?.Close();
+            _signatureConfirmUI?.Close();
+
+            OnFreeModeSwitched();  // 자유모드 전환 팝업 표시 (정상 흐름 Step 5와 동일)
+            OnGuideFinished();     // IsGuideMode=false · 말풍선 숨김 · Plaza 진입 처리
+        }
+
         // ════════════════════════════════════════════════════════════
         // 세션 로드 완료 → 스폰 + 시나리오 시작
         // ════════════════════════════════════════════════════════════
 
         private void OnSessionLoaded(SessionData session)
         {
-            Debug.Log($"[GameFlowManager] 세션 로드 완료 — {session.character_npc_name} / {session.session_id}");
             _currentNpcName = session.character_npc_name;
 
             // ① 배치 캐릭터 스폰 (광장 오브제 옆, 모션 씬에서 사용)
@@ -120,8 +153,6 @@ namespace LegoTwin.Managers
                 _objectSpawner.Spawn(session.assets.@object);
                 _spawnedObjectGO = _objectSpawner.GetSpawnedObject();
             }
-            else
-                Debug.Log("[GameFlowManager] ObjectSpawner 없음 또는 오브제 데이터 없음 — 오브제 스폰 생략");
 
             // ③ 가이드 NPC 스폰
             if (_characterSpawner == null)
@@ -164,7 +195,6 @@ namespace LegoTwin.Managers
 
         private void OnDialogueChanged(string text)
         {
-            Debug.Log($"[말풍선] {text}");
             _dialogueUI?.Show(_currentNpcName, text);
         }
 
@@ -174,7 +204,6 @@ namespace LegoTwin.Managers
         /// </summary>
         private void OnFreeModeSwitched()
         {
-            Debug.Log("[GameFlowManager] 자유 모드 전환 팝업 표시");
             _freeModePopup?.Show();   // 페이드 인 → displayDuration 대기 → 페이드 아웃 자동 실행
         }
 
@@ -187,7 +216,6 @@ namespace LegoTwin.Managers
         private void OnGuideFinished()
         {
             IsGuideMode = false;
-            Debug.Log("[GameFlowManager] 가이드 종료 → 자유 모드 전환");
             _dialogueUI?.Hide();
             UnsubscribeNPCEvents();
 
@@ -208,6 +236,41 @@ namespace LegoTwin.Managers
                 objectGO);
 
             plaza.EnterPlaza();
+
+            // 스킵 등으로 오브제 GLB 로드가 아직 안 끝난 경우(Server Mode):
+            // 로드 완료까지 기다렸다가 현재 창작물 뷰를 늦게 부착한다.
+            bool isServer = SessionManager.Instance != null
+                         && SessionManager.Instance.dataSourceMode == DataSourceMode.Server;
+            if (objectGO == null && isServer && _objectSpawner != null)
+                StartCoroutine(AttachCurrentCreationWhenObjectLoaded(plaza));
+        }
+
+        /// <summary>
+        /// (스킵 보강) 오브제 GLB 비동기 로드가 끝날 때까지 대기한 뒤
+        /// 현재 관람객 창작물 뷰를 광장에 부착한다. (이미 부착됐으면 PlazaManager가 무시)
+        /// </summary>
+        private System.Collections.IEnumerator AttachCurrentCreationWhenObjectLoaded(
+            LegoTwin.Plaza.PlazaManager plaza)
+        {
+            const float timeout = 30f;
+            float elapsed = 0f;
+            GameObject obj = null;
+
+            while (elapsed < timeout)
+            {
+                obj = _objectSpawner.GetSpawnedObject();
+                if (obj != null) break;
+                elapsed += Time.deltaTime;
+                yield return null;
+            }
+
+            if (obj == null)
+            {
+                Debug.LogWarning("[GameFlowManager] 오브제 로드 대기 타임아웃 — 현재 창작물 뷰 부착 생략");
+                yield break;
+            }
+
+            plaza.AttachCurrentObjectLate(obj);
         }
 
         /// <summary>
@@ -221,8 +284,21 @@ namespace LegoTwin.Managers
                 Debug.LogWarning("[GameFlowManager] _playerFollowGuide 미연결 — 플레이어 순간이동 생략");
                 return;
             }
-            Debug.Log($"[GameFlowManager] 플레이어 순간이동 → {destination}");
-            _playerFollowGuide.transform.position = destination;
+            var t = _playerFollowGuide.transform;
+
+            // CharacterController가 활성 상태면 직접 position 변경과 충돌(이후 Move가 제자리에 묶임).
+            // 끄고 → 위치 설정 → 다시 켜서 내부 위치까지 동기화.
+            var cc = t.GetComponent<CharacterController>() ?? t.GetComponentInChildren<CharacterController>();
+            if (cc != null && cc.enabled)
+            {
+                cc.enabled = false;
+                t.position = destination;
+                cc.enabled = true;
+            }
+            else
+            {
+                t.position = destination;
+            }
         }
 
         /// <summary>
@@ -238,7 +314,6 @@ namespace LegoTwin.Managers
                 return;
             }
 
-            Debug.Log("[GameFlowManager] 모션 입력 UI 표시");
             _motionPromptUI.Show(callback);
         }
 

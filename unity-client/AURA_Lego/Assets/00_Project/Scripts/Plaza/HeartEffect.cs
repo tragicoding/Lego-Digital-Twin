@@ -85,7 +85,6 @@ namespace LegoTwin.Plaza
                 Debug.LogWarning("[HeartEffect] heartPrefab 미연결 — Inspector에서 연결하세요.");
                 return;
             }
-            Debug.Log($"[HeartEffect] Play 호출 — spawnPos={spawnPosition}, heartCount={heartCount}");
             StartCoroutine(SpawnRoutine(spawnPosition));
         }
 

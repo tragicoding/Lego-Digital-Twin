@@ -141,10 +141,6 @@ namespace LegoTwin.Character
 
             avatar.name    = $"{root.name}_HumanoidAvatar";
             animator.avatar = avatar;
-
-            Debug.Log(
-                $"[HumanoidAvatarBuilder] Humanoid Avatar 빌드 성공: {root.name} " +
-                $"({humanBones.Count}개 본 매핑)");
             return true;
         }
 

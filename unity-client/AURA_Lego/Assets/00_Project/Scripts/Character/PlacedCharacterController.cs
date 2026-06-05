@@ -84,7 +84,6 @@ namespace LegoTwin.Character
             if (_animator != null && _animator.speed == 0f)
                 _animator.speed = 1f;
 
-            Debug.Log($"[PlacedCharacterController] '{input}' → {motionType} → {clip.name} (loop)");
             _animation.PlayMotionClipLooping(clip, BuildResetCallback());
         }
 
@@ -131,7 +130,6 @@ namespace LegoTwin.Character
 
             if (_animator != null && _animator.speed == 0f) _animator.speed = 1f;
             _animation.PlayMotionClipLooping(clip, BuildResetCallback());
-            Debug.Log($"[PlacedCharacterController] 시그니처 동작 재생: {_signatureMotionType}");
         }
 
         /// <summary>플레이어 이탈 시 시그니처 동작을 중단하고 idle로 복귀한다.</summary>

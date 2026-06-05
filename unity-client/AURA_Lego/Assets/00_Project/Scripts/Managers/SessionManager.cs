@@ -79,7 +79,6 @@ namespace LegoTwin.Managers
 
         private IEnumerator LoadServerSession(string sid, Action<SessionData> onLoaded)
         {
-            Debug.Log($"[SessionManager] ready_for_unity 대기 중... (session: {sid})");
             yield return _apiClient.PollUntilReady(sid, null);
             yield return _apiClient.FetchUnitySession(sid, data => Apply(data, onLoaded));
         }
@@ -92,7 +91,6 @@ namespace LegoTwin.Managers
                 return;
             }
             CurrentSession = data;
-            Debug.Log($"[SessionManager] 로드 완료 — 캐릭터: {data.character_npc_name}, 오브제: {data.object_name}");
             onLoaded?.Invoke(data);
             OnSessionLoaded?.Invoke(data);
         }
@@ -115,7 +113,6 @@ namespace LegoTwin.Managers
             }
 
             CurrentSession.signature_motion = motionTypeName;
-            Debug.Log($"[SessionManager] 시그니처 동작 설정: {motionTypeName}");
 
             if (dataSourceMode == DataSourceMode.Server && _apiClient != null)
                 StartCoroutine(_apiClient.SaveSignatureMotion(CurrentSession.session_id, motionTypeName));
