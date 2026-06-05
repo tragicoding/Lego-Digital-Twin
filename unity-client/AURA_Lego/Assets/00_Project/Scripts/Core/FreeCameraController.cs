@@ -1,5 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;   // 키보드는 IME 영향 없는 새 Input System으로 읽음
+using UnityEngine.EventSystems;
+using TMPro;
 using LegoTwin.Managers;
 
 namespace LegoTwin.Core
@@ -80,10 +82,23 @@ namespace LegoTwin.Core
         {
             HandleLook();
 
-            // 가이드 모드 중에는 이동 잠금 (시선 회전만 허용)
-            if (GameFlowManager.IsGuideMode) return;
+            // 가이드 모드 중 또는 입력창 타이핑 중에는 WASD·점프를 잠근다.
+            // 단, 중력/지면 안착은 항상 적용해 두 모드의 눈높이(키)가 동일하게 유지되도록 한다.
+            // (새 Input System은 물리 키를 직접 읽어 UI 포커스를 무시하므로 명시적으로 차단)
+            bool allowInput = !GameFlowManager.IsGuideMode && !IsTypingInInputField();
 
-            HandleMove();
+            HandleMove(allowInput);
+        }
+
+        // 현재 TMP_InputField가 포커스되어 텍스트 입력 중인지 확인
+        private static bool IsTypingInInputField()
+        {
+            var es = EventSystem.current;
+            var go = es != null ? es.currentSelectedGameObject : null;
+            if (go == null) return false;
+
+            var field = go.GetComponent<TMP_InputField>();
+            return field != null && field.isFocused;
         }
 
         // ── 시선 회전 (오른쪽 버튼 드래그) ─────────────────────────
@@ -109,19 +124,24 @@ namespace LegoTwin.Core
         }
 
         // ── 이동 · 점프 (CharacterController 구동) ───────────────────
-        private void HandleMove()
+        // allowInput=false면 중력/지면 안착만 적용하고 WASD·점프는 무시한다.
+        private void HandleMove(bool allowInput)
         {
-            float speed = (HeldKey(Key.LeftShift, KeyCode.LeftShift) || HeldKey(Key.RightShift, KeyCode.RightShift))
-                ? fastMoveSpeed : moveSpeed;
+            // Yaw 기준 수평 입력 방향 (입력 허용 시에만)
+            Vector3 horizontal = Vector3.zero;
+            if (allowInput)
+            {
+                float speed = (HeldKey(Key.LeftShift, KeyCode.LeftShift) || HeldKey(Key.RightShift, KeyCode.RightShift))
+                    ? fastMoveSpeed : moveSpeed;
 
-            // Yaw 기준 수평 입력 방향
-            Vector3 input = Vector3.zero;
-            if (HeldKey(Key.W, KeyCode.W)) input += Vector3.forward;
-            if (HeldKey(Key.S, KeyCode.S)) input += Vector3.back;
-            if (HeldKey(Key.A, KeyCode.A)) input += Vector3.left;
-            if (HeldKey(Key.D, KeyCode.D)) input += Vector3.right;
+                Vector3 input = Vector3.zero;
+                if (HeldKey(Key.W, KeyCode.W)) input += Vector3.forward;
+                if (HeldKey(Key.S, KeyCode.S)) input += Vector3.back;
+                if (HeldKey(Key.A, KeyCode.A)) input += Vector3.left;
+                if (HeldKey(Key.D, KeyCode.D)) input += Vector3.right;
 
-            Vector3 horizontal = Quaternion.Euler(0f, _yaw, 0f) * input.normalized * speed;
+                horizontal = Quaternion.Euler(0f, _yaw, 0f) * input.normalized * speed;
+            }
 
             if (_cc == null)
             {
@@ -130,11 +150,11 @@ namespace LegoTwin.Core
                 return;
             }
 
-            // 중력 + 점프
+            // 중력은 항상 적용 (두 모드 눈높이 일치) / 점프는 입력 허용 시에만
             if (_cc.isGrounded)
             {
                 if (_verticalVelocity < 0f) _verticalVelocity = -2f;  // 바닥에 밀착 (isGrounded 유지)
-                if (PressedKey(Key.Space, KeyCode.Space))
+                if (allowInput && PressedKey(Key.Space, KeyCode.Space))
                     _verticalVelocity = Mathf.Sqrt(2f * jumpHeight * gravity);  // 목표 높이만큼 점프
             }
             else

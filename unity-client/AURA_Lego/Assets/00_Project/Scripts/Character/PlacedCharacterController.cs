@@ -29,6 +29,12 @@ namespace LegoTwin.Character
         private Animator    _animator;
         private MotionType  _signatureMotionType = MotionType.Idle;
 
+        // 초기(스폰) 자세 — 모션 루프의 Root Motion 누적 방지용. Awake에서 한 번만 캡처.
+        private Vector3    _initialPos;
+        private Quaternion _initialRot;
+        private Vector3    _animInitialLocalPos;
+        private Quaternion _animInitialLocalRot;
+
         private void Awake()
         {
             _animation = GetComponent<CharacterAnimationController>();
@@ -41,6 +47,15 @@ namespace LegoTwin.Character
             // 광장 배치 캐릭터: SetupForPlaza()에서 즉시 해제됨
             if (_animator != null)
                 _animator.speed = 0f;
+
+            // 스폰 직후 자세를 고정 기준으로 저장 (이후 모든 모션이 이 자리로 복원됨)
+            _initialPos = transform.position;
+            _initialRot = transform.rotation;
+            if (_animator != null)
+            {
+                _animInitialLocalPos = _animator.transform.localPosition;
+                _animInitialLocalRot = _animator.transform.localRotation;
+            }
         }
 
         // ════════════════════════════════════════════════════════════
@@ -84,7 +99,9 @@ namespace LegoTwin.Character
             if (_animator != null && _animator.speed == 0f)
                 _animator.speed = 1f;
 
-            _animation.PlayMotionClipLooping(clip, BuildResetCallback());
+            // 새 모션 시작 전 초기 자리로 복원 (이전 모션 드리프트 제거)
+            ResetToInitialPose();
+            _animation.PlayMotionClipLooping(clip, ResetToInitialPose);
         }
 
         /// <summary>
@@ -129,7 +146,9 @@ namespace LegoTwin.Character
             if (clip == null) return;
 
             if (_animator != null && _animator.speed == 0f) _animator.speed = 1f;
-            _animation.PlayMotionClipLooping(clip, BuildResetCallback());
+
+            ResetToInitialPose();
+            _animation.PlayMotionClipLooping(clip, ResetToInitialPose);
         }
 
         /// <summary>플레이어 이탈 시 시그니처 동작을 중단하고 idle로 복귀한다.</summary>
@@ -139,21 +158,13 @@ namespace LegoTwin.Character
         // 내부 유틸
         // ════════════════════════════════════════════════════════════
 
-        // 루프 재시작 시 호출될 위치 복원 콜백을 생성한다.
-        // 현재 시점의 position/rotation을 캡처해 루프마다 원래 자리로 되돌린다.
-        private System.Action BuildResetCallback()
+        // 고정된 초기(스폰) 자세로 복원한다. 모션 루프 재시작·새 모션 시작마다 호출되어
+        // Root Motion 누적으로 위치/회전이 드리프트하는 것을 막는다.
+        private void ResetToInitialPose()
         {
-            var pos          = transform.position;
-            var rot          = transform.rotation;
-            var animLocalPos = _animator != null ? _animator.transform.localPosition : Vector3.zero;
-            var animLocalRot = _animator != null ? _animator.transform.localRotation : Quaternion.identity;
-
-            return () =>
-            {
-                transform.SetPositionAndRotation(pos, rot);
-                if (_animator != null)
-                    _animator.transform.SetLocalPositionAndRotation(animLocalPos, animLocalRot);
-            };
+            transform.SetPositionAndRotation(_initialPos, _initialRot);
+            if (_animator != null)
+                _animator.transform.SetLocalPositionAndRotation(_animInitialLocalPos, _animInitialLocalRot);
         }
     }
 }
