@@ -1,6 +1,5 @@
 using System.Collections;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using UnityEngine;
 using LegoTwin.Character;
@@ -162,16 +161,7 @@ namespace LegoTwin.Plaza
                 return;
             }
 
-            EnsureMockPlazaFile();
-            string path = MockPlazaFilePath;
-
-            // 기존 파일 읽기
-            PlazaResponse plaza = null;
-            if (File.Exists(path))
-            {
-                plaza = JsonUtility.FromJson<PlazaResponse>(File.ReadAllText(path));
-            }
-            if (plaza == null)          plaza = new PlazaResponse();
+            var plaza = MockPlazaStore.Load() ?? new PlazaResponse();
             if (plaza.sessions == null) plaza.sessions = new List<PlazaSessionData>();
 
             // 동일 원본 session_id 중복 방지
@@ -233,7 +223,7 @@ namespace LegoTwin.Plaza
                 .OrderByDescending(s => s.likes)
                 .First().session_id;
 
-            File.WriteAllText(path, JsonUtility.ToJson(plaza, prettyPrint: true));
+            MockPlazaStore.Save(plaza);
         }
 
         // plaza_XXX 형식에서 숫자 추출 (정렬용). 형식 불일치 시 int.MaxValue 반환.
@@ -254,7 +244,7 @@ namespace LegoTwin.Plaza
 
             if (SessionManager.Instance?.dataSourceMode == Managers.DataSourceMode.Mock)
             {
-                plaza = LoadMockPlaza();
+                plaza = MockPlazaStore.Load();
             }
             else
             {
@@ -582,17 +572,9 @@ namespace LegoTwin.Plaza
 
         private void SaveMockLikesToFile(string sessionId, int newLikes, string topSessionId)
         {
-            string path = MockPlazaFilePath;
-
-            if (!File.Exists(path))
-            {
-                Debug.LogWarning($"[SaveMockLikes] 파일 없음: {path}");
-                return;
-            }
-
             try
             {
-                var plaza = JsonUtility.FromJson<PlazaResponse>(File.ReadAllText(path));
+                var plaza = MockPlazaStore.Load();
                 if (plaza?.sessions == null)
                 {
                     Debug.LogWarning("[SaveMockLikes] 역직렬화 실패 — sessions null");
@@ -608,11 +590,7 @@ namespace LegoTwin.Plaza
                 foreach (var s in plaza.sessions)
                     s.is_top_liked = s.session_id == topSessionId;
 
-                File.WriteAllText(path, JsonUtility.ToJson(plaza, prettyPrint: true));
-
-#if UNITY_EDITOR
-                UnityEditor.AssetDatabase.Refresh();
-#endif
+                MockPlazaStore.Save(plaza);
             }
             catch (System.Exception e)
             {
@@ -620,40 +598,5 @@ namespace LegoTwin.Plaza
             }
         }
 
-        // ════════════════════════════════════════════════════════════
-        // Mock 데이터
-        // ════════════════════════════════════════════════════════════
-
-        // Editor: Assets 폴더 직접 읽기/쓰기 (IDE에서 변경 즉시 확인 가능)
-        // Build:  persistentDataPath 사용 (읽기 전용 번들 우회)
-        private static string MockPlazaFilePath =>
-#if UNITY_EDITOR
-            Path.Combine(Application.dataPath, "00_Project/Resources/Mock/mock_plaza.json");
-#else
-            Path.Combine(Application.persistentDataPath, "mock_plaza.json");
-#endif
-
-        private static void EnsureMockPlazaFile()
-        {
-#if UNITY_EDITOR
-            // Editor에서는 Assets 경로 파일이 이미 존재 — 복사 불필요
-#else
-            if (File.Exists(MockPlazaFilePath)) return;
-            var asset = Resources.Load<TextAsset>("Mock/mock_plaza");
-            if (asset == null) { Debug.LogError("[PlazaManager] Resources/Mock/mock_plaza.json 없음"); return; }
-            File.WriteAllText(MockPlazaFilePath, asset.text);
-#endif
-        }
-
-        private static PlazaResponse LoadMockPlaza()
-        {
-            EnsureMockPlazaFile();
-            if (!File.Exists(MockPlazaFilePath))
-            {
-                Debug.LogError("[PlazaManager] mock_plaza.json 로드 실패");
-                return null;
-            }
-            return JsonUtility.FromJson<PlazaResponse>(File.ReadAllText(MockPlazaFilePath));
-        }
     }
 }
