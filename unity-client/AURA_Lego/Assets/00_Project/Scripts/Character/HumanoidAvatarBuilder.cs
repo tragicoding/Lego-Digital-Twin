@@ -11,49 +11,54 @@ namespace LegoTwin.Character
     ///  - Server FBX : TriLib/glTFast 로드 완료 콜백 안에서 Build(go) 호출
     ///
     /// ── 지원 본 이름 ───────────────────────────────────────────────
-    ///  Mixamo 표준 두 가지 형식 모두 지원:
-    ///    1. 접두어 있음  — "mixamorig:Hips"
-    ///    2. 접두어 없음  — "Hips"
-    ///  대소문자 무시(case-insensitive) 매칭.
+    ///  두 가지 네이밍 스킴을 모두 지원한다 (대소문자 무시 매칭):
+    ///    1. Mixamo 표준  — "mixamorig:Hips" / "Hips"
+    ///    2. Tripo 리깅    — 3ds Max/CAT 스타일 ("Hip", "Waist", "Spine01/02",
+    ///       "NeckTwist01", "L_/R_Clavicle·Upperarm·Forearm·Hand·Thigh·Calf·
+    ///       Foot·ToeBase")
+    ///  ※ Tripo 본 이름은 npc_X_rigged.fbx 의 .meta 및 리깅 GLB(skin joints)에서
+    ///    실측 확인됨 (Unity Humanoid 22본 전부 일치). 같은 캐릭터를 FBX(TriLib)
+    ///    든 GLB(glTFast)든 로드해도 이 빌더 하나로 Humanoid 아바타 구성 가능.
     /// </summary>
     public static class HumanoidAvatarBuilder
     {
         // (후보 본 이름 배열, Unity HumanBodyBones 이름)
+        // 후보는 [Mixamo, Tripo] 순. 한 모델은 둘 중 한 스킴만 쓰므로 충돌 없음.
         // Unity Required: Hips, Spine, Chest, Head, UpperArm×2, LowerArm×2, Hand×2,
         //                 UpperLeg×2, LowerLeg×2, Foot×2
         private static readonly (string[] candidates, string humanName)[] BoneMap =
         {
             // ── 몸통 ──────────────────────────────────────────────────
-            (new[] { "Hips" },                                    "Hips"),
-            (new[] { "Spine" },                                   "Spine"),
-            (new[] { "Spine1", "Chest" },                         "Chest"),
-            (new[] { "Spine2", "UpperChest" },                    "UpperChest"),
-            (new[] { "Neck" },                                    "Neck"),
+            (new[] { "Hips", "Hip" },                             "Hips"),
+            (new[] { "Spine", "Waist" },                          "Spine"),
+            (new[] { "Spine1", "Chest", "Spine01" },              "Chest"),
+            (new[] { "Spine2", "UpperChest", "Spine02" },         "UpperChest"),
+            (new[] { "Neck", "NeckTwist01" },                     "Neck"),
             (new[] { "Head" },                                    "Head"),
 
             // ── 왼팔 ──────────────────────────────────────────────────
-            (new[] { "LeftShoulder" },                            "LeftShoulder"),
-            (new[] { "LeftArm" },                                 "LeftUpperArm"),
-            (new[] { "LeftForeArm" },                             "LeftLowerArm"),
-            (new[] { "LeftHand" },                                "LeftHand"),
+            (new[] { "LeftShoulder", "L_Clavicle" },              "LeftShoulder"),
+            (new[] { "LeftArm", "L_Upperarm" },                   "LeftUpperArm"),
+            (new[] { "LeftForeArm", "L_Forearm" },                "LeftLowerArm"),
+            (new[] { "LeftHand", "L_Hand" },                      "LeftHand"),
 
             // ── 오른팔 ────────────────────────────────────────────────
-            (new[] { "RightShoulder" },                           "RightShoulder"),
-            (new[] { "RightArm" },                                "RightUpperArm"),
-            (new[] { "RightForeArm" },                            "RightLowerArm"),
-            (new[] { "RightHand" },                               "RightHand"),
+            (new[] { "RightShoulder", "R_Clavicle" },             "RightShoulder"),
+            (new[] { "RightArm", "R_Upperarm" },                  "RightUpperArm"),
+            (new[] { "RightForeArm", "R_Forearm" },               "RightLowerArm"),
+            (new[] { "RightHand", "R_Hand" },                     "RightHand"),
 
             // ── 왼다리 ────────────────────────────────────────────────
-            (new[] { "LeftUpLeg" },                               "LeftUpperLeg"),
-            (new[] { "LeftLeg" },                                 "LeftLowerLeg"),
-            (new[] { "LeftFoot" },                                "LeftFoot"),
-            (new[] { "LeftToeBase", "LeftToe_End" },              "LeftToes"),
+            (new[] { "LeftUpLeg", "L_Thigh" },                    "LeftUpperLeg"),
+            (new[] { "LeftLeg", "L_Calf" },                       "LeftLowerLeg"),
+            (new[] { "LeftFoot", "L_Foot" },                      "LeftFoot"),
+            (new[] { "LeftToeBase", "LeftToe_End", "L_ToeBase" }, "LeftToes"),
 
             // ── 오른다리 ──────────────────────────────────────────────
-            (new[] { "RightUpLeg" },                              "RightUpperLeg"),
-            (new[] { "RightLeg" },                                "RightLowerLeg"),
-            (new[] { "RightFoot" },                               "RightFoot"),
-            (new[] { "RightToeBase", "RightToe_End" },            "RightToes"),
+            (new[] { "RightUpLeg", "R_Thigh" },                   "RightUpperLeg"),
+            (new[] { "RightLeg", "R_Calf" },                      "RightLowerLeg"),
+            (new[] { "RightFoot", "R_Foot" },                     "RightFoot"),
+            (new[] { "RightToeBase", "RightToe_End", "R_ToeBase" }, "RightToes"),
         };
 
         // Mixamo 접두어 변형 목록
