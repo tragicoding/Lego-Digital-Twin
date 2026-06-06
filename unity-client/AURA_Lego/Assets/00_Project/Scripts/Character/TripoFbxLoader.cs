@@ -1,10 +1,17 @@
-using System;
+// TriLib(유료 에셋)은 public 저장소에 커밋하지 않는다(.gitignore).
+// 이 파일의 TriLib 의존 코드는 TRILIB define 으로 가드한다.
+//   - TriLib 설치 환경: Editor 스크립트(TriLibDefineSetup)가 TRILIB 를 자동 정의 → 실제 로드
+//   - 미설치 환경     : TRILIB 미정의 → Load() 가 onError 호출 → 호출부가 Mock 폴백
+// 덕분에 TriLib 없이도 프로젝트가 컴파일된다.
+#if TRILIB
 using TriLibCore;
 using TriLibCore.General;
 using TriLibCore.Mappers;
-using UnityEngine;
 // HumanLimit 은 TriLibCore.General 과 UnityEngine 양쪽에 존재 → TriLib 쪽으로 고정
 using HumanLimit = TriLibCore.General.HumanLimit;
+#endif
+using System;
+using UnityEngine;
 
 namespace LegoTwin.Character
 {
@@ -24,6 +31,7 @@ namespace LegoTwin.Character
     /// </summary>
     public static class TripoFbxLoader
     {
+#if TRILIB
         // Tripo 리깅 본 이름 → Unity Humanoid 매핑.
         // 출처: npc_X_rigged.fbx 의 .meta humanDescription + 리깅 GLB skin joints 실측(22/22).
         // 각 항목에 Mixamo 표준 이름도 후보로 둬, 다른 리그 규약도 수용한다.
@@ -66,23 +74,26 @@ namespace LegoTwin.Character
                 mapper.AddMapping(bone, new HumanLimit(), names);
 
             _options = AssetLoader.CreateDefaultLoaderOptions();
-            _options.AnimationType       = AnimationType.Humanoid;
-            _options.AvatarDefinition    = AvatarDefinitionType.CreateFromThisModel;
+            _options.AnimationType        = AnimationType.Humanoid;
+            _options.AvatarDefinition     = AvatarDefinitionType.CreateFromThisModel;
             _options.HumanoidAvatarMapper = mapper;
             return _options;
         }
+#endif
 
         /// <summary>
         /// FBX URL 을 런타임 다운로드·임포트해 <paramref name="wrapper"/> 아래에 배치한다.
         /// 로드된 모델 루트는 wrapper 의 자식이 되며, Humanoid Animator 가 부착된다.
+        /// TriLib 미설치(TRILIB 미정의) 시 onError 를 호출해 호출부가 폴백하도록 한다.
         /// </summary>
         /// <param name="url">서버 FBX URL (model_url)</param>
         /// <param name="wrapper">위치·스케일이 설정된 컨테이너. 로드 모델의 부모가 된다.</param>
         /// <param name="onLoaded">로드·머티리얼 적용 완료 시 호출</param>
-        /// <param name="onError">실패 시 메시지와 함께 호출</param>
+        /// <param name="onError">실패·미지원 시 메시지와 함께 호출</param>
         public static void Load(string url, GameObject wrapper,
                                 Action onLoaded, Action<string> onError)
         {
+#if TRILIB
             var request = AssetDownloader.CreateWebRequest(url);
             AssetDownloader.LoadModelFromUri(
                 request,
@@ -94,6 +105,11 @@ namespace LegoTwin.Character
                 assetLoaderOptions: GetOptions(),
                 customContextData: null,
                 fileExtension: "fbx");
+#else
+            Debug.LogWarning("[TripoFbxLoader] TRILIB define 없음(TriLib 미설치) — 서버 FBX 로드 불가. " +
+                             "Asset Store 에서 TriLib 2 설치 시 자동 활성화됩니다. 지금은 Mock 폴백.");
+            onError?.Invoke("TriLib 미설치");
+#endif
         }
     }
 }
