@@ -291,15 +291,70 @@ Claude Code 작업 기록
 
 
 ────────────────────────────────────────────────────────────────
-[다음 단계 / 미커밋 항목]
+[세션 12] TriLib 저장소 전략 — 유료 에셋·public 리포 안전 처리
+────────────────────────────────────────────────────────────────
+
+## 배경
+  저장소가 public(github.com/tragicoding/Lego-Digital-Twin)으로 확인됨.
+  TriLib 은 Unity Asset Store 유료 에셋 → public 리포에 커밋 시 재배포(EULA 위반).
+  반대로 안 올리면 TriLib 의존 코드(TripoFbxLoader)가 타 환경에서 컴파일 불가.
+
+## 해결: gitignore + define 가드 + 자동 토글
+  - .gitignore: Assets/TriLib·TriLibInstaller(+폴더 meta) 제외.
+    폴더 제외가 내부 .meta 재포함(!*.meta)을 차단, 폴더 meta 는 뒤 규칙으로 제외.
+  - TripoFbxLoader: #if TRILIB 가드. 미정의 시 Load()가 onError 호출
+    → 호출부(GeneratedCharacterSpawner)가 Mock 폴백. TriLib 없이도 컴파일됨.
+  - Editor/TriLibDefineSetup.cs(신규): InitializeOnLoad 로 TriLibCore 어셈블리
+    존재를 감지(Type.GetType + 어셈블리 스캔)해 활성 빌드타깃의 TRILIB define 을
+    자동 추가/제거. ProjectSettings 에 TRILIB 하드코딩 커밋 없이도
+    설치 환경만 실제 로드 경로가 켜진다.
+
+## glTFast 충돌(세션 10) define 커밋
+  ProjectSettings 에는 TRILIB_DISABLE_EDITOR_GLTF_IMPORT(Android) 만 커밋.
+  (= 에디터 GLB 임포터를 glTFast 단독으로. 타 환경에서도 충돌 안 나게.)
+  TRILIB 정의 자체는 커밋하지 않음(머신별 자동 관리) → TriLib 없는 환경 컴파일 보장.
+
+## 주의 (의도된 동작)
+  TriLib 설치 머신은 스크립트가 TRILIB 를 로컬 추가하므로 ProjectSettings.asset 이
+  항상 'modified' 로 보인다. 이 변경은 커밋하지 않는다(커밋본은 TRILIB 비움).
+
+## 커밋
+  4d94d75 chore(unity): TriLib 유료에셋 저장소 제외·TRILIB define 자동 가드
+  (앞선 bf05694=구현, 8e8ec9e=경로확정, 6b13319=검토와 함께 feature/unity 푸시 완료)
+
+## 검증
+  Player Settings > Scripting Define Symbols 에 TRILIB 존재 확인 → 실제 로드 활성.
+  (TriLibDefineSetup 로그는 define 변경 시에만 출력 → 이미 설정돼 있으면 무로그가 정상)
+
+
+────────────────────────────────────────────────────────────────
+[세션 13] (트러블슈팅) 가이드 스킵 키 F8 미작동
+────────────────────────────────────────────────────────────────
+
+## 증상
+  가이드 모드 디버그 스킵이 F8 로 안 됨.
+
+## 원인
+  코드 문제 아님. 노트북에서 F8 이 Fn 레이어(미디어/밝기 키)에 가로채여
+  OS 가 Unity 로 F8 입력을 전달하지 않음. (0605 에 이미 같은 이유로 기본키를
+  Backspace 로 바꿔둔 바 있음.)
+
+## 해결
+  _skipGuideKey 를 Backspace 로 사용 → 정상 작동.
+  (F8 강제 시 Fn+F8 / Fn Lock 필요. 키 매핑 이슈일 뿐.)
+
+## 참고
+  GameFlowManager.Update 는 구 Input.GetKeyDown 사용. 만약 모든 키가 안 듣고
+  마우스 시선 회전(구 Input)도 안 되면 Active Input Handling 을 Both 로 둘 것.
+
+
+────────────────────────────────────────────────────────────────
+[다음 단계]
 ────────────────────────────────────────────────────────────────
 
   [ ] 서버 모드(dataSourceMode=Server) 실제 데이터로 캐릭터 로드 검증
   [ ] Mixamo 동작(Dance 등) 리타게팅 자세 안 깨짐 확인 (B 채택 핵심 검증)
   [ ] spawnScale 서버 FBX 실측 스케일에 맞게 필요시 조정(일단 6)
-  [ ] (별도 결정 필요) TriLib 패키지(Assets/TriLib·TriLibInstaller) 리포 커밋 여부
-      — 유료 에셋 라이선스·용량. 미커밋 시 타 개발자 pull 후 컴파일 불가.
-  [ ] (별도 결정 필요) ProjectSettings 의 TRILIB_DISABLE_EDITOR_GLTF_IMPORT
-      정의 커밋 여부 — 미커밋 시 타 환경에서 GLB 임포터 충돌 재발.
+  [ ] 전시 빌드 전: _enableGuideSkip · FreeCameraController 비활성화
 
 ================================================================
