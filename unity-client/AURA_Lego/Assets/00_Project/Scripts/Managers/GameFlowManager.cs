@@ -62,8 +62,9 @@ namespace LegoTwin.Managers
         [SerializeField] private KeyCode _skipGuideKey = KeyCode.Backspace;
 
         // ── 런타임 참조 (이벤트 해제용) ─────────────────────────────
-        private GuideNPCController _currentNPC;
-        private string             _currentNpcName;
+        private GuideNPCController       _currentNPC;
+        private PlacedCharacterController _placedCharacter;
+        private string                   _currentNpcName;
 
         /// <summary>가이드 모드 진행 중이면 true. FreeCameraController 등에서 이동 제한에 사용.</summary>
         public static bool IsGuideMode { get; private set; } = true;
@@ -135,26 +136,11 @@ namespace LegoTwin.Managers
         // 세션 로드 완료 → 스폰 + 시나리오 시작
         // ════════════════════════════════════════════════════════════
 
+        // 스폰은 콜백 기반(Mock=동기, Server=TriLib 비동기). 어느 모드든 동일하게 동작한다.
         private void OnSessionLoaded(SessionData session)
         {
             _currentNpcName = session.character_npc_name;
 
-            // ① 배치 캐릭터 스폰 (광장 오브제 옆, 모션 씬에서 사용)
-            PlacedCharacterController placedCharacter = null;
-            if (_characterSpawner != null)
-            {
-                placedCharacter = _characterSpawner.SpawnPlaced(session);
-                _spawnedCharacterGO = placedCharacter?.gameObject;
-            }
-
-            // ② 오브제 스폰
-            if (_objectSpawner != null && session.assets?.@object != null)
-            {
-                _objectSpawner.Spawn(session.assets.@object);
-                _spawnedObjectGO = _objectSpawner.GetSpawnedObject();
-            }
-
-            // ③ 가이드 NPC 스폰
             if (_characterSpawner == null)
             {
                 Debug.LogError("[GameFlowManager] GeneratedCharacterSpawner가 연결되지 않았습니다. " +
@@ -162,31 +148,43 @@ namespace LegoTwin.Managers
                 return;
             }
 
-            var npc = _characterSpawner.SpawnGuide(session);
-            if (npc == null)
+            // ① 오브제 스폰 (Server 모드는 비동기 → 완료 참조는 OnGuideFinished 시점에 회수)
+            if (_objectSpawner != null && session.assets?.@object != null)
             {
-                Debug.LogError("[GameFlowManager] 가이드 NPC 스폰 실패. " +
-                               "mockCharacterPrefab 또는 guideSpawnPoint 를 확인하세요.");
-                return;
+                _objectSpawner.Spawn(session.assets.@object);
+                _spawnedObjectGO = _objectSpawner.GetSpawnedObject();
             }
 
-            // ④ 배치 캐릭터 → NPC에 연결 (모션 씬 Step 3 에서 사용)
-            npc.placedCharacter = placedCharacter;
+            // ② 배치 캐릭터 스폰 — 준비되면 참조 저장(+가이드가 이미 있으면 늦은 연결 보정)
+            _characterSpawner.SpawnPlaced(session, placed =>
+            {
+                _placedCharacter    = placed;
+                _spawnedCharacterGO = placed?.gameObject;
+                if (_currentNPC != null) _currentNPC.placedCharacter = placed;
+            });
 
-            // ④-1. 말풍선 UI가 NPC 머리 위를 따라다니도록 타겟 주입
-            _dialogueUI?.SetFollowTarget(npc.transform);
+            // ③ 가이드 NPC 스폰 — 준비되면 연결·구독·시나리오 시작
+            _characterSpawner.SpawnGuide(session, npc =>
+            {
+                if (npc == null)
+                {
+                    Debug.LogError("[GameFlowManager] 가이드 NPC 스폰 실패. " +
+                                   "mockCharacterPrefab 또는 guideSpawnPoint 를 확인하세요.");
+                    return;
+                }
 
-            // ⑤ NPC 이벤트 구독
-            _currentNPC = npc;
-            npc.OnDialogueChanged                   += OnDialogueChanged;
-            npc.OnFreeModeSwitched                  += OnFreeModeSwitched;
-            npc.OnGuideFinished                     += OnGuideFinished;
-            npc.OnMotionPromptRequested             += OnMotionPromptRequested;
-            npc.OnPlayerTeleportRequested           += OnPlayerTeleportRequested;
-            npc.OnSignatureMotionConfirmRequested   += OnSignatureMotionConfirmRequested;
+                // 배치 캐릭터 연결 (Mock=이미 set, Server=②의 늦은 연결이 보완)
+                npc.placedCharacter = _placedCharacter;
 
-            // ⑥ 시나리오 시작 ── GuideScenarioRoutine() 코루틴 실행
-            npc.StartGuideScenario();
+                // 말풍선 UI가 NPC 머리 위를 따라다니도록 타겟 주입
+                _dialogueUI?.SetFollowTarget(npc.transform);
+
+                _currentNPC = npc;
+                SubscribeNPCEvents(npc);
+
+                // 시나리오 시작 ── GuideScenarioRoutine() 코루틴 실행
+                npc.StartGuideScenario();
+            });
         }
 
         // ════════════════════════════════════════════════════════════
@@ -351,6 +349,16 @@ namespace LegoTwin.Managers
         // ════════════════════════════════════════════════════════════
         // 내부 유틸
         // ════════════════════════════════════════════════════════════
+
+        private void SubscribeNPCEvents(GuideNPCController npc)
+        {
+            npc.OnDialogueChanged                   += OnDialogueChanged;
+            npc.OnFreeModeSwitched                  += OnFreeModeSwitched;
+            npc.OnGuideFinished                     += OnGuideFinished;
+            npc.OnMotionPromptRequested             += OnMotionPromptRequested;
+            npc.OnPlayerTeleportRequested           += OnPlayerTeleportRequested;
+            npc.OnSignatureMotionConfirmRequested   += OnSignatureMotionConfirmRequested;
+        }
 
         private void UnsubscribeNPCEvents()
         {

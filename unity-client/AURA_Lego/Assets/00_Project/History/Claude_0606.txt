@@ -225,15 +225,81 @@ Claude Code 작업 기록
 
 
 ────────────────────────────────────────────────────────────────
-[다음 단계 — TriLib(B) 구현]
+[세션 10] TriLib 설치·glTFast 임포터 충돌 해소
 ────────────────────────────────────────────────────────────────
 
-  [ ] (사용자) TriLib 2 - Model Loading Package 설치 (Asset Store, 유료)
-  [ ] TriLib HumanoidAvatarMapper 에 Tripo 본 매핑(세션 7 표) 구성
-  [ ] GeneratedCharacterSpawner.LoadFromServer(): TriLib AssetLoader 로
-      FBX URL 런타임 로드 → AnimationType=Humanoid → 로드 콜백에서
-      SetupAsGuide / SetupAsPlaced 호출
-  [ ] 텍스처: 로드 후 ApplyTextureFromUrl(texture_url) 적용 확인
-  [ ] Mixamo 동작(Dance 등) 리타게팅 정상 재생 검증 (자세 안 깨짐 확인)
+## 설치
+  TriLib 2 - Model Loading Package 설치 완료.
+
+## 문제
+  TriLib·glTFast 가 둘 다 .glb/.gltf 에디터 ScriptedImporter 를 등록
+  → Unity 가 양쪽 거부 → GLB 가 씬에서 안 보임.
+  "Multiple scripted importers are targeting the extension 'glb' ... rejected"
+
+## 원인·해결
+  TriLib 의 TriLibGLTFScriptedImporter 는
+    #if !TRILIB_DISABLE_EDITOR_GLTF_IMPORT 로 가드됨.
+  Project Settings > TriLib > "Disable in editor glTF2 importing" 체크
+  → TRILIB_DISABLE_EDITOR_GLTF_IMPORT 정의 → TriLib 에디터 GLB 임포터 비활성
+  → glTFast 단독 담당 → 충돌 해소, GLB 정상 표시.
+  ※ 런타임 FBX 임포트(TRILIB_DISABLE_FBX_IMPORT)는 건드리지 않음.
+  역할 분담: 에디터·런타임 GLB = glTFast / 런타임 FBX = TriLib.
+
+
+────────────────────────────────────────────────────────────────
+[세션 11] GeneratedCharacterSpawner.LoadFromServer() TriLib 구현
+────────────────────────────────────────────────────────────────
+
+## 설계 원칙 (사용자 요청: 의존성↓·중복 제거·확장성·서버모드 동일동작)
+
+  - 의존성 격리: TriLib API 사용을 TripoFbxLoader.cs 한 파일로 한정.
+    스포너·매니저는 TriLib 을 직접 참조하지 않음(로더 교체 시 1파일만 수정).
+  - 중복 제거: Mock·Server 두 경로가 동일한 SetupAsGuide/SetupAsPlaced 로 합류.
+    Tripo 본 매핑은 TripoFbxLoader 단일 소스 → 미사용·중복이던
+    HumanoidAvatarBuilder.cs 제거.
+  - 모드 무관 동일동작: 스폰 API 를 콜백 기반으로 전환.
+    Mock=동기 콜백(기존과 byte-identical), Server=TriLib 비동기 콜백.
+
+## 신규: Scripts/Character/TripoFbxLoader.cs
+  - TriLib 어댑터. AssetDownloader.CreateWebRequest + LoadModelFromUri 로
+    FBX URL 런타임 다운로드·임포트.
+  - AnimationType.Humanoid + ByNameHumanoidAvatarMapper 를 런타임
+    CreateInstance + AddMapping 으로 구성(에디터 매퍼 에셋 불필요).
+    → Tripo 22본 매핑을 코드로 주입(세션 7 표). TriLib 이 T-포즈 보정 처리
+      → glTFast 런타임 빌드의 자세 왜곡 문제 없음.
+  - HumanLimit 모호성(TriLibCore.General vs UnityEngine) → using 별칭으로 고정.
+
+## 수정: Scripts/Character/GeneratedCharacterSpawner.cs
+  - SpawnGuide/SpawnPlaced: 반환형 → 콜백형
+    (Action<GuideNPCController> / Action<PlacedCharacterController>).
+  - CreateCharacterObject: 콜백 기반. model_url 있으면 LoadFromServer(TriLib),
+    없으면 InstantiateMock. 둘 다 onCreated(go) 로 합류.
+  - LoadFromServer: wrapper(위치·스케일) 생성 → TripoFbxLoader.Load →
+    완료 시 onCreated(wrapper), 실패 시 mockCharacterPrefab 폴백.
+  - SetupAsGuide 에 anim.Initialize 추가 → 가이드도 texture_url 적용(서버 모드).
+  - spawnScale(기본 6) Mock·Server 공통 적용.
+
+## 수정: Scripts/Managers/GameFlowManager.cs
+  - OnSessionLoaded 콜백 흐름으로 재구성.
+    배치 캐릭터: 준비 시 참조 저장 + 가이드 이미 있으면 늦은 연결 보정.
+    가이드: 준비 시 placedCharacter 연결·이벤트 구독·StartGuideScenario.
+    → Mock 은 콜백 동기 실행이라 기존과 동일, Server 는 로드 완료 후 시작.
+  - SubscribeNPCEvents 헬퍼 추출(구독/해제 대칭).
+
+## 컴파일
+  설치된 TriLib 기준 컴파일 성공 확인.
+
+
+────────────────────────────────────────────────────────────────
+[다음 단계 / 미커밋 항목]
+────────────────────────────────────────────────────────────────
+
+  [ ] 서버 모드(dataSourceMode=Server) 실제 데이터로 캐릭터 로드 검증
+  [ ] Mixamo 동작(Dance 등) 리타게팅 자세 안 깨짐 확인 (B 채택 핵심 검증)
+  [ ] spawnScale 서버 FBX 실측 스케일에 맞게 필요시 조정(일단 6)
+  [ ] (별도 결정 필요) TriLib 패키지(Assets/TriLib·TriLibInstaller) 리포 커밋 여부
+      — 유료 에셋 라이선스·용량. 미커밋 시 타 개발자 pull 후 컴파일 불가.
+  [ ] (별도 결정 필요) ProjectSettings 의 TRILIB_DISABLE_EDITOR_GLTF_IMPORT
+      정의 커밋 여부 — 미커밋 시 타 환경에서 GLB 임포터 충돌 재발.
 
 ================================================================
