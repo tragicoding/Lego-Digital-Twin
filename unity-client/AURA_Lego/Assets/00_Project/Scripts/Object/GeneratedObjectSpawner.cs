@@ -92,7 +92,6 @@ namespace LegoTwin.Object
             _spawnedObject = Instantiate(objectPrefab, pos, rot);
             _spawnedObject.name = $"Object_{data.object_name}";
             _spawnedObject.transform.localScale = Vector3.one * spawnScale;
-            Debug.Log($"[GeneratedObjectSpawner] Mock 스폰: {data.object_name} / scale: {spawnScale}");
 
             if (applyGravity)
                 SetupPhysics(_spawnedObject);
@@ -104,8 +103,6 @@ namespace LegoTwin.Object
 
         private IEnumerator SpawnFromServerCoroutine(ObjectAssetData data)
         {
-            Debug.Log($"[GeneratedObjectSpawner] GLB 로드 시작: {data.model_url}");
-
             var task = SpawnFromServerAsync(data);
             yield return new WaitUntil(() => task.IsCompleted);
 
@@ -134,7 +131,6 @@ namespace LegoTwin.Object
 
             await gltf.InstantiateMainSceneAsync(root.transform);
             _spawnedObject = root;
-            Debug.Log($"[GeneratedObjectSpawner] Server GLB 스폰 완료: {data.object_name}");
 
             if (applyGravity)
                 SetupPhysics(_spawnedObject);
@@ -178,8 +174,6 @@ namespace LegoTwin.Object
                     col.convex = true;
                 }
             }
-
-            Debug.Log($"[GeneratedObjectSpawner] 물리 설정 완료 (gravity): {go.name}");
         }
     }
 }

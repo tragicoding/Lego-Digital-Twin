@@ -75,7 +75,6 @@ namespace LegoTwin.Network
             if (_running) return;
             _running = true;
             ConnectWs();
-            Debug.Log("[WebSocketManager] 연결 시작");
         }
 
         public async void StopListening()
@@ -95,8 +94,6 @@ namespace LegoTwin.Network
             if (!_running) return;
 
             string url = ServerConfig.WsUrl;
-            Debug.Log($"[WebSocketManager] 연결 중: {url}");
-
             _ws = new WebSocket(url);
 
             _ws.OnOpen    += OnOpen;
@@ -110,7 +107,6 @@ namespace LegoTwin.Network
         private void OnOpen()
         {
             _reconnecting = false;
-            Debug.Log("[WebSocketManager] 연결 성공");
         }
 
         private void OnMessage(byte[] bytes)
@@ -125,7 +121,6 @@ namespace LegoTwin.Network
 
         private void OnClose(WebSocketCloseCode code)
         {
-            Debug.Log($"[WebSocketManager] 연결 종료 (코드: {code})");
             if (_running && !_reconnecting)
                 ScheduleReconnect();
         }
@@ -133,7 +128,6 @@ namespace LegoTwin.Network
         private void ScheduleReconnect()
         {
             _reconnecting = true;
-            Debug.Log($"[WebSocketManager] {reconnectDelay}초 후 재연결 시도...");
             Invoke(nameof(Reconnect), reconnectDelay);
         }
 
@@ -155,13 +149,11 @@ namespace LegoTwin.Network
             switch (ev.@event)
             {
                 case "session_ready":
-                    Debug.Log($"[WebSocketManager] session_ready: {ev.session_id}");
                     OnSessionReady?.Invoke(ev.session_id);
                     break;
 
                 case "likes_updated":
                     var likesEv = JsonUtility.FromJson<WsLikesEvent>(json);
-                    Debug.Log($"[WebSocketManager] likes_updated: {likesEv.session_id} → {likesEv.likes}");
                     OnLikesUpdated?.Invoke(likesEv);
                     break;
 

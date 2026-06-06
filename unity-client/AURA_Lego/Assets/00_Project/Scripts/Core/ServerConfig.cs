@@ -51,10 +51,7 @@ namespace LegoTwin.Core
                 {
                     var cfg = JsonUtility.FromJson<ServerConfigFile>(File.ReadAllText(configPath));
                     if (!string.IsNullOrEmpty(cfg.base_url))
-                    {
-                        Debug.Log($"[ServerConfig] 서버 주소 로드: {cfg.base_url}");
                         return cfg.base_url;
-                    }
                 }
                 catch { /* 파싱 실패 시 기본값 사용 */ }
             }

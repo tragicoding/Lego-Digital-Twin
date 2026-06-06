@@ -674,7 +674,8 @@ PlayerSettings:
   webGLCloseOnQuit: 0
   webWasm2023: 0
   webEnableSubmoduleStrippingCompatibility: 0
-  scriptingDefineSymbols: {}
+  scriptingDefineSymbols:
+    Android: TRILIB_DISABLE_EDITOR_GLTF_IMPORT
   additionalCompilerArguments: {}
   platformArchitecture: {}
   scriptingBackend: {}

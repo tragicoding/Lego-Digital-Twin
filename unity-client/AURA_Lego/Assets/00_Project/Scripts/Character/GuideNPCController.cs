@@ -93,7 +93,6 @@ namespace LegoTwin.Character
             _npcName   = session.character_npc_name;
             _sessionId = session.session_id;
             Animation?.Initialize(session.assets?.character, session.bubble_text);
-            Debug.Log($"[GuideNPCController] 초기화 완료 — {_npcName}");
         }
 
         /// <summary>목표 위치로 이동 (도착 후 idle 자동 전환).</summary>
@@ -110,7 +109,6 @@ namespace LegoTwin.Character
         /// <summary>말풍선 텍스트 설정 + 로그 출력.</summary>
         public void Say(string text)
         {
-            Debug.Log($"[{_npcName ?? "NPC"}] {text}");
             OnDialogueChanged?.Invoke(text);
         }
 
@@ -127,6 +125,28 @@ namespace LegoTwin.Character
         // ════════════════════════════════════════════════════════════
 
         public void StartGuideScenario() => StartCoroutine(GuideScenarioRoutine());
+
+        /// <summary>
+        /// (디버그) 진행 중인 가이드 시나리오를 즉시 중단한다.
+        /// 자유 모드 전환은 호출측(GameFlowManager)에서 OnGuideFinished 처리로 진행.
+        /// </summary>
+        public void AbortScenario()
+        {
+            StopAllCoroutines();
+            _moveCoroutine = null;
+            Animation?.animation_idle();
+        }
+
+        /// <summary>
+        /// (스킵용) 창작물 위치(myCreationWaypoint)로 NPC·플레이어를 즉시 순간이동한다.
+        /// 정상 시나리오 Step 2와 동일한 동작 — 스킵 시 창작물 앞에서 시작하도록.
+        /// OnGuideFinished(이벤트 해제) 호출 전에 실행해야 플레이어 순간이동이 전달된다.
+        /// </summary>
+        public void JumpToCreationView()
+        {
+            if (myCreationWaypoint != null)
+                TeleportTo(myCreationWaypoint.position);
+        }
 
         // ════════════════════════════════════════════════════════════
         // 시나리오 본문 — 대사 타이밍/연출은 유니티 개발자가 조정
@@ -222,7 +242,6 @@ namespace LegoTwin.Character
             yield return new WaitForSeconds(3f);
 
             // ── 5. 자유 모드 전환 ────────────────────────────────────
-            Debug.Log("[GuideNPCController] 시나리오 완료");
             OnFreeModeSwitched?.Invoke();
             yield return new WaitForSeconds(1.5f);
             OnGuideFinished?.Invoke();

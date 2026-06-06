@@ -1,0 +1,360 @@
+================================================================
+Claude Code 작업 기록
+날짜: 2026-06-06
+브랜치: feature/unity
+================================================================
+
+주제: TriLib 설치 없이 캐릭터 서버 런타임 로드(LoadFromServer) 구현 가능성 검토
+      → No-TriLib(GLB + glTFast) 경로 타당성 분석 및 실측 도구 작성
+
+
+────────────────────────────────────────────────────────────────
+[세션 1] 히스토리 분석 및 브랜치 확인
+────────────────────────────────────────────────────────────────
+
+## 참고 문서
+  DevelopmentHelp_0529.md
+  Claude_0528 / 0528_2 / 0529 / 0530 / 0601 / 0602 / 0603 / 0605.txt
+
+## 현재 브랜치
+  feature/unity (허용 브랜치, 정상)
+
+## 공통 미해결 작업 (이번 검토 대상)
+  [ ] TriLib 설치 후 GeneratedCharacterSpawner.LoadFromServer() 구현
+      — 캐릭터 FBX 서버 런타임 로드 (현재 Mock 프리팹 폴백)
+
+
+────────────────────────────────────────────────────────────────
+[세션 2] 질문: "TriLib 2 - Model Loading Package 맞아? 안 쓰는 방법은?"
+────────────────────────────────────────────────────────────────
+
+## 답
+  - TriLib 2 맞음. Unity 기본 FBX 임포트는 에디터 전용 → 런타임 FBX 로드엔
+    TriLib 같은 서드파티 로더 필요(유료 ~$80).
+  - TriLib 없이 가능: 백엔드를 GLB 리깅으로 바꾸면 이미 설치된 glTFast 로 처리.
+
+## 코드/백엔드 조사 결과
+  - Packages/manifest.json: com.unity.cloud.gltfast 6.18.0 이미 설치됨
+    (오브제 GeneratedObjectSpawner 가 이미 glTFast 로 GLB 런타임 로드 중)
+  - GeneratedCharacterSpawner.LoadFromServer(): TODO 상태, Mock 폴백만 존재
+  - 백엔드 character_task.py:
+      model_url     → npc_X_rigged.fbx     (리깅 본체, 스켈레톤 O)
+      thumbnail_url → npc_X_texture.glb     (pbr_model = 텍스처 소스, 스켈레톤 X)
+  - 백엔드 tripo_service.create_rig_task(out_format="fbx") 호출 중인데
+    함수가 이미 out_format="glb" 를 지원함 (1줄 변경으로 GLB 리깅 가능)
+  - 리깅 GLB 는 스킨 메시 + 스켈레톤 + PBR 텍스처 임베디드
+    → 별도 _texture.glb 다운로드 + ApplyTextureFromUrl 우회 코드 제거 가능
+
+
+────────────────────────────────────────────────────────────────
+[세션 3] A안 vs B안 비교 (가정: GLB 본 이름 보존 시)
+────────────────────────────────────────────────────────────────
+
+  A. GLB + glTFast (TriLib 없이)     B. FBX + TriLib 2
+
+  | 기준            | A                         | B                          |
+  |----------------|---------------------------|----------------------------|
+  | 비용            | 무료(설치됨)               | 유료 ~$80                   |
+  | 신규 의존성      | 없음                       | 무거운 로더 추가, 빌드 용량↑  |
+  | 프로젝트 검증    | 오브제로 이미 동작 ✅       | 미검증                      |
+  | VR(Quest/IL2CPP)| glTFast 1순위 지원 ✅       | FBX 런타임 엣지케이스 많음    |
+  | 텍스처          | GLB 임베디드(우회 제거)     | FBX 리깅엔 텍스처 X → 별도 처리|
+  | 백엔드 변경      | out_format="glb" 1줄       | 없음                        |
+
+  ## 결정적 포인트
+   1) 본 매핑 작업은 A/B 어느 쪽이든 동일하게 필요 (Tripo 본 이름이 비표준).
+      그 인프라(HumanoidAvatarBuilder)는 A쪽에 이미 90% 존재 → B 장점 상쇄.
+   2) 텍스처는 A가 깔끔(임베디드). B(FBX)는 텍스처 우회 코드 유지 필요.
+   3) A의 유일한 리스크 = "GLB 본 이름 보존 여부" = 이번 실측 대상.
+
+  ## 권고
+   A를 메인, B를 폴백. 실측 통과 시 A 확정.
+
+
+────────────────────────────────────────────────────────────────
+[세션 4] HumanoidAvatarBuilder 호환성 검증 (핵심 발견)
+────────────────────────────────────────────────────────────────
+
+## 방법
+  실제 Tripo 산출물 npc_3_rigged.fbx / npc_9_rigged.fbx 의 .meta
+  (Unity 가 Humanoid 로 임포트하며 직접 매핑·검증한 humanDescription) 분석
+
+## 발견 — 현재 빌더는 Tripo 와 ❌ 비호환
+  HumanoidAvatarBuilder.BoneMap 은 Mixamo 이름(Hips, LeftArm, LeftForeArm,
+  LeftUpLeg, mixamorig: 접두어)을 기대하지만, Tripo 리깅은 3ds Max/CAT 스타일
+  (L_/R_ 접두어) 이름을 사용 → "Head" 하나만 우연히 일치.
+  현재 빌더로는 매핑 본 1개뿐 → AvatarBuilder.BuildHumanAvatar isValid=false → 실패.
+
+## 정답 매핑표 (.meta 기준, npc_3·npc_9 동일 확인됨 — 22본)
+  Unity Humanoid      <- Tripo 본 이름
+  ------------------------------------
+  Hips                <- Hip
+  Spine               <- Waist
+  Chest               <- Spine01
+  UpperChest          <- Spine02
+  Neck                <- NeckTwist01
+  Head                <- Head
+  LeftShoulder        <- L_Clavicle      / RightShoulder <- R_Clavicle
+  LeftUpperArm        <- L_Upperarm      / RightUpperArm <- R_Upperarm
+  LeftLowerArm        <- L_Forearm       / RightLowerArm <- R_Forearm
+  LeftHand            <- L_Hand          / RightHand     <- R_Hand
+  LeftUpperLeg        <- L_Thigh         / RightUpperLeg <- R_Thigh
+  LeftLowerLeg        <- L_Calf          / RightLowerLeg <- R_Calf
+  LeftFoot            <- L_Foot          / RightFoot     <- R_Foot
+  LeftToes            <- L_ToeBase       / RightToes     <- R_ToeBase
+
+## 결론
+  No-TriLib(A) 유효. 단 HumanoidAvatarBuilder.BoneMap 을 Tripo 이름 포함하도록
+  교체 필요(Mixamo + Tripo 둘 다 지원하게 방어적으로). 일회성 코드 수정.
+  (런타임 Build() 는 캐릭터 스폰 시마다 자동 실행, 수 ms — 반복 수작업 아님)
+
+
+────────────────────────────────────────────────────────────────
+[세션 5] GLB 노드 이름 실측 시도 — 기존 파일로는 불가
+────────────────────────────────────────────────────────────────
+
+## GLB 노드 덤퍼 작성 (Node.js, /tmp/glb_nodes.mjs — 리포 미포함)
+  GLB JSON 청크 파싱 → nodes/skins/joints 이름 출력
+
+## 기존 texture GLB 점검 결과
+  npc_3_texture.glb : nodes=1, skins=0  → tripo_node_<UUID> 메시 1개, 본 없음
+  npc_9_texture.glb : nodes=1, skins=0  → 동일
+
+  → _texture.glb 는 pbr_model(리깅 전 정적 메시)이라 스켈레톤 자체가 없음.
+    Hip/L_Thigh 본 이름 보존 여부를 측정할 수 없음.
+  → 리포에 존재하는 어떤 GLB 로도 측정 불가. "리깅 GLB" 자체가 아직 없음.
+
+## 유일하게 얻은 정보
+  Tripo 는 GLB 노드 이름을 변형 없이 보존(tripo_node_<UUID>) → 약한 긍정 신호.
+  (단 이건 메시 노드 이름이고, 스켈레톤 본 이름은 별개)
+
+
+────────────────────────────────────────────────────────────────
+[세션 6] 실측 스크립트 작성
+────────────────────────────────────────────────────────────────
+
+## 생성 파일
+  apps/backend/tools/test_glb_rig.py
+
+## 기능
+  Tripo animate_rig 를 out_format="glb" 로 1회 실행 → 리깅 GLB 다운로드
+  → GLB JSON 청크 파싱 → skin joints(본) 이름 출력
+  → Unity Humanoid 22본(.meta 정답) 자동 대조표 출력
+
+## 실행 (백엔드 .env 환경 = WSL / conda triposr)
+  cd apps/backend
+  python -m tools.test_glb_rig --model-task-id <TRIPO_MODEL_TASK_ID>   (권장, 비용 절약)
+  python -m tools.test_glb_rig --image /app/storage/images/<front.png> (task_id 없을 때)
+
+## 판정
+  skins=1 이고 joints 에 Hip/L_Thigh/Waist/Spine01/NeckTwist01... 보이면
+    → 보존됨 → (a) HumanoidAvatarBuilder.BoneMap 수정으로 진행
+  joints 가 node0/정규화 이름이면
+    → 실제 이름을 BoneMap 에 반영하거나 B(TriLib) 검토
+
+
+────────────────────────────────────────────────────────────────
+[세션 7] GLB 본 이름 실측 — 기존 리깅 GLB 발견으로 즉시 확정
+────────────────────────────────────────────────────────────────
+
+## 발견
+  Assets/External Assets/npc_5_walk.glb = Tripo 리깅 GLB (skins=1, joints=41,
+  animation=1) 가 이미 리포에 존재 → 백엔드 실행 없이 즉시 측정 가능.
+
+## 결과 — 본 이름 22/22 전부 보존 ✅
+  GLB skin joints 가 FBX .meta 와 동일:
+    Hip, Waist, Spine01, Spine02, NeckTwist01, NeckTwist02, Head,
+    L_/R_Clavicle, L_/R_Upperarm, L_/R_Forearm, L_/R_Hand,
+    L_/R_Thigh, L_/R_Calf, L_/R_Foot, L_/R_ToeBase (+ Root, Pelvis, twist)
+  → GLB 가 Tripo 본 이름을 변형 없이 보존함이 직접 입증됨.
+
+## (a) HumanoidAvatarBuilder.BoneMap 수정
+  기존 Mixamo 후보에 Tripo 이름을 후보로 추가 (양쪽 스킴 동시 지원).
+  Hips<-Hip, Spine<-Waist, Chest<-Spine01, UpperChest<-Spine02,
+  Neck<-NeckTwist01, L_/R_Clavicle·Upperarm·Forearm·Hand·Thigh·Calf·
+  Foot·ToeBase ... (총 22본)
+  → 이 매핑표는 TriLib 경로에서도 그대로 재사용(아바타 매퍼 입력).
+
+
+────────────────────────────────────────────────────────────────
+[세션 8] 런타임 Humanoid 리타게팅 실측 → 자세 왜곡 (A안 한계 확인)
+────────────────────────────────────────────────────────────────
+
+## 테스트
+  GlbMixamoRetargetTest.cs (임시) — glTFast 로 npc_5_walk.glb 런타임 로드
+  → 아바타 구성 → Mixamo Dance.anim 리타게팅 재생.
+
+## 결과
+  콘솔은 정상 (avatar isValid=True, 클립 재생됨) 이나 자세가 깨져
+  애니메이션이 이상하게 적용됨.
+
+  시도 1) HumanoidAvatarBuilder 런타임 빌드  → 왜곡
+  시도 2) FBX(npc_3_rigged) 의 검증된 Avatar 재사용 → 역시 왜곡
+
+## 원인 (둘 다 같은 뿌리)
+  glTFast 가 만든 스켈레톤의 본 축(orientation)이 Unity/FBX 규약과 다름.
+   - 런타임 빌드: A-포즈를 T-포즈로 오인 → calibration 오류
+   - 참조 아바타: FBX 스켈레톤 축 기준 보정인데 glTFast 는 좌표변환을 본
+     회전에 baking → 같은 이름이라도 rest 회전이 달라 매핑 어긋남
+  => 본 이름이 같아도 glTFast 스켈레톤 축이 Humanoid 기대와 달라
+     어떤 아바타를 붙여도 틀어짐. (런타임 GLB + Humanoid 의 알려진 한계)
+
+
+────────────────────────────────────────────────────────────────
+[세션 9] 결정 — B(FBX + TriLib 2)로 전환
+────────────────────────────────────────────────────────────────
+
+## 판단
+  A 의 전제("본 이름만 맞으면 Humanoid 리타게팅 된다")가 실측에서 깨짐.
+  이 왜곡은 TriLib 이 정확히 해결하려는 문제 — TriLib 은 FBX(Unity 와 좌표·축
+  규약 일치)를 런타임 임포트해 Humanoid 아바타를 올바르게 생성한다.
+  Unity FBX 임포터가 잘 되는 것(검증됨)을 런타임에 재현하는 것이 TriLib 가치.
+
+## 결론
+  runtime 임의 Mixamo 동작 적용이 필수 요구이므로 B(TriLib 2) 채택.
+  - 백엔드 변경 없음 (model_url = rigged FBX 유지)
+  - 텍스처는 기존 흐름 유지 (FBX 리깅엔 텍스처 X → texture GLB +
+    CharacterAnimationController.ApplyTextureFromUrl 그대로 사용)
+  - 세션 7 의 Tripo→Humanoid 22본 매핑표 = TriLib HumanoidAvatarMapper 입력으로 재사용
+
+## 정리 작업
+  - apps/backend/tools/test_glb_rig.py 삭제 (GLB 실측용, 역할 종료)
+  - GlbMixamoRetargetTest.cs 삭제 (A 실험용)
+  - HumanoidAvatarBuilder.cs BoneMap(Tripo 이름) 변경은 유지
+    (검증된 매핑 기록 + TriLib 매퍼 참조용)
+
+
+────────────────────────────────────────────────────────────────
+[세션 10] TriLib 설치·glTFast 임포터 충돌 해소
+────────────────────────────────────────────────────────────────
+
+## 설치
+  TriLib 2 - Model Loading Package 설치 완료.
+
+## 문제
+  TriLib·glTFast 가 둘 다 .glb/.gltf 에디터 ScriptedImporter 를 등록
+  → Unity 가 양쪽 거부 → GLB 가 씬에서 안 보임.
+  "Multiple scripted importers are targeting the extension 'glb' ... rejected"
+
+## 원인·해결
+  TriLib 의 TriLibGLTFScriptedImporter 는
+    #if !TRILIB_DISABLE_EDITOR_GLTF_IMPORT 로 가드됨.
+  Project Settings > TriLib > "Disable in editor glTF2 importing" 체크
+  → TRILIB_DISABLE_EDITOR_GLTF_IMPORT 정의 → TriLib 에디터 GLB 임포터 비활성
+  → glTFast 단독 담당 → 충돌 해소, GLB 정상 표시.
+  ※ 런타임 FBX 임포트(TRILIB_DISABLE_FBX_IMPORT)는 건드리지 않음.
+  역할 분담: 에디터·런타임 GLB = glTFast / 런타임 FBX = TriLib.
+
+
+────────────────────────────────────────────────────────────────
+[세션 11] GeneratedCharacterSpawner.LoadFromServer() TriLib 구현
+────────────────────────────────────────────────────────────────
+
+## 설계 원칙 (사용자 요청: 의존성↓·중복 제거·확장성·서버모드 동일동작)
+
+  - 의존성 격리: TriLib API 사용을 TripoFbxLoader.cs 한 파일로 한정.
+    스포너·매니저는 TriLib 을 직접 참조하지 않음(로더 교체 시 1파일만 수정).
+  - 중복 제거: Mock·Server 두 경로가 동일한 SetupAsGuide/SetupAsPlaced 로 합류.
+    Tripo 본 매핑은 TripoFbxLoader 단일 소스 → 미사용·중복이던
+    HumanoidAvatarBuilder.cs 제거.
+  - 모드 무관 동일동작: 스폰 API 를 콜백 기반으로 전환.
+    Mock=동기 콜백(기존과 byte-identical), Server=TriLib 비동기 콜백.
+
+## 신규: Scripts/Character/TripoFbxLoader.cs
+  - TriLib 어댑터. AssetDownloader.CreateWebRequest + LoadModelFromUri 로
+    FBX URL 런타임 다운로드·임포트.
+  - AnimationType.Humanoid + ByNameHumanoidAvatarMapper 를 런타임
+    CreateInstance + AddMapping 으로 구성(에디터 매퍼 에셋 불필요).
+    → Tripo 22본 매핑을 코드로 주입(세션 7 표). TriLib 이 T-포즈 보정 처리
+      → glTFast 런타임 빌드의 자세 왜곡 문제 없음.
+  - HumanLimit 모호성(TriLibCore.General vs UnityEngine) → using 별칭으로 고정.
+
+## 수정: Scripts/Character/GeneratedCharacterSpawner.cs
+  - SpawnGuide/SpawnPlaced: 반환형 → 콜백형
+    (Action<GuideNPCController> / Action<PlacedCharacterController>).
+  - CreateCharacterObject: 콜백 기반. model_url 있으면 LoadFromServer(TriLib),
+    없으면 InstantiateMock. 둘 다 onCreated(go) 로 합류.
+  - LoadFromServer: wrapper(위치·스케일) 생성 → TripoFbxLoader.Load →
+    완료 시 onCreated(wrapper), 실패 시 mockCharacterPrefab 폴백.
+  - SetupAsGuide 에 anim.Initialize 추가 → 가이드도 texture_url 적용(서버 모드).
+  - spawnScale(기본 6) Mock·Server 공통 적용.
+
+## 수정: Scripts/Managers/GameFlowManager.cs
+  - OnSessionLoaded 콜백 흐름으로 재구성.
+    배치 캐릭터: 준비 시 참조 저장 + 가이드 이미 있으면 늦은 연결 보정.
+    가이드: 준비 시 placedCharacter 연결·이벤트 구독·StartGuideScenario.
+    → Mock 은 콜백 동기 실행이라 기존과 동일, Server 는 로드 완료 후 시작.
+  - SubscribeNPCEvents 헬퍼 추출(구독/해제 대칭).
+
+## 컴파일
+  설치된 TriLib 기준 컴파일 성공 확인.
+
+
+────────────────────────────────────────────────────────────────
+[세션 12] TriLib 저장소 전략 — 유료 에셋·public 리포 안전 처리
+────────────────────────────────────────────────────────────────
+
+## 배경
+  저장소가 public(github.com/tragicoding/Lego-Digital-Twin)으로 확인됨.
+  TriLib 은 Unity Asset Store 유료 에셋 → public 리포에 커밋 시 재배포(EULA 위반).
+  반대로 안 올리면 TriLib 의존 코드(TripoFbxLoader)가 타 환경에서 컴파일 불가.
+
+## 해결: gitignore + define 가드 + 자동 토글
+  - .gitignore: Assets/TriLib·TriLibInstaller(+폴더 meta) 제외.
+    폴더 제외가 내부 .meta 재포함(!*.meta)을 차단, 폴더 meta 는 뒤 규칙으로 제외.
+  - TripoFbxLoader: #if TRILIB 가드. 미정의 시 Load()가 onError 호출
+    → 호출부(GeneratedCharacterSpawner)가 Mock 폴백. TriLib 없이도 컴파일됨.
+  - Editor/TriLibDefineSetup.cs(신규): InitializeOnLoad 로 TriLibCore 어셈블리
+    존재를 감지(Type.GetType + 어셈블리 스캔)해 활성 빌드타깃의 TRILIB define 을
+    자동 추가/제거. ProjectSettings 에 TRILIB 하드코딩 커밋 없이도
+    설치 환경만 실제 로드 경로가 켜진다.
+
+## glTFast 충돌(세션 10) define 커밋
+  ProjectSettings 에는 TRILIB_DISABLE_EDITOR_GLTF_IMPORT(Android) 만 커밋.
+  (= 에디터 GLB 임포터를 glTFast 단독으로. 타 환경에서도 충돌 안 나게.)
+  TRILIB 정의 자체는 커밋하지 않음(머신별 자동 관리) → TriLib 없는 환경 컴파일 보장.
+
+## 주의 (의도된 동작)
+  TriLib 설치 머신은 스크립트가 TRILIB 를 로컬 추가하므로 ProjectSettings.asset 이
+  항상 'modified' 로 보인다. 이 변경은 커밋하지 않는다(커밋본은 TRILIB 비움).
+
+## 커밋
+  4d94d75 chore(unity): TriLib 유료에셋 저장소 제외·TRILIB define 자동 가드
+  (앞선 bf05694=구현, 8e8ec9e=경로확정, 6b13319=검토와 함께 feature/unity 푸시 완료)
+
+## 검증
+  Player Settings > Scripting Define Symbols 에 TRILIB 존재 확인 → 실제 로드 활성.
+  (TriLibDefineSetup 로그는 define 변경 시에만 출력 → 이미 설정돼 있으면 무로그가 정상)
+
+
+────────────────────────────────────────────────────────────────
+[세션 13] (트러블슈팅) 가이드 스킵 키 F8 미작동
+────────────────────────────────────────────────────────────────
+
+## 증상
+  가이드 모드 디버그 스킵이 F8 로 안 됨.
+
+## 원인
+  코드 문제 아님. 노트북에서 F8 이 Fn 레이어(미디어/밝기 키)에 가로채여
+  OS 가 Unity 로 F8 입력을 전달하지 않음. (0605 에 이미 같은 이유로 기본키를
+  Backspace 로 바꿔둔 바 있음.)
+
+## 해결
+  _skipGuideKey 를 Backspace 로 사용 → 정상 작동.
+  (F8 강제 시 Fn+F8 / Fn Lock 필요. 키 매핑 이슈일 뿐.)
+
+## 참고
+  GameFlowManager.Update 는 구 Input.GetKeyDown 사용. 만약 모든 키가 안 듣고
+  마우스 시선 회전(구 Input)도 안 되면 Active Input Handling 을 Both 로 둘 것.
+
+
+────────────────────────────────────────────────────────────────
+[다음 단계]
+────────────────────────────────────────────────────────────────
+
+  [ ] 서버 모드(dataSourceMode=Server) 실제 데이터로 캐릭터 로드 검증
+  [ ] Mixamo 동작(Dance 등) 리타게팅 자세 안 깨짐 확인 (B 채택 핵심 검증)
+  [ ] spawnScale 서버 FBX 실측 스케일에 맞게 필요시 조정(일단 6)
+  [ ] 전시 빌드 전: _enableGuideSkip · FreeCameraController 비활성화
+
+================================================================
