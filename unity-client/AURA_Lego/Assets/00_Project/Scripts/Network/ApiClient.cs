@@ -99,7 +99,7 @@ namespace LegoTwin.Network
         }
 
         // ══════════════════════════════════════════════════════════════
-        // 말풍선 텍스트 업데이트 (가이드 모드 → 자유 모드 전환 전)
+        // 시그니처 동작 / 말풍선
         // ══════════════════════════════════════════════════════════════
 
         /// <summary>PATCH /sessions/{id}/signature-motion — 시그니처 동작 저장</summary>
@@ -117,11 +117,7 @@ namespace LegoTwin.Network
                 onSuccess?.Invoke();
         }
 
-        /// <summary>
-        /// PATCH /sessions/{id}/profile — bubble_text 업데이트.
-        /// 가이드 시나리오 마지막 단계에서 관람객이 인사말 입력 후 호출.
-        /// 자유 모드 진입 시 광장 캐릭터의 말풍선에 자동 반영.
-        /// </summary>
+        /// <summary>PATCH /sessions/{id}/profile — bubble_text 업데이트</summary>
         public IEnumerator UpdateBubbleText(string sessionId, string bubbleText, Action onSuccess = null)
         {
             var payload = new BubbleTextRequest { bubble_text = bubbleText };
@@ -135,6 +131,42 @@ namespace LegoTwin.Network
             else
                 onSuccess?.Invoke();
         }
+
+        // ══════════════════════════════════════════════════════════════
+        // 대기 큐
+        // ══════════════════════════════════════════════════════════════
+
+        /// <summary>GET /sessions/active — 대기 큐 맨 앞 세션 ID (없으면 null)</summary>
+        public IEnumerator FetchActiveSession(Action<string> onResult)
+        {
+            using var req = UnityWebRequest.Get(ServerConfig.ActiveSessionUrl());
+            yield return req.SendWebRequest();
+            if (req.result != UnityWebRequest.Result.Success)
+            {
+                Debug.LogError($"[ApiClient] FetchActiveSession 실패: {req.error}");
+                onResult?.Invoke(null);
+                yield break;
+            }
+            var resp = JsonUtility.FromJson<ActiveSessionResponse>(req.downloadHandler.text);
+            onResult?.Invoke(resp?.session_id);
+        }
+
+        /// <summary>POST /sessions/unity-queue/advance — 현재 세션 제거 후 다음 세션 ID 반환 (없으면 null)</summary>
+        public IEnumerator AdvanceQueue(Action<string> onResult)
+        {
+            using var req = new UnityWebRequest(ServerConfig.AdvanceQueueUrl(), "POST");
+            req.downloadHandler = new DownloadHandlerBuffer();
+            req.SetRequestHeader("Content-Type", "application/json");
+            yield return req.SendWebRequest();
+            if (req.result != UnityWebRequest.Result.Success)
+            {
+                Debug.LogError($"[ApiClient] AdvanceQueue 실패: {req.error}");
+                onResult?.Invoke(null);
+                yield break;
+            }
+            var resp = JsonUtility.FromJson<AdvanceQueueResponse>(req.downloadHandler.text);
+            onResult?.Invoke(resp?.next_session_id);
+        }
     }
 
     [Serializable]
@@ -142,5 +174,18 @@ namespace LegoTwin.Network
     {
         public string session_id;
         public bool   ready_for_unity;
+    }
+
+    [Serializable]
+    internal class ActiveSessionResponse
+    {
+        public string session_id;
+    }
+
+    [Serializable]
+    internal class AdvanceQueueResponse
+    {
+        public string removed;
+        public string next_session_id;
     }
 }

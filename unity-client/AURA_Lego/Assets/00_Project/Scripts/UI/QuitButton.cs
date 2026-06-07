@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using LegoTwin.Managers;
 
 namespace LegoTwin.UI
 {
@@ -58,7 +59,12 @@ namespace LegoTwin.UI
         private void OnConfirmYes()
         {
             if (_confirmPanel != null) _confirmPanel.SetActive(false);
-            Quit();
+
+            // 큐 전진 후 다음 세션 로드 — 다음 세션 없으면 앱 종료
+            if (SessionManager.Instance != null)
+                SessionManager.Instance.AdvanceAndLoadNext(onNoNext: Quit);
+            else
+                Quit();
         }
 
         private void OnConfirmNo()

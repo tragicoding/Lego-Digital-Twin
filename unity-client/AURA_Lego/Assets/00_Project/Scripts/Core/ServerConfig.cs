@@ -39,6 +39,10 @@ namespace LegoTwin.Core
         // ── 광장 ──────────────────────────────────────────────────────
         public static string PlazaSessionsUrl()           => $"{BaseUrl}/unity/plaza/sessions";
 
+        // ── 대기 큐 ───────────────────────────────────────────────────
+        public static string ActiveSessionUrl()            => $"{BaseUrl}/sessions/active";
+        public static string AdvanceQueueUrl()             => $"{BaseUrl}/sessions/unity-queue/advance";
+
         // ── 모델 다운로드 ─────────────────────────────────────────────
         public static string ModelDownloadUrl(string url)  => url; // model_url은 이미 전체 URL
 

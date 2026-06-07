@@ -301,21 +301,37 @@ namespace LegoTwin.Plaza
             var charData = session.assets?.character;
             if (charData != null)
             {
-                // FBX 런타임 로드는 TriLib 미구현 → model_url 유무와 관계없이 Mock fallback
-                if (!string.IsNullOrEmpty(charData.model_url))
-                    Debug.LogWarning($"[PlazaManager] 캐릭터 서버 로드 미구현 ({charData.model_url}) — Mock fallback");
+                GameObject charGo = null;
 
-                var charPrefab = PickMockPrefab(mockCharacterPrefabs, sessionIndex);
-                if (charPrefab == null)
-                    Debug.LogWarning("[PlazaManager] mockCharacterPrefabs 미연결 — Inspector에서 연결하세요.");
+                if (!string.IsNullOrEmpty(charData.model_url))
+                {
+                    // Server Mode: TriLib FBX 비동기 로드
+                    bool done = false;
+                    var wrapper = new GameObject($"PlazaChar_{session.session_id}");
+                    wrapper.transform.SetPositionAndRotation(
+                        point.position + point.forward * characterForwardOffset, point.rotation);
+                    wrapper.transform.localScale = Vector3.one * characterSpawnScale;
+
+                    TripoFbxLoader.Load(
+                        charData.model_url, wrapper,
+                        onLoaded: () => { charGo = wrapper; done = true; },
+                        onError: msg =>
+                        {
+                            Debug.LogWarning($"[PlazaManager] 캐릭터 FBX 로드 실패: {msg} — Mock fallback");
+                            Destroy(wrapper);
+                            charGo = SpawnMockCharacter(session.session_id, point, sessionIndex);
+                            done = true;
+                        });
+
+                    yield return new WaitUntil(() => done);
+                }
                 else
                 {
-                    var charGo = Instantiate(charPrefab,
-                        point.position + point.forward * characterForwardOffset, point.rotation);
-                    charGo.name = $"PlazaChar_{session.session_id}";
-                    charGo.transform.localScale = Vector3.one * characterSpawnScale;
-                    SetupCharacterForPlaza(charGo, session.signature_motion);
+                    charGo = SpawnMockCharacter(session.session_id, point, sessionIndex);
                 }
+
+                if (charGo != null)
+                    SetupCharacterForPlaza(charGo, session.signature_motion);
             }
 
             // ── 오브제 ──────────────────────────────────────────────────────────
@@ -383,6 +399,22 @@ namespace LegoTwin.Plaza
         {
             if (prefabs == null || prefabs.Length == 0) return null;
             return prefabs[index % prefabs.Length];
+        }
+
+        // Mock 캐릭터 프리팹을 스폰하고 GameObject를 반환한다. 프리팹 미연결 시 null.
+        private GameObject SpawnMockCharacter(string sessionId, Transform point, int sessionIndex)
+        {
+            var prefab = PickMockPrefab(mockCharacterPrefabs, sessionIndex);
+            if (prefab == null)
+            {
+                Debug.LogWarning("[PlazaManager] mockCharacterPrefabs 미연결 — Inspector에서 연결하세요.");
+                return null;
+            }
+            var go = Instantiate(prefab,
+                point.position + point.forward * characterForwardOffset, point.rotation);
+            go.name = $"PlazaChar_{sessionId}";
+            go.transform.localScale = Vector3.one * characterSpawnScale;
+            return go;
         }
 
         // 오브제에 Rigidbody(중력) + Collider 자동 부착
