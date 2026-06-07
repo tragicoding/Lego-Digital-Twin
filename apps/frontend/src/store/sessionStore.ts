@@ -19,25 +19,29 @@ interface SessionStore {
   // 레거시 호환 (CapturePage 진행 상태)
   uploads: Record<string, boolean>;
   setUploaded: (type: string) => void;
+
+  reset: () => void;
 }
 
-export const useSessionStore = create<SessionStore>((set) => ({
+const INITIAL_STATE = {
   sessionId: null,
-  setSessionId: (id) => set({ sessionId: id }),
-
   characterAssetId: null,
-  setCharacterAssetId: (id) => set({ characterAssetId: id }),
-
   objectAssetId: null,
-  setObjectAssetId: (id) => set({ objectAssetId: id }),
-
   characterNpcName: "",
-  setCharacterNpcName: (name) => set({ characterNpcName: name }),
-
   objectName: "",
-  setObjectName: (name) => set({ objectName: name }),
-
   uploads: {},
+};
+
+export const useSessionStore = create<SessionStore>((set) => ({
+  ...INITIAL_STATE,
+
+  setSessionId: (id) => set({ sessionId: id }),
+  setCharacterAssetId: (id) => set({ characterAssetId: id }),
+  setObjectAssetId: (id) => set({ objectAssetId: id }),
+  setCharacterNpcName: (name) => set({ characterNpcName: name }),
+  setObjectName: (name) => set({ objectName: name }),
   setUploaded: (type) =>
     set((s) => ({ uploads: { ...s.uploads, [type]: true } })),
+
+  reset: () => set(INITIAL_STATE),
 }));

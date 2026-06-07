@@ -473,6 +473,7 @@ namespace LegoTwin.Plaza
                 session_id         = _currentSession.session_id,
                 character_npc_name = _currentSession.character_npc_name,
                 bubble_text        = _currentSession.bubble_text,
+                signature_motion   = _currentSession.signature_motion ?? "",
                 likes              = _currentSession.likes,
                 is_top_liked       = _currentSession.session_id == _topSessionId,
                 assets             = _currentSession.assets

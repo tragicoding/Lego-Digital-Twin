@@ -8,11 +8,12 @@ from ..core.database import Base
 class Session(Base):
     __tablename__ = "sessions"
 
-    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: f"s_{uuid.uuid4().hex[:8]}")
+    id: Mapped[str] = mapped_column(String, primary_key=True)
     nickname: Mapped[str | None] = mapped_column(String(100))
     phone: Mapped[str | None] = mapped_column(String(20))
     bubble_text: Mapped[str | None] = mapped_column(String(200))
     favorite_theme: Mapped[str | None] = mapped_column(String(50))
+    signature_motion: Mapped[str | None] = mapped_column(String(50))
     likes: Mapped[int] = mapped_column(Integer, default=0)
     status: Mapped[str] = mapped_column(String(20), default="active")
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
