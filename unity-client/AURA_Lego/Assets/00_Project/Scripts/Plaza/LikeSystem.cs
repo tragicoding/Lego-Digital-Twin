@@ -150,7 +150,6 @@ namespace LegoTwin.Plaza
                 var view = GetComponent<PlazaSessionView>();
                 view?.UpdateLikes(_likes);
                 PlazaManager.Instance?.HandleMockLike(_sessionId, _likes);
-                Debug.Log($"[LikeSystem] Mock 좋아요: {_sessionId} → {_likes}");
                 yield break;
             }
 
@@ -164,7 +163,6 @@ namespace LegoTwin.Plaza
             yield return ApiClient.Instance.LikeSession(_sessionId, result =>
             {
                 _likedSessionIds.Add(_sessionId);
-                Debug.Log($"[LikeSystem] 좋아요 완료: {result.session_id} → {result.likes}, 1위: {result.top_session_id}");
                 PlazaManager.Instance?.HandleServerLike(result);
             });
         }

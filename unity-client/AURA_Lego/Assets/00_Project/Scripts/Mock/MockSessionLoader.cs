@@ -38,10 +38,6 @@ namespace LegoTwin.Mock
 
                     PlayerPrefs.SetInt(PlayerPrefsIndexKey, idx + 1);
                     PlayerPrefs.Save();
-
-                    Debug.Log($"[MockSessionLoader] 풀 로드 [{idx % pool.sessions.Count + 1}/{pool.sessions.Count}]" +
-                              $" — character: {session.assets?.character?.npc_name}" +
-                              $", object: {session.assets?.@object?.object_name}");
                     return session;
                 }
             }
@@ -55,8 +51,6 @@ namespace LegoTwin.Mock
             }
 
             var data = JsonUtility.FromJson<SessionData>(asset.text);
-            Debug.Log($"[MockSessionLoader] 단일 파일 로드 — character: {data.assets?.character?.npc_name}" +
-                      $", object: {data.assets?.@object?.object_name}");
             return data;
         }
     }

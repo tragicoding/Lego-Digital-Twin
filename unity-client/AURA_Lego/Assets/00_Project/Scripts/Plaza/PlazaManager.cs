@@ -1,6 +1,5 @@
 using System.Collections;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using UnityEngine;
 using LegoTwin.Character;
@@ -77,6 +76,7 @@ namespace LegoTwin.Plaza
         private SessionData _currentSession;
         private GameObject  _currentCharacterGO;
         private GameObject  _currentObjectGO;
+        private bool        _currentViewAttached;   // 현재 창작물 뷰 부착 완료 여부 (중복 방지)
 
         private void Awake()
         {
@@ -94,9 +94,22 @@ namespace LegoTwin.Plaza
         /// </summary>
         public void RegisterCurrentSession(SessionData session, GameObject charGo, GameObject objGo)
         {
-            _currentSession     = session;
-            _currentCharacterGO = charGo;
-            _currentObjectGO    = objGo;
+            _currentSession      = session;
+            _currentCharacterGO  = charGo;
+            _currentObjectGO     = objGo;
+            _currentViewAttached = false;
+        }
+
+        /// <summary>
+        /// (스킵 보강) 비동기 로드로 늦게 도착한 현재 관람객 오브제를 받아 뷰를 부착한다.
+        /// EnterPlaza 시점에 오브제가 아직 null이라 부착을 못 한 경우 GameFlowManager가 호출.
+        /// 이미 부착됐거나 오브제가 없으면 무시.
+        /// </summary>
+        public void AttachCurrentObjectLate(GameObject objGo)
+        {
+            if (_currentViewAttached || objGo == null) return;
+            _currentObjectGO = objGo;
+            AttachViewToCurrentSession();
         }
 
         /// <summary>자유 모드 진입 시 호출. 광장 데이터 로드 + 배치 시작.</summary>
@@ -148,22 +161,12 @@ namespace LegoTwin.Plaza
                 return;
             }
 
-            EnsureMockPlazaFile();
-            string path = MockPlazaFilePath;
-
-            // 기존 파일 읽기
-            PlazaResponse plaza = null;
-            if (File.Exists(path))
-            {
-                plaza = JsonUtility.FromJson<PlazaResponse>(File.ReadAllText(path));
-            }
-            if (plaza == null)          plaza = new PlazaResponse();
+            var plaza = MockPlazaStore.Load() ?? new PlazaResponse();
             if (plaza.sessions == null) plaza.sessions = new List<PlazaSessionData>();
 
             // 동일 원본 session_id 중복 방지
             if (plaza.sessions.Any(s => s.session_id == session.session_id))
             {
-                Debug.Log($"[PlazaManager] 이미 저장된 세션: {session.session_id} — 저장 생략");
                 return;
             }
 
@@ -213,8 +216,6 @@ namespace LegoTwin.Plaza
                         .First();
 
                 plaza.sessions.Remove(toRemove);
-                Debug.Log($"[PlazaManager] 세션 초과 제거: {toRemove.session_id} " +
-                          $"({toRemove.character_npc_name}, likes: {toRemove.likes})");
             }
 
             // top_session_id 재계산
@@ -222,9 +223,7 @@ namespace LegoTwin.Plaza
                 .OrderByDescending(s => s.likes)
                 .First().session_id;
 
-            File.WriteAllText(path, JsonUtility.ToJson(plaza, prettyPrint: true));
-            Debug.Log($"[PlazaManager] mock_plaza.json 저장 완료: {newId} ({session.character_npc_name})" +
-                      $" / 총 세션: {plaza.sessions.Count}");
+            MockPlazaStore.Save(plaza);
         }
 
         // plaza_XXX 형식에서 숫자 추출 (정렬용). 형식 불일치 시 int.MaxValue 반환.
@@ -245,7 +244,7 @@ namespace LegoTwin.Plaza
 
             if (SessionManager.Instance?.dataSourceMode == Managers.DataSourceMode.Mock)
             {
-                plaza = LoadMockPlaza();
+                plaza = MockPlazaStore.Load();
             }
             else
             {
@@ -259,7 +258,6 @@ namespace LegoTwin.Plaza
             }
 
             _topSessionId = plaza.top_session_id;
-            Debug.Log($"[PlazaManager] 광장 데이터 로드 완료 — 세션 수: {plaza.sessions.Count}, 1위: {plaza.top_session_id}, spawnPoints: {spawnPoints.Length}");
 
             // 현재 관람객 창작물에 투표 뷰 부착
             AttachViewToCurrentSession();
@@ -274,8 +272,6 @@ namespace LegoTwin.Plaza
 
                 var session = plaza.sessions[i];
                 var point   = spawnPoints[i];
-
-                Debug.Log($"[PlazaManager] 세션 배치 [{i}]: {session.session_id} / {session.character_npc_name} → {point.name}");
 
                 _likeCounts[session.session_id] = session.likes;
 
@@ -319,7 +315,6 @@ namespace LegoTwin.Plaza
                     charGo.name = $"PlazaChar_{session.session_id}";
                     charGo.transform.localScale = Vector3.one * characterSpawnScale;
                     SetupCharacterForPlaza(charGo, session.signature_motion);
-                    Debug.Log($"[PlazaManager] 캐릭터 스폰: {charGo.name} (prefab: {charPrefab.name})");
                 }
             }
 
@@ -349,7 +344,6 @@ namespace LegoTwin.Plaza
                         objGo.name = $"PlazaObj_{session.session_id}";
                         objGo.transform.localScale = Vector3.one * objectSpawnScale;
                         SetupObjectPhysics(objGo);
-                        Debug.Log($"[PlazaManager] 오브제 스폰: {objGo.name} (prefab: {objPrefab.name})");
                     }
                 }
             }
@@ -382,7 +376,6 @@ namespace LegoTwin.Plaza
 
             placed.SetupForPlaza(motionLibrary, motionType);
             _lastSpawnedCharController = placed;
-            Debug.Log($"[PlazaManager] 캐릭터 시그니처 설정: {go.name} → {motionType}");
         }
 
         // 배열에서 index % length 순환 선택. 배열이 없거나 비어 있으면 null 반환.
@@ -413,13 +406,11 @@ namespace LegoTwin.Plaza
                 }
             }
 
-            Debug.Log($"[PlazaManager] 오브제 물리 설정 완료: {go.name}");
         }
 
         private async System.Threading.Tasks.Task SpawnObjectFromServerAsync(
             string sessionId, ObjectAssetData data, Transform point, int sessionIndex = 0)
         {
-            Debug.Log($"[PlazaManager] 광장 오브제 GLB 로드: {data.model_url}");
             var gltf = new GLTFast.GltfImport();
             bool ok = await gltf.Load(data.model_url);
             if (!ok)
@@ -444,7 +435,6 @@ namespace LegoTwin.Plaza
             root.transform.localScale = Vector3.one * objectSpawnScale;
             await gltf.InstantiateMainSceneAsync(root.transform);
             SetupObjectPhysics(root);
-            Debug.Log($"[PlazaManager] 광장 오브제 서버 스폰 완료: {root.name}");
         }
 
         // ════════════════════════════════════════════════════════════
@@ -476,11 +466,7 @@ namespace LegoTwin.Plaza
         private void AttachViewToCurrentSession()
         {
             if (_currentSession == null || sessionViewPrefab == null || _currentObjectGO == null)
-            {
-                Debug.Log("[PlazaManager] 현재 세션 뷰 부착 생략 " +
-                          "(currentSession/sessionViewPrefab/objectGO 중 하나 없음)");
                 return;
-            }
 
             var sessionData = new PlazaSessionData
             {
@@ -515,7 +501,7 @@ namespace LegoTwin.Plaza
             // 동작 프롬프트 · 시그니처 설정 인터랙터 추가
             SetupOwnCreationInteractor(view.gameObject, placedChar);
 
-            Debug.Log($"[PlazaManager] 현재 세션 뷰 부착 완료: {_currentSession.session_id}");
+            _currentViewAttached = true;
         }
 
         private void SetupOwnCreationInteractor(GameObject viewGo, PlacedCharacterController placedChar)
@@ -535,8 +521,6 @@ namespace LegoTwin.Plaza
                 panel = Instantiate(ownCreationInteractPanelPrefab, viewGo.transform);
 
             interactor.Setup(placedChar, panel, promptUI, confirmUI);
-            Debug.Log($"[PlazaManager] 내 창작물 인터랙터 설정 완료 " +
-                      $"— promptUI:{promptUI != null}, confirmUI:{confirmUI != null}, panel:{panel != null}");
         }
 
         // ════════════════════════════════════════════════════════════
@@ -559,7 +543,6 @@ namespace LegoTwin.Plaza
                 view.SetTopLiked(view.SessionId == newTop);
             }
             _topSessionId = newTop;
-            Debug.Log($"[PlazaManager] 서버 좋아요 반영: {result.session_id} → {result.likes}, 1위: {newTop}");
         }
 
         // ════════════════════════════════════════════════════════════
@@ -589,17 +572,9 @@ namespace LegoTwin.Plaza
 
         private void SaveMockLikesToFile(string sessionId, int newLikes, string topSessionId)
         {
-            string path = MockPlazaFilePath;
-
-            if (!File.Exists(path))
-            {
-                Debug.LogWarning($"[SaveMockLikes] 파일 없음: {path}");
-                return;
-            }
-
             try
             {
-                var plaza = JsonUtility.FromJson<PlazaResponse>(File.ReadAllText(path));
+                var plaza = MockPlazaStore.Load();
                 if (plaza?.sessions == null)
                 {
                     Debug.LogWarning("[SaveMockLikes] 역직렬화 실패 — sessions null");
@@ -615,12 +590,7 @@ namespace LegoTwin.Plaza
                 foreach (var s in plaza.sessions)
                     s.is_top_liked = s.session_id == topSessionId;
 
-                File.WriteAllText(path, JsonUtility.ToJson(plaza, prettyPrint: true));
-                Debug.Log($"[SaveMockLikes] 저장 완료: {sessionId} → {newLikes}, 1위: {topSessionId}");
-
-#if UNITY_EDITOR
-                UnityEditor.AssetDatabase.Refresh();
-#endif
+                MockPlazaStore.Save(plaza);
             }
             catch (System.Exception e)
             {
@@ -628,41 +598,5 @@ namespace LegoTwin.Plaza
             }
         }
 
-        // ════════════════════════════════════════════════════════════
-        // Mock 데이터
-        // ════════════════════════════════════════════════════════════
-
-        // Editor: Assets 폴더 직접 읽기/쓰기 (IDE에서 변경 즉시 확인 가능)
-        // Build:  persistentDataPath 사용 (읽기 전용 번들 우회)
-        private static string MockPlazaFilePath =>
-#if UNITY_EDITOR
-            Path.Combine(Application.dataPath, "00_Project/Resources/Mock/mock_plaza.json");
-#else
-            Path.Combine(Application.persistentDataPath, "mock_plaza.json");
-#endif
-
-        private static void EnsureMockPlazaFile()
-        {
-#if UNITY_EDITOR
-            // Editor에서는 Assets 경로 파일이 이미 존재 — 복사 불필요
-#else
-            if (File.Exists(MockPlazaFilePath)) return;
-            var asset = Resources.Load<TextAsset>("Mock/mock_plaza");
-            if (asset == null) { Debug.LogError("[PlazaManager] Resources/Mock/mock_plaza.json 없음"); return; }
-            File.WriteAllText(MockPlazaFilePath, asset.text);
-            Debug.Log($"[PlazaManager] mock_plaza.json 초기화 → {MockPlazaFilePath}");
-#endif
-        }
-
-        private static PlazaResponse LoadMockPlaza()
-        {
-            EnsureMockPlazaFile();
-            if (!File.Exists(MockPlazaFilePath))
-            {
-                Debug.LogError("[PlazaManager] mock_plaza.json 로드 실패");
-                return null;
-            }
-            return JsonUtility.FromJson<PlazaResponse>(File.ReadAllText(MockPlazaFilePath));
-        }
     }
 }

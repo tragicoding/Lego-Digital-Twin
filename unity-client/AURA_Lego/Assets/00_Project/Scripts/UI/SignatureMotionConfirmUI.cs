@@ -42,6 +42,8 @@ namespace LegoTwin.UI
         [SerializeField] private Button      _noButton;
         [Tooltip("자유 모드에서만 표시. 안내 모드에서는 Show() 호출 시 자동으로 숨김.")]
         [SerializeField] private Button      _exitButton;
+        [Tooltip("아니오 버튼 아래 보조 문구 (NoButton 자식 캡션). 미연결 시 캡션 변경 안 함.")]
+        [SerializeField] private TMP_Text    _noCaptionText;
         [SerializeField] private CanvasGroup _canvasGroup;
 
         [Header("연출 설정")]
@@ -51,12 +53,29 @@ namespace LegoTwin.UI
         private Action<bool> _pendingCallback;
         private Action       _pendingOnExit;
         private Coroutine    _fadeRoutine;
+        private string       _defaultNoCaption;   // 아니오 캡션 기본값 (복원용)
 
         private void Awake()
         {
-            if (_popupRoot   != null) _popupRoot.SetActive(false);
-            if (_canvasGroup != null) _canvasGroup.alpha = 0f;
-            if (_exitButton  != null) _exitButton.gameObject.SetActive(false);
+            if (_popupRoot     != null) _popupRoot.SetActive(false);
+            if (_canvasGroup   != null) _canvasGroup.alpha = 0f;
+            if (_exitButton    != null) _exitButton.gameObject.SetActive(false);
+
+            // _noCaptionText 미연결 시 NoButton 자식에서 보조 캡션 TMP 자동 탐색.
+            // NoButton에는 "아니오" 라벨 + 보조 캡션("다른 동작도 해볼래요!") 2개의 TMP가 있으므로
+            // 더 긴 텍스트 쪽을 캡션으로 추정한다.
+            if (_noCaptionText == null && _noButton != null)
+            {
+                var texts = _noButton.GetComponentsInChildren<TMP_Text>(true);
+                if (texts.Length >= 2)
+                {
+                    TMP_Text longest = texts[0];
+                    foreach (var t in texts)
+                        if ((t.text?.Length ?? 0) > (longest.text?.Length ?? 0)) longest = t;
+                    _noCaptionText = longest;
+                }
+            }
+            if (_noCaptionText != null) _defaultNoCaption = _noCaptionText.text;
 
             _yesButton?.onClick.AddListener(() => Confirm(true));
             _noButton?.onClick.AddListener(()  => Confirm(false));
@@ -79,18 +98,30 @@ namespace LegoTwin.UI
         /// 예 → callback(true) / 아니오 → callback(false) / 나가기 → onExit().
         /// showExitButton: true 이면 나가기 버튼 표시 (자유 모드), false 이면 숨김 (안내 모드).
         /// message: null 이면 Inspector 기본 메시지 사용, 값 전달 시 해당 메시지로 덮어씀.
+        /// noCaption: 아니오 버튼 아래 보조 문구. null 이면 기본 캡션으로 복원, 값 전달 시 덮어씀.
         /// </summary>
-        public void Show(Action<bool> callback, bool showExitButton = false, Action onExit = null, string message = null)
+        public void Show(Action<bool> callback, bool showExitButton = false, Action onExit = null,
+                         string message = null, string noCaption = null)
         {
             _pendingCallback = callback;
             _pendingOnExit   = onExit;
 
-            if (_messageText != null) _messageText.text = message ?? _message;
-            if (_exitButton  != null) _exitButton.gameObject.SetActive(showExitButton);
+            if (_messageText   != null) _messageText.text   = message ?? _message;
+            if (_noCaptionText != null) _noCaptionText.text = noCaption ?? _defaultNoCaption;
+            if (_exitButton    != null) _exitButton.gameObject.SetActive(showExitButton);
             if (!gameObject.activeInHierarchy) gameObject.SetActive(true);
             if (_popupRoot   != null) _popupRoot.SetActive(true);
 
             FadeTo(1f);
+        }
+
+        /// <summary>(외부 호출) 콜백 실행 없이 다이얼로그를 즉시 닫는다. (가이드 스킵 등)</summary>
+        public void Close()
+        {
+            _pendingCallback = null;
+            _pendingOnExit   = null;
+            if (_popupRoot   != null) _popupRoot.SetActive(false);
+            if (_canvasGroup != null) _canvasGroup.alpha = 0f;
         }
 
         // ════════════════════════════════════════════════════════════

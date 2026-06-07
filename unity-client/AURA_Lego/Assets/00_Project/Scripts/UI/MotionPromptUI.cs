@@ -101,6 +101,13 @@ namespace LegoTwin.UI
             FadeTo(1f);
         }
 
+        /// <summary>(외부 호출) 콜백 실행 없이 입력창을 즉시 닫는다. (가이드 스킵 등)</summary>
+        public void Close()
+        {
+            _pendingCallback = null;
+            Hide();
+        }
+
         // ════════════════════════════════════════════════════════════
         // 내부 구현
         // ════════════════════════════════════════════════════════════
@@ -110,12 +117,8 @@ namespace LegoTwin.UI
             var input = _inputField != null ? _inputField.text.Trim() : string.Empty;
 
             if (string.IsNullOrEmpty(input))
-            {
-                Debug.Log("[MotionPromptUI] 빈 입력 — 제출 무시");
                 return;
-            }
 
-            Debug.Log($"[MotionPromptUI] 입력 제출: {input}");
             Hide();
             _pendingCallback?.Invoke(input);
             _pendingCallback = null;

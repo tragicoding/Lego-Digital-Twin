@@ -184,7 +184,8 @@ namespace LegoTwin.Plaza
                 },
                 showExitButton: false,
                 onExit: null,
-                message: "입력 종료 시 이전 동작으로\n유지됩니다."
+                message: "입력 종료 시 이전 동작으로\n유지됩니다.",
+                noCaption: "시그니처 동작 설정으로\n돌아갈래요"
             );
         }
     }

@@ -86,11 +86,9 @@ namespace LegoTwin.Character
                 if (p.name == walkBoolParam && p.type == AnimatorControllerParameterType.Bool)
                 {
                     _useBoolParam = true;
-                    Debug.Log($"[CharacterAnimationController] {gameObject.name}: Bool 방식 ('{walkBoolParam}')");
                     return;
                 }
             }
-            Debug.Log($"[CharacterAnimationController] {gameObject.name}: Trigger 방식 ('{walkTrigger}'/'{idleTrigger}')");
         }
 
         // ── 공개 애니메이션 함수 ─────────────────────────────────────
@@ -116,7 +114,6 @@ namespace LegoTwin.Character
         {
             if (_animator == null || _animator.runtimeAnimatorController == null) return;
             _animator.SetTrigger(animationKey);
-            Debug.Log($"[CharacterAnimationController] {npcName}: {animationKey}");
         }
 
         /// <summary>
@@ -145,7 +142,6 @@ namespace LegoTwin.Character
 
             _overrideController[MOTION_SLOT] = clip;
             _animator.SetTrigger("motion");
-            Debug.Log($"[CharacterAnimationController] {npcName}: Motion → {clip.name}");
         }
 
         /// <summary>
@@ -171,7 +167,6 @@ namespace LegoTwin.Character
             // 루프 재시작(LoopRoutine 내)은 이미 Motion 상태이므로 Play()를 사용해도 무관
             _animator.SetTrigger("motion");
             _loopCoroutine = StartCoroutine(LoopRoutine());
-            Debug.Log($"[CharacterAnimationController] {npcName}: MotionLoop 시작 → {clip.name}");
         }
 
         /// <summary>루프 모션을 중단하고 idle 상태로 복귀한다.</summary>
@@ -242,7 +237,6 @@ namespace LegoTwin.Character
                 if (dstRenderer != null)
                 {
                     dstRenderer.materials = srcRenderer.sharedMaterials;
-                    Debug.Log($"[CharacterAnimationController] {npcName}: 텍스쳐 적용 완료");
                 }
                 else
                 {

@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using LegoTwin.Data;
 
@@ -9,22 +10,22 @@ namespace LegoTwin.Character
     ///   1. Guide  — 가이드 NPC (걸어다니며 안내)
     ///   2. Placed — 광장 배치 캐릭터 (오브제 옆, 모션 수행)
     ///
-    /// ── 컴포넌트 자동 주입 ──────────────────────────────────────────
-    /// Mock Prefab / 서버 FBX 어느 쪽이든 스폰 후 SetupAsGuide / SetupAsPlaced 를
-    /// 호출하면 필요한 컴포넌트를 자동으로 추가·연결한다.
-    ///   - 이미 붙어있으면 재사용 (덮어쓰지 않음)
-    ///   - 없으면 AddComponent 로 추가
-    ///   - GuideNPCController.Animation 필드 자동 연결
-    ///   - PlacedCharacterController.motionLibrary 자동 연결
+    /// ── 비동기 스폰 (Mock = 동기, Server = 비동기) ────────────────────
+    /// SpawnGuide / SpawnPlaced 는 콜백으로 결과를 돌려준다.
+    ///   - Mock   : 프리팹을 즉시 Instantiate → 콜백을 같은 프레임에 호출 (기존과 동일)
+    ///   - Server : TriLib 으로 FBX 를 비동기 로드 → 완료 시 콜백 호출
+    /// 두 경로 모두 로드된 GameObject 가 준비된 뒤 SetupAsGuide / SetupAsPlaced 로
+    /// 합류하므로, 컴포넌트 자동 주입·초기화 로직이 한 곳에만 존재한다.
     ///
-    /// ── Mock → Server 전환 ───────────────────────────────────────────
-    /// LoadFromServer() 안 TODO 완성 후 SetupAsGuide / SetupAsPlaced 를
-    /// 콜백 안에서 호출하면 나머지 코드 변경 없이 서버 캐릭터 자동 설정된다.
+    /// ── 컴포넌트 자동 주입 ──────────────────────────────────────────
+    ///   - 이미 붙어있으면 재사용, 없으면 AddComponent
+    ///   - GuideNPCController.Animation / PlacedCharacterController.motionLibrary 자동 연결
+    ///   - texture_url(PBR GLB) 이 있으면 CharacterAnimationController 가 머티리얼 적용
     ///
     /// 유니티 개발자 체크리스트:
-    ///   [ ] mockCharacterPrefab 연결 (Mock 모드)
+    ///   [ ] mockCharacterPrefab 연결 (Mock 모드 / Server 로드 실패 시 폴백)
     ///   [ ] guideSpawnPoint, placedSpawnPoint 위치 지정
-    ///   [ ] motionLibrary ScriptableObject 연결
+    ///   [ ] animatorController, motionLibrary 연결
     /// </summary>
     public class GeneratedCharacterSpawner : MonoBehaviour
     {
@@ -61,47 +62,49 @@ namespace LegoTwin.Character
         private GameObject _placedInstance;
 
         // ════════════════════════════════════════════════════════════
-        // 공개 API
+        // 공개 API — 콜백 기반 (Mock 동기 / Server 비동기 공통)
         // ════════════════════════════════════════════════════════════
 
         /// <summary>
-        /// 가이드 NPC 생성 후 GuideNPCController 반환.
-        /// 컴포넌트가 없는 raw FBX 오브젝트에도 자동으로 컴포넌트를 추가·연결한다.
+        /// 가이드 NPC 를 생성하고 준비되면 <paramref name="onReady"/> 로 GuideNPCController 를 돌려준다.
+        /// 실패 시 onReady(null).
         /// </summary>
-        public GuideNPCController SpawnGuide(SessionData session)
+        public void SpawnGuide(SessionData session, Action<GuideNPCController> onReady)
         {
             if (_guideInstance != null) Destroy(_guideInstance);
 
             var pos = guideSpawnPoint != null ? guideSpawnPoint.position : Vector3.zero;
             var rot = guideSpawnPoint != null ? guideSpawnPoint.rotation : Quaternion.identity;
 
-            var go = CreateCharacterObject(session.assets?.character, pos, rot, "Guide");
-            if (go == null) return null;
-
-            _guideInstance = go;
-            return SetupAsGuide(go, session);
+            CreateCharacterObject(session.assets?.character, pos, rot, "Guide", go =>
+            {
+                if (go == null) { onReady?.Invoke(null); return; }
+                _guideInstance = go;
+                onReady?.Invoke(SetupAsGuide(go, session));
+            });
         }
 
         /// <summary>
-        /// 광장 배치 캐릭터 생성 후 PlacedCharacterController 반환.
-        /// 컴포넌트가 없는 raw FBX 오브젝트에도 자동으로 컴포넌트를 추가·연결한다.
+        /// 광장 배치 캐릭터를 생성하고 준비되면 <paramref name="onReady"/> 로 PlacedCharacterController 를 돌려준다.
+        /// 실패 시 onReady(null).
         /// </summary>
-        public PlacedCharacterController SpawnPlaced(SessionData session)
+        public void SpawnPlaced(SessionData session, Action<PlacedCharacterController> onReady)
         {
             if (_placedInstance != null) Destroy(_placedInstance);
 
             var pos = placedSpawnPoint != null ? placedSpawnPoint.position : new Vector3(2f, 0f, 0f);
             var rot = placedSpawnPoint != null ? placedSpawnPoint.rotation : Quaternion.identity;
 
-            var go = CreateCharacterObject(session.assets?.character, pos, rot, "Placed");
-            if (go == null) return null;
-
-            _placedInstance = go;
-            return SetupAsPlaced(go, session);
+            CreateCharacterObject(session.assets?.character, pos, rot, "Placed", go =>
+            {
+                if (go == null) { onReady?.Invoke(null); return; }
+                _placedInstance = go;
+                onReady?.Invoke(SetupAsPlaced(go, session));
+            });
         }
 
         // ════════════════════════════════════════════════════════════
-        // 컴포넌트 자동 주입
+        // 컴포넌트 자동 주입 (Mock·Server 공통 합류 지점)
         // ════════════════════════════════════════════════════════════
 
         private GuideNPCController SetupAsGuide(GameObject go, SessionData session)
@@ -114,6 +117,8 @@ namespace LegoTwin.Character
             if (npc.Animation == null)
                 npc.Animation = anim;
 
+            // npcName·말풍선 + texture_url(PBR GLB) 머티리얼 적용 (Server 모드)
+            anim.Initialize(session.assets?.character, session.bubble_text);
             npc.Initialize(session);
 
             if (guideArrivalPoint != null)
@@ -123,7 +128,6 @@ namespace LegoTwin.Character
             if (playerTeleportPoint != null)
                 npc.playerTeleportPoint = playerTeleportPoint;
 
-            Debug.Log($"[CharacterSpawner] Guide 설정 완료: {session.character_npc_name}");
             return npc;
         }
 
@@ -139,26 +143,38 @@ namespace LegoTwin.Character
 
             anim.Initialize(session.assets?.character, session.bubble_text);
 
-            Debug.Log($"[CharacterSpawner] Placed 설정 완료: {session.character_npc_name}");
             return placed;
         }
 
         // ════════════════════════════════════════════════════════════
-        // 오브젝트 생성 (Mock / Server 분기)
+        // 오브젝트 생성 (Mock / Server 분기) — 콜백으로 GameObject 반환
         // ════════════════════════════════════════════════════════════
 
-        private GameObject CreateCharacterObject(
-            CharacterAssetData data, Vector3 pos, Quaternion rot, string role)
+        /// <summary>
+        /// CharacterAssetData 로 캐릭터 GameObject 를 만든다.
+        ///   model_url 있음 → Server (TriLib FBX 비동기 로드)
+        ///   model_url 없음 → Mock  (프리팹 즉시 Instantiate)
+        /// 준비되면 onCreated(go), 실패 시 onCreated(null).
+        /// </summary>
+        private void CreateCharacterObject(
+            CharacterAssetData data, Vector3 pos, Quaternion rot, string role,
+            Action<GameObject> onCreated)
         {
             if (data == null)
             {
                 Debug.LogWarning($"[CharacterSpawner] CharacterAssetData 없음 ({role})");
-                return null;
+                onCreated?.Invoke(null);
+                return;
             }
 
             if (!string.IsNullOrEmpty(data.model_url))
-                return LoadFromServer(data, pos, rot, role);
+                LoadFromServer(data, pos, rot, role, onCreated);
+            else
+                onCreated?.Invoke(InstantiateMock(pos, rot, role));
+        }
 
+        private GameObject InstantiateMock(Vector3 pos, Quaternion rot, string role)
+        {
             if (mockCharacterPrefab == null)
             {
                 Debug.LogWarning($"[CharacterSpawner] mockCharacterPrefab 없음 ({role}). " +
@@ -169,22 +185,31 @@ namespace LegoTwin.Character
             var go = Instantiate(mockCharacterPrefab, pos, rot);
             go.name = $"Character_{role}";
             go.transform.localScale = Vector3.one * spawnScale;
-            Debug.Log($"[CharacterSpawner] Mock 생성 ({role}): {data.npc_name} / scale: {spawnScale}");
             return go;
         }
 
-        private GameObject LoadFromServer(
-            CharacterAssetData data, Vector3 pos, Quaternion rot, string role)
+        /// <summary>
+        /// Server 모드 — TriLib 으로 리깅 FBX 를 런타임 로드한다.
+        /// 빈 컨테이너를 먼저 만들어 위치·스케일을 잡고, 그 아래에 모델을 임포트한다.
+        /// 로드 실패 시 mockCharacterPrefab 으로 폴백한다.
+        /// </summary>
+        private void LoadFromServer(
+            CharacterAssetData data, Vector3 pos, Quaternion rot, string role,
+            Action<GameObject> onCreated)
         {
-            // TODO: TriLib 또는 glTFast 로 FBX/GLB 런타임 로드 후 SetupAsGuide/SetupAsPlaced 호출
-            Debug.Log($"[CharacterSpawner] Server Mode ({role}): {data.model_url} — TODO: TriLib 연동");
+            var wrapper = new GameObject($"Character_{role}");
+            wrapper.transform.SetPositionAndRotation(pos, rot);
+            wrapper.transform.localScale = Vector3.one * spawnScale;
 
-            if (mockCharacterPrefab == null) return null;
-
-            var fallback = Instantiate(mockCharacterPrefab, pos, rot);
-            fallback.name = $"Character_{role}_ServerFallback";
-            fallback.transform.localScale = Vector3.one * spawnScale;
-            return fallback;
+            TripoFbxLoader.Load(
+                data.model_url, wrapper,
+                onLoaded: () => onCreated?.Invoke(wrapper),
+                onError: msg =>
+                {
+                    Debug.LogWarning($"[CharacterSpawner] 서버 FBX 로드 실패({role}): {msg} → Mock 폴백");
+                    Destroy(wrapper);
+                    onCreated?.Invoke(InstantiateMock(pos, rot, role));
+                });
         }
 
         // ════════════════════════════════════════════════════════════
@@ -199,7 +224,6 @@ namespace LegoTwin.Character
             if (animator == null || animator.runtimeAnimatorController != null) return;
 
             animator.runtimeAnimatorController = animatorController;
-            Debug.Log($"[CharacterSpawner] Animator Controller 자동 연결: {go.name}");
         }
 
         private static T GetOrAdd<T>(GameObject go) where T : Component

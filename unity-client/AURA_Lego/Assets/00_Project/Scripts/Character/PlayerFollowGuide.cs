@@ -38,7 +38,6 @@ namespace LegoTwin.Character
             _target      = npc.transform;
             _isFollowing = true;
             npc.OnGuideFinished += StopFollowing;
-            Debug.Log("[PlayerFollowGuide] 거리 유지 시작");
         }
 
         /// <summary>거리 유지 중단 (OnGuideFinished에 자동 연결됨).</summary>
@@ -46,7 +45,6 @@ namespace LegoTwin.Character
         {
             _isFollowing = false;
             _target      = null;
-            Debug.Log("[PlayerFollowGuide] 거리 유지 종료");
         }
 
         // ════════════════════════════════════════════════════════════

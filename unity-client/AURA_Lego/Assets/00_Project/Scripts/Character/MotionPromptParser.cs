@@ -93,13 +93,9 @@ namespace LegoTwin.Character
             foreach (var (keyword, motion) in _keywordMap)
             {
                 if (lower.Contains(keyword))
-                {
-                    Debug.Log($"[MotionPromptParser] '{input}' → {motion}");
                     return motion;
-                }
             }
 
-            Debug.Log($"[MotionPromptParser] '{input}' → 매칭 없음, Idle 반환");
             return MotionType.Idle;
         }
     }
