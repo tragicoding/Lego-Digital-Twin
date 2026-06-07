@@ -5,6 +5,7 @@
   "bubble_text": "MINIVERSE에 온 걸 환영해!",
   "likes": 0,
   "ready_for_unity": true,
+  "signature_motion": "",
   "assets": {
     "character": {
       "asset_id": "mock_character_001",

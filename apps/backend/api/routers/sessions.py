@@ -19,7 +19,7 @@ from redis import Redis
 from ...core.config import REDIS_URL, RQ_QUEUE_CHARACTER, RQ_QUEUE_OBJECT
 from ...core.database import get_db
 from ...models.session import Session
-from ...schemas.session import SessionCreateResponse, ProfileUpdate, SessionResponse
+from ...schemas.session import SessionCreateResponse, ProfileUpdate, SessionResponse, SignatureMotionUpdate
 from ...schemas.unity import LikeResponse
 from ...services.event_service import UNITY_QUEUE_KEY
 
@@ -81,6 +81,11 @@ def update_profile(
         session.favorite_theme = body.favorite_theme
 
     db.commit()
+
+    # Worker가 profile 설정 전에 완료된 경우를 대비해 재확인
+    from ...services.event_service import check_and_notify
+    check_and_notify(session_id)
+
     return {"status": "ok", "session_id": session_id}
 
 
@@ -124,6 +129,21 @@ def remove_from_unity_queue(session_id: str):
     if removed_count == 0:
         raise HTTPException(404, "큐에서 해당 세션을 찾을 수 없습니다.")
     return {"status": "ok", "removed": session_id}
+
+
+@router.patch("/{session_id}/signature-motion")
+def update_signature_motion(
+    session_id: str,
+    body: SignatureMotionUpdate,
+    db: DBSession = Depends(get_db),
+):
+    """Unity 가이드 모드 종료 시 관람객이 선택한 시그니처 동작 저장."""
+    session = db.get(Session, session_id)
+    if not session:
+        raise HTTPException(404, "세션을 찾을 수 없습니다.")
+    session.signature_motion = body.signature_motion
+    db.commit()
+    return {"status": "ok", "session_id": session_id, "signature_motion": body.signature_motion}
 
 
 @router.get("/{session_id}", response_model=SessionResponse)

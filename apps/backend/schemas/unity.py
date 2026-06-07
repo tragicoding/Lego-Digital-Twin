@@ -24,6 +24,7 @@ class UnitySessionResponse(BaseModel):
     character_npc_name: Optional[str]
     object_name: Optional[str]
     bubble_text: Optional[str]
+    signature_motion: Optional[str] = None
     likes: int = 0
     ready_for_unity: bool
     assets: dict  # character / object
@@ -47,6 +48,7 @@ class PlazaSessionData(BaseModel):
     session_id: str
     character_npc_name: Optional[str]
     bubble_text: Optional[str]
+    signature_motion: Optional[str] = None
     likes: int = 0
     is_top_liked: bool = False   # 좋아요 1위 여부 (별 표시용)
     assets: dict                 # character / object

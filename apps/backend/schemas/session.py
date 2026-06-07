@@ -16,6 +16,10 @@ class ProfileUpdate(BaseModel):
     favorite_theme: Optional[str] = None
 
 
+class SignatureMotionUpdate(BaseModel):
+    signature_motion: str
+
+
 class SessionResponse(BaseModel):
     session_id: str
     nickname: Optional[str]

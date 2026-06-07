@@ -13,6 +13,7 @@ class Session(Base):
     phone: Mapped[str | None] = mapped_column(String(20))
     bubble_text: Mapped[str | None] = mapped_column(String(200))
     favorite_theme: Mapped[str | None] = mapped_column(String(50))
+    signature_motion: Mapped[str | None] = mapped_column(String(50))
     likes: Mapped[int] = mapped_column(Integer, default=0)
     status: Mapped[str] = mapped_column(String(20), default="active")
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
