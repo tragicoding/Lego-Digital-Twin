@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using LegoTwin.Data;
 using LegoTwin.Mock;
 using LegoTwin.Network;
@@ -52,7 +53,51 @@ namespace LegoTwin.Managers
 
         private void Start()
         {
-            LoadSession(sessionId);
+            // Server Mode이고 Inspector에 sessionId가 비어 있으면 큐에서 자동 감지
+            if (dataSourceMode == DataSourceMode.Server && string.IsNullOrEmpty(sessionId))
+                StartCoroutine(AutoDetectAndLoad());
+            else
+                LoadSession(sessionId);
+        }
+
+        private IEnumerator AutoDetectAndLoad()
+        {
+            if (_apiClient == null)
+            {
+                Debug.LogError("[SessionManager] ApiClient 없음 — 씬에 ApiClient를 추가하세요.");
+                yield break;
+            }
+
+            string sid = null;
+            yield return _apiClient.FetchActiveSession(s => sid = s);
+
+            if (!string.IsNullOrEmpty(sid))
+            {
+                sessionId = sid;
+                LoadSession(sid);
+            }
+            else
+            {
+                Debug.LogWarning("[SessionManager] 대기 큐 비어있음 — 다음 세션 대기 중...");
+                StartCoroutine(PollForNextSession());
+            }
+        }
+
+        // 큐에 다음 세션이 생길 때까지 5초마다 폴링
+        private IEnumerator PollForNextSession(float interval = 5f)
+        {
+            while (true)
+            {
+                yield return new WaitForSeconds(interval);
+                string sid = null;
+                yield return _apiClient.FetchActiveSession(s => sid = s);
+                if (!string.IsNullOrEmpty(sid))
+                {
+                    sessionId = sid;
+                    LoadSession(sid);
+                    yield break;
+                }
+            }
         }
 
         /// <summary>현재 모드에 따라 세션 데이터를 로드한다.</summary>
@@ -117,5 +162,49 @@ namespace LegoTwin.Managers
             if (dataSourceMode == DataSourceMode.Server && _apiClient != null)
                 StartCoroutine(_apiClient.SaveSignatureMotion(CurrentSession.session_id, motionTypeName));
         }
+
+        // ════════════════════════════════════════════════════════════
+        // 종료 — 큐 전진 + 다음 세션 로드
+        // ════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// 종료 버튼 호출 진입점.
+        /// Mock: plaza 저장 후 씬 리로드.
+        /// Server: 큐 전진 → 다음 세션 있으면 씬 리로드, 없으면 onNoNext 호출(앱 종료 등).
+        /// </summary>
+        public void AdvanceAndLoadNext(Action onNoNext = null)
+        {
+            if (dataSourceMode == DataSourceMode.Mock)
+            {
+                LegoTwin.Plaza.PlazaManager.Instance?.SaveCurrentSessionToMockPlaza();
+                ReloadScene();
+                return;
+            }
+            StartCoroutine(AdvanceAndLoadNextCoroutine(onNoNext));
+        }
+
+        private IEnumerator AdvanceAndLoadNextCoroutine(Action onNoNext)
+        {
+            if (_apiClient == null) { onNoNext?.Invoke(); yield break; }
+
+            string nextSid = null;
+            yield return _apiClient.AdvanceQueue(s => nextSid = s);
+
+            if (!string.IsNullOrEmpty(nextSid))
+            {
+                // 다음 사용자 세션으로 전환 — 씬 리로드로 오브젝트 초기화
+                sessionId      = nextSid;
+                CurrentSession = null;
+                LoadSession(nextSid, _ => ReloadScene());
+            }
+            else
+            {
+                // 대기 큐 비어있음 → 호출부가 앱 종료 등 처리
+                onNoNext?.Invoke();
+            }
+        }
+
+        private static void ReloadScene() =>
+            SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 }
