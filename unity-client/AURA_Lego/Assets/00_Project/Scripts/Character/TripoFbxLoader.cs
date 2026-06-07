@@ -11,6 +11,7 @@ using TriLibCore.Mappers;
 using HumanLimit = TriLibCore.General.HumanLimit;
 #endif
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace LegoTwin.Character
@@ -70,10 +71,11 @@ namespace LegoTwin.Character
 
             var mapper = ScriptableObject.CreateInstance<ByNameHumanoidAvatarMapper>();
             mapper.CaseInsensitive = true;
+            var limit = new HumanLimit { useDefaultValues = true };
             foreach (var (bone, names) in TripoBoneMap)
-                mapper.AddMapping(bone, new HumanLimit(), names);
+                mapper.AddMapping(bone, limit, names);
 
-            _options = AssetLoader.CreateDefaultLoaderOptions();
+            _options = AssetLoader.CreateDefaultLoaderOptions(supressWarning: true);
             _options.AnimationType        = AnimationType.Humanoid;
             _options.AvatarDefinition     = AvatarDefinitionType.CreateFromThisModel;
             _options.HumanoidAvatarMapper = mapper;
@@ -98,7 +100,12 @@ namespace LegoTwin.Character
             AssetDownloader.LoadModelFromUri(
                 request,
                 onLoad: null,
-                onMaterialsLoad: _ => onLoaded?.Invoke(),
+                onMaterialsLoad: _ =>
+                {
+                    PostProcessLoadedHierarchy(wrapper);
+                    EnsureHumanoidAvatar(wrapper);
+                    onLoaded?.Invoke();
+                },
                 onProgress: null,
                 onError: err => onError?.Invoke(err?.GetInnerException()?.Message ?? "TriLib 로드 실패"),
                 wrapperGameObject: wrapper,
@@ -111,5 +118,156 @@ namespace LegoTwin.Character
             onError?.Invoke("TriLib 미설치");
 #endif
         }
+
+#if TRILIB
+        /// <summary>
+        /// TriLib 가 만든 계층에서 스킨 메시 중심으로 정리한다.
+        /// Tripo FBX 에서 가끔 보이는 중복/조각 렌더러를 억제해
+        /// "정상 캐릭터 1개 + 반쪽 캐릭터 2개" 증상을 완화한다.
+        /// </summary>
+        private static void PostProcessLoadedHierarchy(GameObject wrapper)
+        {
+            if (wrapper == null) return;
+
+            DisableStaticRenderersIfSkinnedExists(wrapper);
+            DisableFragmentedSkinnedMeshes(wrapper);
+            LogLoadedRenderers(wrapper);
+        }
+
+        private static void DisableStaticRenderersIfSkinnedExists(GameObject wrapper)
+        {
+            var skinned = wrapper.GetComponentsInChildren<SkinnedMeshRenderer>(true);
+            if (skinned.Length == 0) return;
+
+            foreach (var renderer in wrapper.GetComponentsInChildren<MeshRenderer>(true))
+                renderer.enabled = false;
+        }
+
+        private static void DisableFragmentedSkinnedMeshes(GameObject wrapper)
+        {
+            var renderers = wrapper.GetComponentsInChildren<SkinnedMeshRenderer>(true);
+            if (renderers.Length < 3) return;
+
+            var primary = FindPrimaryRenderer(renderers);
+            if (primary == null) return;
+
+            int primaryVertices = GetVertexCount(primary);
+            if (primaryVertices <= 0) return;
+
+            var disabledNames = new List<string>();
+            foreach (var candidate in renderers)
+            {
+                if (candidate == null || candidate == primary) continue;
+                if (!ShouldCullAsFragment(primary, candidate, primaryVertices)) continue;
+
+                candidate.enabled = false;
+                disabledNames.Add(candidate.name);
+            }
+
+            if (disabledNames.Count > 0)
+            {
+                Debug.LogWarning(
+                    $"[TripoFbxLoader] 중복/조각 스킨 메시 비활성화: {string.Join(", ", disabledNames)}");
+            }
+        }
+
+        private static SkinnedMeshRenderer FindPrimaryRenderer(SkinnedMeshRenderer[] renderers)
+        {
+            SkinnedMeshRenderer best = null;
+            int bestVertices = -1;
+
+            foreach (var renderer in renderers)
+            {
+                int vertices = GetVertexCount(renderer);
+                if (vertices <= bestVertices) continue;
+                best = renderer;
+                bestVertices = vertices;
+            }
+
+            return best;
+        }
+
+        private static int GetVertexCount(SkinnedMeshRenderer renderer)
+        {
+            return renderer != null && renderer.sharedMesh != null
+                ? renderer.sharedMesh.vertexCount
+                : 0;
+        }
+
+        private static bool ShouldCullAsFragment(
+            SkinnedMeshRenderer primary,
+            SkinnedMeshRenderer candidate,
+            int primaryVertices)
+        {
+            int candidateVertices = GetVertexCount(candidate);
+            if (candidateVertices <= 0) return false;
+
+            bool similarSkeleton =
+                (primary.rootBone == null && candidate.rootBone == null) ||
+                primary.rootBone == candidate.rootBone;
+
+            if (!similarSkeleton) return false;
+            if (candidateVertices > primaryVertices * 0.65f) return false;
+
+            float overlap = BoundsOverlapRatio(primary.bounds, candidate.bounds);
+            float sizeRatio = SafeDivide(candidate.bounds.size.magnitude, primary.bounds.size.magnitude);
+            bool centeredNearPrimary =
+                Vector3.Distance(primary.bounds.center, candidate.bounds.center) <=
+                primary.bounds.extents.magnitude * 0.35f;
+
+            return overlap >= 0.55f && sizeRatio >= 0.35f && centeredNearPrimary;
+        }
+
+        private static float BoundsOverlapRatio(Bounds a, Bounds b)
+        {
+            Vector3 min = Vector3.Max(a.min, b.min);
+            Vector3 max = Vector3.Min(a.max, b.max);
+            Vector3 size = max - min;
+            if (size.x <= 0f || size.y <= 0f || size.z <= 0f) return 0f;
+
+            float intersection = size.x * size.y * size.z;
+            float bVolume = b.size.x * b.size.y * b.size.z;
+            return SafeDivide(intersection, bVolume);
+        }
+
+        private static float SafeDivide(float numerator, float denominator)
+        {
+            return denominator > 0f ? numerator / denominator : 0f;
+        }
+
+        private static void EnsureHumanoidAvatar(GameObject wrapper)
+        {
+            var animator = wrapper.GetComponentInChildren<Animator>(true);
+            if (animator == null) return;
+
+            var avatar = animator.avatar;
+            if (avatar != null && avatar.isValid && avatar.isHuman) return;
+
+            if (HumanoidAvatarBuilder.Build(animator.gameObject))
+            {
+                Debug.LogWarning(
+                    $"[TripoFbxLoader] TriLib Avatar 비정상 → HumanoidAvatarBuilder fallback 적용: {animator.gameObject.name}");
+            }
+        }
+
+        private static void LogLoadedRenderers(GameObject wrapper)
+        {
+            var renderers = wrapper.GetComponentsInChildren<SkinnedMeshRenderer>(true);
+            if (renderers.Length == 0)
+            {
+                Debug.LogWarning($"[TripoFbxLoader] SkinnedMeshRenderer 없음: {wrapper.name}");
+                return;
+            }
+
+            var parts = new List<string>(renderers.Length);
+            foreach (var renderer in renderers)
+            {
+                parts.Add(
+                    $"{renderer.name}(verts={GetVertexCount(renderer)}, enabled={renderer.enabled}, rootBone={renderer.rootBone?.name ?? "null"})");
+            }
+
+            Debug.Log($"[TripoFbxLoader] 로드된 스킨 메시 {renderers.Length}개 — {string.Join(" | ", parts)}");
+        }
+#endif
     }
 }

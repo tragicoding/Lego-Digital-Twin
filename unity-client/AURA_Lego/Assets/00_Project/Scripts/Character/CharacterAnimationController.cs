@@ -233,10 +233,11 @@ namespace LegoTwin.Character
             var srcRenderer = container.GetComponentInChildren<Renderer>();
             if (srcRenderer != null && srcRenderer.sharedMaterials.Length > 0)
             {
-                var dstRenderer = GetComponentInChildren<SkinnedMeshRenderer>();
-                if (dstRenderer != null)
+                var dstRenderers = GetComponentsInChildren<SkinnedMeshRenderer>(true);
+                if (dstRenderers.Length > 0)
                 {
-                    dstRenderer.materials = srcRenderer.sharedMaterials;
+                    foreach (var dstRenderer in dstRenderers)
+                        dstRenderer.materials = srcRenderer.sharedMaterials;
                 }
                 else
                 {
