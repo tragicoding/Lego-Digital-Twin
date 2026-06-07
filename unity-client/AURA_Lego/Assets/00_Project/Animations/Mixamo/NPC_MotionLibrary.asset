@@ -15,23 +15,36 @@ MonoBehaviour:
   _entries:
   - motionType: 1
     clip: {fileID: 7400000, guid: 55a7484b3ec68d04382d2077aeaaf63e, type: 2}
+    variations:
+    - {fileID: 7400000, guid: e4f865346dfddd6429ac164412a42ad8, type: 2}
+    - {fileID: 7400000, guid: e0194dd589943704798f80ae0cd07520, type: 2}
   - motionType: 2
     clip: {fileID: 7400000, guid: 38611fcec6a16174c8cf13f5ec1a326a, type: 2}
+    variations: []
   - motionType: 3
     clip: {fileID: 7400000, guid: 1cdcc8a97d196144186a9126f49f7a33, type: 2}
+    variations: []
   - motionType: 4
     clip: {fileID: 7400000, guid: 1a93a417dc4fa044f80608aacfd93b66, type: 2}
+    variations: []
   - motionType: 5
     clip: {fileID: 7400000, guid: de188254e3ce2fe409705ce193407334, type: 2}
+    variations: []
   - motionType: 6
     clip: {fileID: 7400000, guid: 39ff4b11ef299bf428c6aec9117aabf5, type: 2}
+    variations: []
   - motionType: 7
     clip: {fileID: 0}
+    variations: []
   - motionType: 8
     clip: {fileID: 0}
+    variations: []
+  - motionType: 9
+    clip: {fileID: 7400000, guid: 1f5b6577bb9ad5343be871afb5c1e27d, type: 2}
+    variations: []
   - motionType: 9
     clip: {fileID: 0}
-  - motionType: 9
-    clip: {fileID: 0}
+    variations: []
   - motionType: 10
     clip: {fileID: 7400000, guid: 05068961b3b368c4ea1290d32bb13d5e, type: 2}
+    variations: []

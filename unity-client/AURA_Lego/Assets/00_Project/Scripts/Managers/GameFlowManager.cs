@@ -342,8 +342,12 @@ namespace LegoTwin.Managers
 
         private void ApplySignatureMotion(string motionInput)
         {
-            var motionType = MotionPromptParser.Parse(motionInput);
-            SessionManager.Instance?.SetSignatureMotion(motionType.ToString());
+            // 관람객이 방금 본 "특정 클립"을 그대로 저장. 클립을 못 읽으면 MotionType 이름으로 폴백.
+            var clipName = _placedCharacter != null ? _placedCharacter.LastPromptClipName : null;
+            if (string.IsNullOrEmpty(clipName))
+                clipName = MotionPromptParser.Parse(motionInput).ToString();
+
+            SessionManager.Instance?.SetSignatureMotion(clipName);
         }
 
         // ════════════════════════════════════════════════════════════
