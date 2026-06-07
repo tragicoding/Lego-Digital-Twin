@@ -11,9 +11,46 @@ from sqlalchemy import desc
 from ...core.database import get_db
 from ...models.session import Session
 from ...models.asset import Asset
+from ...models.asset_animation import AssetAnimation
+from ...models.plaza_object import PlazaObject
 from ...schemas.unity import UnitySessionResponse, PlazaResponse, PlazaSessionData
 
 router = APIRouter(prefix="/unity", tags=["unity"])
+
+MAX_PLAZA_SESSIONS = 31
+PROTECTED_SESSIONS_COUNT = 8
+
+
+def _cleanup_plaza_sessions(db: DBSession, plaza_list: list) -> None:
+    """광장 세션 수가 MAX_PLAZA_SESSIONS(31)를 초과하면 오래된 세션을 삭제한다.
+    좋아요 상위 PROTECTED_SESSIONS_COUNT(8)개는 삭제 대상에서 제외된다."""
+    if len(plaza_list) <= MAX_PLAZA_SESSIONS:
+        return
+
+    protected_ids = {
+        item["session"].id
+        for item in sorted(plaza_list, key=lambda x: x["session"].likes or 0, reverse=True)[:PROTECTED_SESSIONS_COUNT]
+    }
+
+    removable = sorted(
+        [item for item in plaza_list if item["session"].id not in protected_ids],
+        key=lambda x: x["session"].created_at,
+    )
+
+    excess = len(plaza_list) - MAX_PLAZA_SESSIONS
+    deleted_ids = set()
+    for item in removable[:excess]:
+        session = item["session"]
+        deleted_ids.add(session.id)
+        asset_ids = [a.id for a in session.assets]
+        if asset_ids:
+            db.query(AssetAnimation).filter(AssetAnimation.asset_id.in_(asset_ids)).delete(synchronize_session=False)
+        db.query(PlazaObject).filter(PlazaObject.session_id == session.id).delete(synchronize_session=False)
+        db.query(Asset).filter(Asset.session_id == session.id).delete(synchronize_session=False)
+        db.delete(session)
+    db.commit()
+
+    plaza_list[:] = [item for item in plaza_list if item["session"].id not in deleted_ids]
 
 
 def _build_assets(session: Session) -> dict:
@@ -81,6 +118,9 @@ def get_plaza_sessions(db: DBSession = Depends(get_db)):
             "session": session,
             "assets": assets_out,
         })
+
+    # 31개 초과 시 오래된 비보호 세션 삭제 (상위 8개 보호)
+    _cleanup_plaza_sessions(db, plaza_list)
 
     # 좋아요 1위
     top_session_id = None
