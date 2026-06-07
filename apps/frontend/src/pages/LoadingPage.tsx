@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { getStatus } from "../api/client";
 import { useSessionStore } from "../store/sessionStore";
@@ -48,7 +49,8 @@ function ProgressCard({ label, emoji, asset }: { label: string; emoji: string; a
 }
 
 export default function LoadingPage() {
-  const { sessionId, characterNpcName, objectName } = useSessionStore();
+  const { sessionId, reset } = useSessionStore();
+  const navigate = useNavigate();
   const [assets, setAssets] = useState<Record<string, AssetStatus>>({});
   const [readyForUnity, setReadyForUnity] = useState(false);
 
@@ -63,10 +65,13 @@ export default function LoadingPage() {
     return () => clearInterval(poll);
   }, [sessionId]);
 
-  const charName = characterNpcName || "캐릭터";
-  const objName  = objectName || "오브제";
   const getAsset = (key: string) =>
     assets[key] ?? (key === "object" ? assets["building"] : undefined);
+
+  const handleRestart = () => {
+    reset();
+    navigate("/start");
+  };
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-6 py-10">
@@ -109,6 +114,12 @@ export default function LoadingPage() {
               >
                 VR 입장 준비 완료 ✓
               </div>
+              <button
+                onClick={handleRestart}
+                className="w-full py-4 rounded-2xl border-2 border-gray-200 text-gray-500 font-bold text-base"
+              >
+                새롭게 시작하기
+              </button>
             </motion.div>
           )}
         </AnimatePresence>
