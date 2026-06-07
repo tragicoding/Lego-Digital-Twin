@@ -170439,6 +170439,8 @@ MonoBehaviour:
   _freeModePopup: {fileID: 101938897}
   _motionPromptUI: {fileID: 222191949}
   _signatureConfirmUI: {fileID: 2062252933}
+  _enableGuideSkip: 1
+  _skipGuideKey: 289
 --- !u!4 &1749015621
 Transform:
   m_ObjectHideFlags: 0
