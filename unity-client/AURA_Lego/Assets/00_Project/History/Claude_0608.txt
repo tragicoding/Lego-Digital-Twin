@@ -136,6 +136,76 @@ Claude Code 작업 기록
 
 
 ────────────────────────────────────────────────────────────────
+[세션 5] (커밋) 진단 문서 + 모션(Cry·Dance) 분리 커밋
+────────────────────────────────────────────────────────────────
+
+  위 세션 1~3을 정리해 2개 논리 단위로 커밋(git.md 준수):
+    b9dacb8 docs(unity): 0608 작업 기록 추가 — Sing 보류, TriLib 리타게팅·서버 렉 진단
+    ee96161 feat(unity): Cry 모션 추가·Spin/Cheer 클립 연결·Dance 변형, 미인식 입력 Cry 폴백
+      (스크립트 4 + NPC_MotionLibrary.asset + Cheer/Cry/Dance4/Spin.anim)
+  에디터 실시간 편집분(Materials·npc_30 fbx·UI 프리팹·Main.unity·ProjectSettings·
+  Logs 등)은 무관 단위라 제외.
+
+
+────────────────────────────────────────────────────────────────
+[세션 6] MapTeleport(지도 텔레포트) 기능 마무리
+────────────────────────────────────────────────────────────────
+
+## 시작 상태 점검
+  PlayerTeleporter.cs / MapTeleportUI.cs 가 이미 존재(거의 완성).
+  씬에 MapTeleportUI 컴포넌트 배치·필드 연결됨, _destinations 만 비어 있었음.
+  GameFlowManager 는 텔레포트를 PlayerTeleporter.Teleport(CC-safe)에 위임 중.
+
+## (1) 버튼 자유 배치 — Layout Group 제거 (MapTeleportUI.cs)
+  요청: 목적지 버튼을 Grid/Vertical Layout Group 없이 자유 배치하고 싶음.
+  변경: "프리팹 런타임 생성(Instantiate)+컨테이너 자동 배열" →
+        "씬에 직접 배치한 버튼을 목적지에 1:1 배선" 방식.
+    - Destination 구조체: { string label, Transform point }
+                       → { Button button, Transform point }
+    - _buttonContainer / _destinationButtonPrefab 필드 제거(불필요)
+    - BuildDestinationButtons() → WireDestinationButtons() (onClick 연결만)
+    - TMP 라벨 자동 세팅 제거(버튼 텍스트는 씬에서 직접)
+    - 등록 핸들러를 (Button, UnityAction)로 보관 → OnDestroy 에서 등록분만 해제
+      (인스펙터에서 단 다른 onClick 보존)
+  → Button.prefab 은 자동 생성용이 아니라 "수동 배치 템플릿"으로 의미 변경.
+
+## (2) MapButton 열림 표시 색 토글 (MapTeleportUI.cs)
+  요청: 패널이 켜져 있으면 MapButton 색이 바뀌고, 다시 눌러 닫히면 원래 색.
+  구현(Unity Button 표준):
+    - Awake 에서 원래 ColorBlock 캡처 → 열림용(normal·selected 를 _openColor 로) 변형 생성
+    - SetOpen()이 _mapButton.colors 를 열림/닫힘으로 교체
+    - colors 교체는 다음 상태전이까지 반영 늦음 → targetGraphic.color 에 즉시 1회 직접 적용
+    - hover/press 색은 원래 값 유지(클릭 피드백 보존)
+    - 인스펙터 필드 _openColor(기본 밝은 파랑) 추가
+  ※ 토글 자체(ToggleMap=SetOpen(!_open))는 이미 구현돼 "다시 누르면 닫힘"은 정상.
+    안 닫히면 열린 패널이 MapButton 을 덮어 Raycast 가로채는 씬 문제(패널 배경
+    Raycast Target 해제 / 버튼을 위로 / 클릭-아웃사이드 등으로 해결) — 안내만 함.
+
+## (3) 자유 모드 진입 시 MapTeleportUI·QuitUI 활성화 (GameFlowManager.cs)
+  - UI 필드 추가: _mapTeleportUI, _quitUI (GameObject)
+  - OnFreeModeSwitched(): 자유 모드 진입 시 두 UI SetActive(true)
+    (정상 Step 5 이벤트 + 디버그 스킵 경로 양쪽에서 호출됨)
+  - Start() 맨 앞: 두 UI SetActive(false) → 인스펙터에서 끄지 않아도 자동 비활성화,
+    자유 모드 전까지 숨김. (null 가드로 미연결 시 무시)
+  → 인스펙터에선 두 필드 "연결"만 하면 됨(비활성 수동 설정 불필요).
+
+## 검증
+  IDE 진단(MapTeleportUI.cs / GameFlowManager.cs) 오류·경고 0건.
+
+## 변경 파일
+  신규: Scripts/Core/PlayerTeleporter.cs (+ .meta)
+        Scripts/UI/MapTeleportUI.cs (+ .meta)
+        Prefabs/UI/Button.prefab (+ .meta)  — 수동 배치 버튼 템플릿
+  수정: Scripts/Managers/GameFlowManager.cs
+        (PlayerTeleporter 위임 + 자유모드 UI 활성/시작 시 비활성)
+
+## 남은 인스펙터 작업(코드 아님)
+  - MapTeleportUI._destinations 에 (배치한 Button + 목표 Transform) 등록
+  - GameFlowManager._mapTeleportUI / _quitUI 에 각 UI GameObject 연결
+  - (씬 Main.unity 저장·커밋은 무관 편집분과 분리되어 추후 별도 정리)
+
+
+────────────────────────────────────────────────────────────────
 [미해결 / 추후 작업]
 ────────────────────────────────────────────────────────────────
 

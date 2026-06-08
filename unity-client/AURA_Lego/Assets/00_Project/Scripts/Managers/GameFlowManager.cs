@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using LegoTwin.Core;
 using LegoTwin.Data;
 using LegoTwin.Character;
 using LegoTwin.Object;
@@ -54,6 +55,12 @@ namespace LegoTwin.Managers
         [Tooltip("시그니처 동작 설정 확인 UI — SignatureMotionConfirmUI 컴포넌트가 붙은 GameObject 연결")]
         [SerializeField] private SignatureMotionConfirmUI _signatureConfirmUI;
 
+        [Tooltip("지도 텔레포트 UI GameObject. 시작 시 자동 비활성화 → 자유 모드 진입 시 활성화")]
+        [SerializeField] private GameObject _mapTeleportUI;
+
+        [Tooltip("종료 UI GameObject. 시작 시 자동 비활성화 → 자유 모드 진입 시 활성화")]
+        [SerializeField] private GameObject _quitUI;
+
         [Header("디버그")]
         [Tooltip("체크 시 지정 키로 가이드 모드를 즉시 스킵. 전시 빌드에서는 해제 권장.")]
         [SerializeField] private bool _enableGuideSkip = true;
@@ -79,6 +86,11 @@ namespace LegoTwin.Managers
 
         private void Start()
         {
+            // 자유 모드 진입 전까지 지도/종료 UI 숨김 — 인스펙터에서 끄지 않아도 자동 비활성화.
+            // (OnFreeModeSwitched 에서 다시 활성화됨)
+            if (_mapTeleportUI != null) _mapTeleportUI.SetActive(false);
+            if (_quitUI != null)        _quitUI.SetActive(false);
+
             if (SessionManager.Instance == null)
             {
                 Debug.LogError("[GameFlowManager] SessionManager 인스턴스를 찾을 수 없습니다. " +
@@ -203,6 +215,10 @@ namespace LegoTwin.Managers
         private void OnFreeModeSwitched()
         {
             _freeModePopup?.Show();   // 페이드 인 → displayDuration 대기 → 페이드 아웃 자동 실행
+
+            // 자유 모드 진입 시 지도/종료 UI 활성화 (가이드 중에는 비활성으로 시작)
+            if (_mapTeleportUI != null) _mapTeleportUI.SetActive(true);
+            if (_quitUI != null)        _quitUI.SetActive(true);
         }
 
         /// <summary>
@@ -282,21 +298,8 @@ namespace LegoTwin.Managers
                 Debug.LogWarning("[GameFlowManager] _playerFollowGuide 미연결 — 플레이어 순간이동 생략");
                 return;
             }
-            var t = _playerFollowGuide.transform;
-
-            // CharacterController가 활성 상태면 직접 position 변경과 충돌(이후 Move가 제자리에 묶임).
-            // 끄고 → 위치 설정 → 다시 켜서 내부 위치까지 동기화.
-            var cc = t.GetComponent<CharacterController>() ?? t.GetComponentInChildren<CharacterController>();
-            if (cc != null && cc.enabled)
-            {
-                cc.enabled = false;
-                t.position = destination;
-                cc.enabled = true;
-            }
-            else
-            {
-                t.position = destination;
-            }
+            // CC-safe 텔레포트는 공용 유틸에 위임 (지도 UI 등과 동일 로직 공유).
+            PlayerTeleporter.Teleport(_playerFollowGuide.transform, destination);
         }
 
         /// <summary>
