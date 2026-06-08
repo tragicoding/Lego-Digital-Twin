@@ -135,6 +135,14 @@ namespace LegoTwin.Managers
                 Debug.LogError("[SessionManager] SessionData 로드 실패");
                 return;
             }
+
+            // object_name / bubble_text 는 전시 흐름상 같은 의미로 사용한다.
+            // 레거시/서버 응답 차이를 흡수해 Unity 내부에서는 두 필드가 항상 동기화되게 맞춘다.
+            if (string.IsNullOrEmpty(data.bubble_text) && !string.IsNullOrEmpty(data.object_name))
+                data.bubble_text = data.object_name;
+            if (string.IsNullOrEmpty(data.object_name) && !string.IsNullOrEmpty(data.bubble_text))
+                data.object_name = data.bubble_text;
+
             CurrentSession = data;
             onLoaded?.Invoke(data);
             OnSessionLoaded?.Invoke(data);
@@ -162,6 +170,26 @@ namespace LegoTwin.Managers
 
             if (dataSourceMode == DataSourceMode.Server && _apiClient != null)
                 StartCoroutine(_apiClient.SaveSignatureMotion(CurrentSession.session_id, signatureClipName));
+        }
+
+        /// <summary>
+        /// 현재 세션의 bubble_text/object_name 을 함께 갱신한다.
+        /// Mock: 메모리에만 반영.
+        /// Server: 메모리 반영 + PATCH /sessions/{id}/profile API 호출.
+        /// </summary>
+        public void SetBubbleText(string bubbleText)
+        {
+            if (CurrentSession == null)
+            {
+                Debug.LogWarning("[SessionManager] bubble_text 저장 실패 — 현재 세션 없음");
+                return;
+            }
+
+            CurrentSession.bubble_text = bubbleText;
+            CurrentSession.object_name = bubbleText;
+
+            if (dataSourceMode == DataSourceMode.Server && _apiClient != null)
+                StartCoroutine(_apiClient.UpdateBubbleText(CurrentSession.session_id, bubbleText));
         }
 
         // ════════════════════════════════════════════════════════════

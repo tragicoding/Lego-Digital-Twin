@@ -83,6 +83,8 @@ def get_unity_session(session_id: str, db: DBSession = Depends(get_db)):
     session = db.get(Session, session_id)
     if not session:
         raise HTTPException(404, "세션을 찾을 수 없습니다.")
+    if session.status == "cancelled":
+        raise HTTPException(410, "취소된 세션입니다.")
 
     assets_out = _build_assets(session)
     all_completed = all(a.status == "completed" for a in session.assets) if session.assets else False
@@ -108,7 +110,10 @@ def get_plaza_sessions(db: DBSession = Depends(get_db)):
     좋아요 1위 세션에 is_top_liked=True, top_session_id 포함.
     """
     # 완료된 에셋을 가진 세션만
-    sessions = db.query(Session).filter(Session.nickname.isnot(None)).all()
+    sessions = db.query(Session).filter(
+        Session.nickname.isnot(None),
+        Session.status != "cancelled",
+    ).all()
 
     plaza_list = []
     for session in sessions:

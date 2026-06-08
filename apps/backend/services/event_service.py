@@ -62,6 +62,8 @@ def check_and_notify(session_id: str):
         session = db.get(Session, session_id)
         if not session or not session.nickname:
             return
+        if session.status == "cancelled":
+            return
         if not session.assets:
             return
         if all(a.status == "completed" for a in session.assets):

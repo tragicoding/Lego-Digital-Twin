@@ -90,3 +90,27 @@ GET /sessions/{sessionId}/status
 */
 export const getStatus = (sessionId: string) =>
   api.get(`/sessions/${sessionId}/status`);
+
+export const finalizeSession = (sessionId: string) =>
+  api.post(`/sessions/${sessionId}/finalize`);
+
+export const getAdminDashboard = () =>
+  api.get("/admin/dashboard");
+
+export const clearAdminQueue = (queueName: "lego-character" | "lego-object") =>
+  api.delete(`/admin/queues/${queueName}`);
+
+export const clearUnityQueue = () =>
+  api.delete("/admin/unity-queue");
+
+export const removeUnityQueueSession = (sessionId: string) =>
+  api.delete(`/sessions/unity-queue/${sessionId}`);
+
+export const cancelAdminSession = (sessionId: string) =>
+  api.post(`/sessions/${sessionId}/cancel`);
+
+export const deleteAdminSession = (sessionId: string) =>
+  api.delete(`/admin/sessions/${sessionId}`);
+
+export const resetAdminDatabase = () =>
+  api.delete("/admin/db/reset");

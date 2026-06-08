@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session as DBSession
 
 from redis import Redis
 
-from ...core.config import REDIS_URL, RQ_QUEUE_CHARACTER, RQ_QUEUE_OBJECT
+from ...core.config import REDIS_URL
 from ...core.database import get_db
 from ...models.session import Session
 from ...schemas.session import SessionCreateResponse, ProfileUpdate, SessionResponse, SignatureMotionUpdate
@@ -24,8 +24,6 @@ from ...schemas.unity import LikeResponse
 from ...services.event_service import UNITY_QUEUE_KEY
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
-
-ACTIVE_SESSION_KEY = "lego:active_session"
 
 
 def _next_session_id(db: DBSession) -> str:
@@ -36,22 +34,12 @@ def _next_session_id(db: DBSession) -> str:
     return f"{next_num:04d}"
 
 
-def _reset_for_new_session(session_id: str):
-    """새 세션 시작 시 기존 큐를 비우고 active session을 갱신한다."""
-    r = Redis.from_url(REDIS_URL)
-    r.delete(f"rq:queue:{RQ_QUEUE_CHARACTER}")
-    r.delete(f"rq:queue:{RQ_QUEUE_OBJECT}")
-    r.set(ACTIVE_SESSION_KEY, session_id)
-    r.close()
-
-
 @router.post("", response_model=SessionCreateResponse, status_code=201)
 def create_session(db: DBSession = Depends(get_db)):
     session = Session(id=_next_session_id(db))
     db.add(session)
     db.commit()
     db.refresh(session)
-    _reset_for_new_session(session.id)
     return SessionCreateResponse(session_id=session.id)
 
 
@@ -91,7 +79,7 @@ def update_profile(
 
 @router.get("/active")
 def get_active_session():
-    """Unity 대기 큐의 맨 앞 세션 ID를 반환한다. 큐가 비어있으면 null."""
+    """Unity가 지금 표시해야 하는 세션 ID를 반환한다. 큐가 비어있으면 null."""
     r = Redis.from_url(REDIS_URL)
     val = r.lindex(UNITY_QUEUE_KEY, 0)
     r.close()
@@ -129,6 +117,71 @@ def remove_from_unity_queue(session_id: str):
     if removed_count == 0:
         raise HTTPException(404, "큐에서 해당 세션을 찾을 수 없습니다.")
     return {"status": "ok", "removed": session_id}
+
+
+@router.post("/{session_id}/finalize")
+def finalize_session(session_id: str, db: DBSession = Depends(get_db)):
+    """프론트 키오스크에서 새 관람객 시작 전 호출.
+
+    이미 완료된 세션이면 unity_queue 등록을 재확인하고, 아직 미완료면 현 상태만 반환한다.
+    서버가 큐의 정본이 되도록 중복 등록은 Redis에서 방지한다.
+    """
+    session = db.get(Session, session_id)
+    if not session:
+        raise HTTPException(404, "세션을 찾을 수 없습니다.")
+
+    from ...services.event_service import check_and_notify
+
+    check_and_notify(session_id)
+
+    ready = session.status != "cancelled" and bool(session.nickname) and bool(session.assets) and all(
+        asset.status == "completed" for asset in session.assets
+    )
+
+    r = Redis.from_url(REDIS_URL)
+    try:
+        queue = [item.decode() for item in r.lrange(UNITY_QUEUE_KEY, 0, -1)]
+    finally:
+        r.close()
+
+    return {
+        "status": "ok",
+        "session_id": session_id,
+        "ready_for_unity": ready,
+        "queued": session_id in queue,
+        "queue_position": (queue.index(session_id) + 1) if session_id in queue else None,
+    }
+
+
+@router.post("/{session_id}/cancel")
+def cancel_session(session_id: str, db: DBSession = Depends(get_db)):
+    """운영자용 취소 처리.
+
+    취소된 세션은 추가 업로드를 막고 unity_queue에서도 제거한다.
+    실행 중인 worker는 다음 단계 체크에서 중단된다.
+    """
+    session = db.get(Session, session_id)
+    if not session:
+        raise HTTPException(404, "세션을 찾을 수 없습니다.")
+
+    session.status = "cancelled"
+    for asset in session.assets:
+        if asset.status not in ("completed", "failed", "cancelled"):
+            asset.status = "cancelled"
+            asset.stage = "cancelled"
+    db.commit()
+
+    r = Redis.from_url(REDIS_URL)
+    try:
+        removed_count = r.lrem(UNITY_QUEUE_KEY, 0, session_id)
+    finally:
+        r.close()
+
+    return {
+        "status": "ok",
+        "session_id": session_id,
+        "removed_from_unity_queue": removed_count,
+    }
 
 
 @router.patch("/{session_id}/signature-motion")

@@ -81,6 +81,8 @@ async def upload_asset(
     session = db.get(Session, session_id)
     if not session:
         raise HTTPException(404, "세션을 찾을 수 없습니다.")
+    if session.status == "cancelled":
+        raise HTTPException(409, "취소된 세션에는 이미지를 업로드할 수 없습니다.")
 
     save_dir = STORAGE_IMAGES / session_id
     save_dir.mkdir(parents=True, exist_ok=True)
@@ -197,7 +199,12 @@ def get_session_status(session_id: str, db: DBSession = Depends(get_db)):
     #즉, 이미지 변환만 끝났다고 바로 Unity 준비 완료가 아니고,
     #프로필까지 입력되어야 ready_for_unity = True가 된다.
     has_assets = len(session.assets) > 0
-    ready_for_unity = has_assets and all_completed and bool(session.nickname)
+    ready_for_unity = (
+        session.status != "cancelled"
+        and has_assets
+        and all_completed
+        and bool(session.nickname)
+    )
 
     return SessionStatusResponse(
         session_id=session_id,

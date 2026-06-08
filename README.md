@@ -1,183 +1,221 @@
-# Lego Digital Twin / MINIVERSE
+# LEGO Digital Twin / MINIVERSE
 
-> 관객이 현실에서 조립한 레고 캐릭터와 오브제를 촬영하면,
-> 3D 모델로 변환되어 Unity VR 월드에 등장하는 디지털 트윈 전시 프로젝트
+MINIVERSE is an exhibition system where visitors photograph a LEGO character and object, generate 3D assets through Tripo, and display the results inside a Unity VR plaza.
 
----
+## What This Repository Contains
 
-## 프로젝트 개요
+- `apps/backend`
+  FastAPI API server, PostgreSQL models, Redis/RQ worker tasks, Tripo integration, Unity-facing APIs
+- `apps/frontend`
+  React + Vite tablet/kiosk capture app, plus the admin dashboard
+- `unity-client`
+  Unity VR client that loads the current visitor session and the accumulated plaza data
+- `scripts`
+  Local automation helpers such as IP sync and stack startup
+- `history`
+  team notes, troubleshooting logs, and internal implementation records
 
-관객이 태블릿 UI를 통해 자신의 레고 **캐릭터**와 **오브제**를 촬영합니다.
-촬영된 이미지는 Tripo3D API로 3D 모델로 변환됩니다.
+## System Overview
 
-- **character**: 3D 변환 + walk/idle 애니메이션 적용 → Unity VR 월드에서 NPC로 등장
-- **object**: 3D 변환만 수행 → Unity VR 월드에 정적 3D 오브제로 배치
+The project is split into persistent storage, async processing, and runtime clients.
 
-```
-[관객]
-  촬영 (태블릿 UI)
-      │
-      ▼
-[Frontend]  →  POST /sessions/{id}/assets
-      │
-      ▼
-[Backend / FastAPI]
-  - Redis Queue 등록
-  - Tripo3D API: image_to_model → rig → retarget (walk + idle 병렬)
-  - GLB 저장
-      │
-      ▼
-[Unity VR 월드 (Windows)]
-  - WebSocket session_ready 이벤트 수신
-  - GLB 다운로드 및 로드
-  - 캐릭터 NPC + 오브제 배치
-```
+- `FastAPI`
+  Owns session APIs, uploads, profile updates, Unity data endpoints, and WebSocket broadcast
+- `PostgreSQL`
+  Stores durable exhibition data such as sessions, likes, `bubble_text`, signature motions, and generated asset URLs
+- `Redis`
+  Backs the RQ job queues, the Unity waiting queue, and realtime pub/sub events
+- `RQ workers`
+  Run heavy Tripo generation jobs in the background
+- `Unity`
+  Polls the active session, loads runtime models, and builds the plaza from stored visitor data
 
----
+## Runtime Data Flow
 
-## 팀 구성
+1. The frontend creates a visitor session with `POST /sessions`.
+2. The visitor uploads multi-view images for character and object assets.
+3. FastAPI stores images under `apps/backend/storage/images/...` and enqueues background jobs.
+4. RQ workers call Tripo, download generated files, and store outputs under `apps/backend/storage/models/...`.
+5. Generated asset URLs are saved into PostgreSQL.
+6. When a session is fully ready, the backend adds its session id to the Redis list `lego:unity_queue`.
+7. Unity fetches the current active session with `/sessions/active` and `/unity/sessions/{id}`.
+8. When Unity enters plaza mode, it loads previous visitor data from `/unity/plaza/sessions`.
 
-| 이름 | 소속 | 역할 |
-|---|---|---|
-| 김예진 | 중앙대학교 | Project Manager / Team Leader |
-| 김진서 | 중앙대학교 | Software Engineer / Lead Developer |
-| 김유민 | 중앙대학교 | Unity Developer / Lead Designer |
-| 이서연 | 중앙대학교 | Animator / Sub Project Manager |
+## Queues and Realtime Channels
 
-**Develop Role:**
-- System Architect · Backend · Frontend · System Automation: **김진서**
-- Unity Design · Unity Script: **김유민**
+RQ queues:
 
----
+- `lego-character`
+- `lego-object`
 
-## 개발 환경
+Redis list:
 
-| 파트 | OS | 주요 도구 |
-|---|---|---|
-| Backend / Frontend | Linux / WSL Ubuntu | Python 3.11, FastAPI, Node.js, Docker |
-| Unity | **Windows** | Unity Hub, Unity Editor 6000.2.2f1 |
-| Git 협업 | 공통 | GitHub, feature branch + PR |
+- `lego:unity_queue`
+  ordered list of fully completed sessions that Unity should consume
 
-> **중요**: Unity는 반드시 **Windows**에서 실행한다.
-> WSL/Linux에서 Unity 실행을 시도하지 않는다.
+Redis pub/sub channel:
 
----
+- `lego:events`
+  broadcasts `session_ready` and `likes_updated`
 
-## 디렉토리 구조
+## Current Execution Model
 
-```
-Lego-Digital-Twin/
-├── apps/
-│   ├── backend/        # FastAPI 서버, PostgreSQL, Redis/RQ Worker, Tripo API
-│   ├── frontend/       # 태블릿 UI (React + Vite + TypeScript)
-│   └── hardware/       # Arduino 제어 (예비)
-├── unity-client/       # Unity VR 월드 (C#, XR, Mock/Server Mode)
-├── docs/               # 환경 설정 문서
-├── scripts/            # 자동화 스크립트
-├── history/            # 작업 기록 · Trouble Shooting
-├── docker-compose.yml  # PostgreSQL 16 + Redis 7
-├── run_worker.py       # RQ Worker 시작 스크립트 (character + object 병렬)
-├── README.md
-├── git.md              # Git 전략 (Single Source of Truth)
-└── CLAUDE.md           # Claude Code 설정
-```
+This repository currently uses Docker Compose for infrastructure only:
 
----
+- PostgreSQL
+- Redis
 
-## 실행 방법 (Backend + Frontend)
+The application processes themselves run locally:
 
-> Linux / WSL Ubuntu 기준. conda 환경: `triposr`
+- FastAPI via the `triposr` Python environment
+- RQ workers via `run_worker.py`
+- frontend via Vite
+- admin dashboard via a second Vite entry on port `3001`
 
-### 1. 의존성 설치
+This matches the current codebase better than the old full-container setup, because the repo no longer contains backend/frontend Dockerfiles.
 
-```bash
-# Backend
-conda activate triposr
-pip install -r apps/backend/requirements.txt
+## Requirements
 
-# Frontend
-cd apps/frontend && npm install
-```
+- Linux or WSL for backend, workers, and frontend
+- Windows for running the Unity project
+- Python environment at `/home/jskim/anaconda3/envs/triposr`
+- Node.js and npm
+- Docker Desktop or Docker Engine for PostgreSQL and Redis
 
-### 2. 환경 변수 설정
+## Environment Variables
 
-```bash
-cp apps/backend/.env.example apps/backend/.env
-# .env 파일에 TRIPO_API_KEY, DATABASE_URL, REDIS_URL 입력
-```
+Main backend configuration lives in:
 
-### 3. Docker (PostgreSQL + Redis) 실행
+- `apps/backend/.env`
+- `apps/frontend/.env.local`
+
+Important variables:
+
+- `DATABASE_URL`
+- `REDIS_URL`
+- `TRIPO_API_KEY`
+- `BACKEND_HOST`
+- `VITE_API_URL`
+
+## Quick Start
+
+### 1. Start infrastructure
 
 ```bash
 docker compose up -d db redis
 ```
 
-### 4. FastAPI 서버 실행
+### 2. Update local network config if your Windows IP changed
 
 ```bash
-conda run -n triposr uvicorn apps.backend.main:app --host 0.0.0.0 --port 8000
+python scripts/update_network_ip.py
 ```
 
-### 5. RQ Worker 실행
+### 3. Start the exhibition stack
 
 ```bash
-conda run -n triposr python run_worker.py
+bash scripts/run_exhibition.sh
 ```
 
-### 6. Frontend 실행
+This starts:
+
+- backend on `:8000`
+- worker supervisor
+- frontend on `:3000`
+- admin dashboard on `:3001`
+
+### 4. Open the UIs
+
+- frontend: `http://localhost:3000`
+- admin: `http://localhost:3001`
+- backend health: `http://localhost:8000/health`
+
+## Manual Start Commands
+
+If you do not want to use the startup script:
+
+### Backend
 
 ```bash
-cd apps/frontend && npm run dev -- --host 0.0.0.0 --port 3000
+/home/jskim/anaconda3/envs/triposr/bin/python -m uvicorn apps.backend.main:app --host 0.0.0.0 --port 8000
 ```
 
-### 7. Unity 실행 (Windows)
+### Workers
 
-Windows에서 별도 진행. [unity-client/README.md](unity-client/README.md) 참고.
-
----
-
-## Backend Developer가 Unity 테스트할 때
-
-최초 1회:
 ```bash
-# Windows PowerShell / Git Bash
-git clone https://github.com/tragicoding/Lego-Digital-Twin.git
-cd Lego-Digital-Twin
-git checkout feature/unity
+/home/jskim/anaconda3/envs/triposr/bin/python run_worker.py
 ```
 
-이후:
+### Frontend
+
 ```bash
-git checkout develop && git pull origin develop
-git checkout feature/unity && git pull origin feature/unity
+cd apps/frontend
+npm run dev -- --host 0.0.0.0 --port 3000
 ```
 
-Unity Hub → Add project from disk → `unity-client/AURA_Lego/` 선택
+### Admin Dashboard
 
----
-
-## 브랜치 전략
-
-```
-main                    ← 최종 안정 버전 (직접 push 금지)
-└── develop             ← 통합 브랜치 (모든 PR 대상)
-    ├── feature/unity       ← Unity 개발 (Windows)
-    ├── feature/backend     ← Backend 개발 (Linux/WSL)
-    ├── feature/frontend    ← Frontend 개발 (Linux/WSL)
-    ├── feature/system      ← System 자동화
-    └── test_app            ← 실험·기획 검증
+```bash
+cd apps/frontend
+npm run dev:admin -- --host 0.0.0.0 --port 3001
 ```
 
-자세한 규칙은 [git.md](git.md) 참고.
+## Unity Notes
 
----
+- Unity should be run from `unity-client/AURA_Lego`
+- The Unity client consumes:
+  - `/sessions/active`
+  - `/unity/sessions/{session_id}`
+  - `/unity/plaza/sessions`
+  - WebSocket like updates
+- Plaza data includes:
+  - generated character and object models
+  - likes
+  - `bubble_text`
+  - signature motions
 
-## 협업 원칙
+## Admin / Exhibition Operations
 
-- `develop`은 통합 브랜치다. 직접 push하지 않는다.
-- 모든 기능 작업은 feature 브랜치에서 진행한다.
-- 작업 전 `develop` 최신 내용을 pull한다.
-- PR 생성 후 리뷰를 거쳐 merge한다.
-- `.env` 파일은 커밋하지 않는다.
-- Unity의 `Library/`, `Temp/`, `obj/`, `Logs/`는 커밋하지 않는다.
-- Unity 파일 이동 시 `.meta` 파일을 반드시 함께 관리한다.
+The admin dashboard is intended for live exhibition operation and debugging.
+
+Typical tasks:
+
+- inspect session queue state
+- inspect worker state
+- inspect Redis / backend health
+- cancel bad visitor sessions
+- remove sessions from the Unity queue
+- reset exhibition state when needed
+
+## Important Scripts
+
+- `scripts/run_exhibition.sh`
+  local startup helper for backend, workers, frontend, and admin
+- `scripts/update_network_ip.py`
+  updates IP-sensitive local config when the host IP changes
+- `run_worker.py`
+  starts and supervises the two RQ workers
+
+## Important Paths
+
+- `apps/backend/storage/images`
+  uploaded visitor images
+- `apps/backend/storage/models`
+  generated Tripo outputs
+- `history/network_situation.txt`
+  Windows/WSL networking notes for mobile or tablet access
+
+## Cleanup Notes
+
+Legacy paths that used to describe an older Tripo-only prototype have been removed from the active architecture. The current source of truth is:
+
+- `apps/backend` for the live backend
+- `apps/frontend` for the live web apps
+- `unity-client` for the VR client
+
+## Development Guidance
+
+- Treat PostgreSQL as the durable record of sessions and asset metadata
+- Treat Redis as transient orchestration state
+- Treat RQ workers as the only place that should perform heavy Tripo generation
+- Treat `SessionManager` in Unity as the write entry point for visitor-facing session edits such as `bubble_text`
