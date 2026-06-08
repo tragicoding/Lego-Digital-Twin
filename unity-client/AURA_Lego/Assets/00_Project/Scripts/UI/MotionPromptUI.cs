@@ -19,13 +19,15 @@ namespace LegoTwin.UI
     ///          └── Panel        (Image — 배경)
     ///               ├── TitleText    (TMP_Text — "원하는 동작을 입력하세요")
     ///               ├── InputField   (TMP_InputField — 텍스트 입력)
-    ///               └── SubmitButton (Button)
-    ///                    └── ButtonText (TMP_Text — "확인")
+    ///               ├── SubmitButton (Button)
+    ///               │    └── ButtonText (TMP_Text — "확인")
+    ///               └── ExitButton   (Button — "나가기", 선택. 이름이 "ExitButton"이면 자동 연결)
     ///
     /// 유니티 개발자 체크리스트:
     ///   [ ] _popupRoot   — PopupRoot GameObject 연결
     ///   [ ] _inputField  — TMP_InputField 연결
     ///   [ ] _submitButton — Button 연결
+    ///   [ ] _exitButton  — (선택) 나가기 Button 연결 (미연결 시 "ExitButton" 이름으로 자동 탐색)
     ///   [ ] _canvasGroup — PopupRoot 의 CanvasGroup 연결
     ///   [ ] GameFlowManager._motionPromptUI 에 이 GameObject 드래그
     /// </summary>
@@ -36,12 +38,15 @@ namespace LegoTwin.UI
         [SerializeField] private TMP_Text       _titleText;
         [SerializeField] private TMP_InputField _inputField;
         [SerializeField] private Button         _submitButton;
+        [Tooltip("나가기 버튼 (선택). 입력을 취소할 수 있어야 하는 자유 모드에서 표시된다.")]
+        [SerializeField] private Button         _exitButton;
         [SerializeField] private CanvasGroup    _canvasGroup;
 
         [Header("연출 설정")]
         [SerializeField] private float _fadeDuration = 0.2f;
 
         private Action<string> _pendingCallback;
+        private Action         _pendingExit;
         private System.Collections.IEnumerator _fadeRoutine;
         private string _defaultTitle;
 
@@ -64,6 +69,19 @@ namespace LegoTwin.UI
                 }
             }
 
+            // 나가기 버튼 미연결 시 PopupRoot 자식 중 이름이 "ExitButton"인 Button 자동 탐색
+            if (_exitButton == null && _popupRoot != null)
+            {
+                foreach (var btn in _popupRoot.GetComponentsInChildren<Button>(true))
+                {
+                    if (btn != null && btn.gameObject.name == "ExitButton")
+                    {
+                        _exitButton = btn;
+                        break;
+                    }
+                }
+            }
+
             if (_popupRoot != null)
                 _popupRoot.SetActive(false);
 
@@ -74,6 +92,12 @@ namespace LegoTwin.UI
                 _defaultTitle = _titleText.text;
 
             _submitButton?.onClick.AddListener(OnSubmit);
+
+            if (_exitButton != null)
+            {
+                _exitButton.onClick.AddListener(OnExit);
+                _exitButton.gameObject.SetActive(false);
+            }
         }
 
         private void Update()
@@ -89,6 +113,7 @@ namespace LegoTwin.UI
         private void OnDestroy()
         {
             _submitButton?.onClick.RemoveListener(OnSubmit);
+            if (_exitButton != null) _exitButton.onClick.RemoveListener(OnExit);
         }
 
         // ════════════════════════════════════════════════════════════
@@ -101,7 +126,7 @@ namespace LegoTwin.UI
         /// </summary>
         public void Show(Action<string> callback)
         {
-            Show(callback, null, null);
+            Show(callback, null, null, false, null);
         }
 
         /// <summary>
@@ -110,7 +135,19 @@ namespace LegoTwin.UI
         /// </summary>
         public void Show(Action<string> callback, string title, string initialValue)
         {
+            Show(callback, title, initialValue, false, null);
+        }
+
+        /// <summary>
+        /// 입력 UI를 표시한다. showExitButton 이 true 면 나가기 버튼을 함께 노출하고,
+        /// 나가기를 누르면 입력을 제출하지 않고 onExit 을 호출한다.
+        /// (SignatureMotionConfirmUI 의 나가기 버튼과 동일한 패턴)
+        /// </summary>
+        public void Show(Action<string> callback, string title, string initialValue,
+                         bool showExitButton, Action onExit)
+        {
             _pendingCallback = callback;
+            _pendingExit     = onExit;
 
             if (!gameObject.activeInHierarchy)
                 gameObject.SetActive(true);
@@ -120,6 +157,9 @@ namespace LegoTwin.UI
 
             if (_titleText != null)
                 _titleText.text = string.IsNullOrEmpty(title) ? _defaultTitle : title;
+
+            if (_exitButton != null)
+                _exitButton.gameObject.SetActive(showExitButton);
 
             // 이전 입력 초기화 후 포커스
             if (_inputField != null)
@@ -135,6 +175,7 @@ namespace LegoTwin.UI
         public void Close()
         {
             _pendingCallback = null;
+            _pendingExit     = null;
             Hide();
         }
 
@@ -150,8 +191,20 @@ namespace LegoTwin.UI
                 return;
 
             Hide();
-            _pendingCallback?.Invoke(input);
+            var callback = _pendingCallback;
             _pendingCallback = null;
+            _pendingExit     = null;
+            callback?.Invoke(input);
+        }
+
+        // 나가기 버튼: 입력을 제출하지 않고 창을 닫은 뒤 onExit 콜백을 호출한다.
+        private void OnExit()
+        {
+            var onExit = _pendingExit;
+            _pendingCallback = null;
+            _pendingExit     = null;
+            Hide();
+            onExit?.Invoke();
         }
 
         private void Hide()

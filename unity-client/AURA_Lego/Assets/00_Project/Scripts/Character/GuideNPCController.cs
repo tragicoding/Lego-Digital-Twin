@@ -76,6 +76,13 @@ namespace LegoTwin.Character
         public event Action<Action<string>> OnMotionPromptRequested;
 
         /// <summary>
+        /// 오브제 한마디(bubble_text) 입력 요청 시 발생.
+        /// 구독자가 입력 UI를 띄우고, 입력 완료 시 콜백(입력 문자열)을 호출하면
+        /// 시나리오가 다음 단계로 진행한다. 구독자가 없으면 이 단계는 건너뛴다.
+        /// </summary>
+        public event Action<Action<string>> OnBubbleTextInputRequested;
+
+        /// <summary>
         /// 모션 확인 후 시그니처 동작으로 설정할지 묻는 다이얼로그 요청.
         /// (motionInput: 입력된 프롬프트 텍스트, onResult: 예→true / 아니오→false 선택 후 호출)
         /// </summary>
@@ -181,12 +188,26 @@ namespace LegoTwin.Character
             Say("짜잔! \n당신이 만든 오브제에요");
             yield return new WaitForSeconds(3f);
 
-            // ── 3. 모션 프롬프트 입력 + 시그니처 설정 (아니오 선택 시 재시도) ──────────
+            // ── 2-1. 오브제 한마디(bubble_text) 입력 ─────────────────
+            // 입력값은 SetBubbleText로 메모리 + (Server 모드) 백엔드에 즉시 반영되고,
+            // 자유 모드 광장에서 다른 관람객이 이 한마디를 말풍선으로 보게 된다.
+            if (OnBubbleTextInputRequested != null)
+            {
+                Say("오브제에 함께 \n남기고 싶은 한마디를 \n적어볼까요?");
+                yield return new WaitForSeconds(3f);
+
+                bool bubbleDone = false;
+                OnBubbleTextInputRequested.Invoke(_ => bubbleDone = true);
+                yield return new WaitUntil(() => bubbleDone);
+            }
+
+            // ── 3. 모션 프롬프트 입력 + 시그니처 설정 (아니오/미인식 시 재시도) ──────────
             Say("캐릭터에는 \n원하는 동작을 입력할 수 있어요, \n한번 해볼까요?");
             yield return new WaitForSeconds(3f);
 
             bool signatureConfirmed = false;
             bool isRetry            = false;
+            bool explainedSignature = false;
 
             while (!signatureConfirmed)
             {
@@ -203,19 +224,31 @@ namespace LegoTwin.Character
 
                 // 가이드 NPC는 idle 고정 — 배치 캐릭터(광장 FBX)만 모션 재생
                 Animation?.animation_idle();
+                bool recognized = true;
                 if (placedCharacter != null)
-                    placedCharacter.PlayMotionFromPrompt(motionInput);
+                    recognized = placedCharacter.PlayMotionFromPrompt(motionInput);
                 else
                     Debug.LogWarning("[GuideNPCController] placedCharacter가 연결되지 않았습니다.");
 
+                // 매칭되는 동작이 없으면(Cry 폴백 재생됨) 시그니처 확인을 건너뛰고 바로 재입력으로 넘어간다.
+                // Cry 를 짧게만 보여주고 "다른 동작으로 다시 해볼까요?" 를 빠르게 띄운다.
+                if (!recognized)
+                {
+                    yield return new WaitForSeconds(1f);
+                    isRetry = true;
+                    continue;
+                }
+
+                // 인식된 동작: 충분히 재생되도록 대기 후 다음 단계로 진행
                 yield return new WaitForSeconds(3f);
 
-                if (!isRetry)
+                if (!explainedSignature)
                 {
                     Say("지금 이 동작을 \n 시그니처 동작으로 \n 설정해보세요!");
                     yield return new WaitForSeconds(3f);
                     Say("자유모드에서는 다른 사람들이 \n당신의 시그니처 동작을\n 볼 수 있답니다!");
                     yield return new WaitForSeconds(3f);
+                    explainedSignature = true;
                 }
 
                 // 시그니처 확인 (안내 모드: 나가기 버튼 없음)
