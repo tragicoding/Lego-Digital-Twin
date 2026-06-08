@@ -7,7 +7,12 @@ import asyncio
 import httpx
 from pathlib import Path
 
-from ..core.config import TRIPO_BASE_URL
+from ..core.config import (
+    TRIPO_BASE_URL,
+    TRIPO_MODEL_VERSION,
+    TRIPO_DEFAULT_FACE_LIMIT,
+    TRIPO_DEFAULT_TEXTURE_QUALITY,
+)
 
 
 class TripoService:
@@ -38,6 +43,11 @@ class TripoService:
                         "type": "png",
                         "file_token": image_token,
                     },
+                    "model_version": TRIPO_MODEL_VERSION,
+                    "face_limit": TRIPO_DEFAULT_FACE_LIMIT,
+                    "texture": True,
+                    "pbr": True,
+                    "texture_quality": TRIPO_DEFAULT_TEXTURE_QUALITY,
                 },
                 timeout=30,
             )

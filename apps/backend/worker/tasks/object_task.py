@@ -92,7 +92,7 @@ async def _run(asset_id: str):
             )
         else:
             print(f"[obj] back 이미지 없음 → image_to_model (fallback)", flush=True)
-            task_id = await tripo.create_model_task(front_token)
+            task_id = await tripo.create_model_task(front_token, front_path)
 
         asset.progress = 40
         db.commit()

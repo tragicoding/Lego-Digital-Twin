@@ -11,6 +11,12 @@ REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379")
 TRIPO_API_KEY: str = os.environ["TRIPO_API_KEY"]
 STORAGE_BASE: Path = Path(os.getenv("STORAGE_BASE", "/app/storage"))
 BACKEND_HOST: str = os.getenv("BACKEND_HOST", "http://localhost:8000")
+TRIPO_MODEL_VERSION: str = os.getenv("TRIPO_MODEL_VERSION", "P1-20260311")
+TRIPO_DEFAULT_FACE_LIMIT: int = int(os.getenv("TRIPO_DEFAULT_FACE_LIMIT", "4000"))
+TRIPO_DEFAULT_TEXTURE_QUALITY: str = os.getenv(
+    "TRIPO_DEFAULT_TEXTURE_QUALITY",
+    "standard",
+)
 
 STORAGE_IMAGES: Path = STORAGE_BASE / "images"
 STORAGE_MODELS: Path = STORAGE_BASE / "models"
