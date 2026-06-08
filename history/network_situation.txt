@@ -42,3 +42,46 @@ backend/.evn
 BACKEND_HOST=http://165.194.202.153:8000
 
 DB URL일괄 업데이트. 
+
+conda activate triposr
+python scripts/update_network_ip.py <새 Windows IP>
+
+-> 자동화 스트립트 
+노트북 환경(와이파이)이 바뀌었을 때 체크리스트
+1. WSL2 내부 IP 재확인 (WSL/Windows 재시작 시 매번 바뀔 수 있음)
+
+hostname -I
+→ 예: 172.28.225.24
+
+2. PowerShell(관리자)에서 포트포워딩 갱신
+기존 규칙을 지우고 새 WSL2 IP로 다시 등록:
+
+
+netsh interface portproxy delete v4tov4 listenport=3000 listenaddress=0.0.0.0
+netsh interface portproxy delete v4tov4 listenport=8000 listenaddress=0.0.0.0
+netsh interface portproxy add v4tov4 listenport=8000 listenaddress=0.0.0.0 connectport=8000 connectaddress=<새 WSL2 IP>
+netsh interface portproxy add v4tov4 listenport=3000 listenaddress=0.0.0.0 connectport=3000 connectaddress=<새 WSL2 IP>
+3. 방화벽 규칙 (새 네트워크에서 막히는 경우만 재등록)
+
+netsh advfirewall firewall add rule name="WSL2 3000" dir=in action=allow protocol=TCP localport=3000 profile=any
+netsh advfirewall firewall add rule name="WSL2 8000" dir=in action=allow protocol=TCP localport=8000 profile=any
+4. Windows의 새 Wi-Fi IP 확인 (= 태블릿/Unity가 접속할 주소)
+
+ipconfig
+→ "무선 LAN 어댑터 Wi-Fi"의 IPv4 주소 확인 (예: 165.194.203.212)
+
+5. 코드 설정에 새 Windows IP 반영
+apps/frontend/.env.local → VITE_API_URL=http://<새 Windows IP>:8000
+apps/backend/.env → BACKEND_HOST=http://<새 Windows IP>:8000
+6. (기존 생성 모델이 있다면) DB의 model_url/thumbnail_url 일괄 변경
+오늘 한 것처럼 assets 테이블의 구 호스트 → 새 호스트로 치환 (Unity가 예전 세션의 모델을 못 받아오는 걸 방지).
+
+7. 서버 재시작
+.env를 수정했으니 FastAPI / RQ Worker / Frontend(Vite는 .env.local 변경 시 보통 자동 반영되지만 안 되면 재시작) 다시 실행.
+
+8. 태블릿에서 접속 테스트
+http://<새 Windows IP>:3000 으로 프론트엔드 접속 확인.
+-> script/update_network_ip.py
+
+conda activate triposr
+python scripts/update_network_ip.py <새 Windows IP>

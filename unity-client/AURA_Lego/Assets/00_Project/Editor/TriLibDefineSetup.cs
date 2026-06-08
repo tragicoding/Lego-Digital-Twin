@@ -24,11 +24,12 @@ namespace LegoTwin.EditorTools
     [InitializeOnLoad]
     public static class TriLibDefineSetup
     {
-        private const string Define = "TRILIB";
+        private const string TriLibDefine = "TRILIB";
+        private const string DisableEditorGltfImportDefine = "TRILIB_DISABLE_EDITOR_GLTF_IMPORT";
 
         static TriLibDefineSetup()
         {
-            SetDefine(TriLibPresent());
+            SyncDefines(TriLibPresent());
         }
 
         // 어셈블리 로드 순서·이름 변형에 견고하도록 타입 조회 + 어셈블리 스캔 병행.
@@ -39,23 +40,41 @@ namespace LegoTwin.EditorTools
                 .Any(a => a.GetName().Name.StartsWith("TriLibCore", StringComparison.Ordinal));
         }
 
-        private static void SetDefine(bool enable)
+        private static void SyncDefines(bool triLibPresent)
         {
             var namedTarget = NamedBuildTarget.FromBuildTargetGroup(
                 BuildPipeline.GetBuildTargetGroup(EditorUserBuildSettings.activeBuildTarget));
 
             var symbols = PlayerSettings.GetScriptingDefineSymbols(namedTarget);
             var list = symbols.Split(';').Where(s => !string.IsNullOrWhiteSpace(s)).ToList();
-            bool has = list.Contains(Define);
+            bool changed = false;
 
-            if (enable == has) return;   // 이미 원하는 상태 → 변경 없음
+            changed |= SetSymbol(list, TriLibDefine, triLibPresent);
 
-            if (enable) list.Add(Define);
-            else        list.Remove(Define);
+            // 역할 분담 고정:
+            //   - 에디터/런타임 GLB(.gltf/.glb) = glTFast
+            //   - 런타임 FBX                = TriLib
+            // 따라서 TriLib 설치 환경에서는 TriLib의 에디터 glTF importer를 항상 끈다.
+            changed |= SetSymbol(list, DisableEditorGltfImportDefine, triLibPresent);
+
+            if (!changed) return;
 
             PlayerSettings.SetScriptingDefineSymbols(namedTarget, string.Join(";", list));
-            UnityEngine.Debug.Log($"[TriLibDefineSetup] TRILIB define {(enable ? "추가됨" : "제거됨")} " +
-                                  $"(target={namedTarget}). TriLib 설치 감지={enable}");
+            UnityEngine.Debug.Log(
+                $"[TriLibDefineSetup] define 동기화 완료 " +
+                $"(target={namedTarget}, TriLib={triLibPresent}, " +
+                $"{TriLibDefine}={list.Contains(TriLibDefine)}, " +
+                $"{DisableEditorGltfImportDefine}={list.Contains(DisableEditorGltfImportDefine)})");
+        }
+
+        private static bool SetSymbol(System.Collections.Generic.List<string> list, string symbol, bool enable)
+        {
+            bool has = list.Contains(symbol);
+            if (enable == has) return false;
+
+            if (enable) list.Add(symbol);
+            else        list.Remove(symbol);
+            return true;
         }
     }
 }
