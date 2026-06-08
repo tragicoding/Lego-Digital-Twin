@@ -96,9 +96,13 @@ apps/backend/storage/models/
 apps/frontend/.vite/
 apps/frontend/node_modules/
 apps/frontend/dist/
+apps/frontend/dist-admin/
 
 # --- Root level vite cache ---
 .vite/
+
+# --- Local run logs ---
+history/.run_logs/
 
 # --- Windows Zone.Identifier 파일 ---
 *.Zone.Identifier

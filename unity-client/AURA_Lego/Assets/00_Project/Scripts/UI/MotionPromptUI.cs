@@ -33,6 +33,7 @@ namespace LegoTwin.UI
     {
         [Header("UI 요소")]
         [SerializeField] private GameObject     _popupRoot;
+        [SerializeField] private TMP_Text       _titleText;
         [SerializeField] private TMP_InputField _inputField;
         [SerializeField] private Button         _submitButton;
         [SerializeField] private CanvasGroup    _canvasGroup;
@@ -42,6 +43,7 @@ namespace LegoTwin.UI
 
         private Action<string> _pendingCallback;
         private System.Collections.IEnumerator _fadeRoutine;
+        private string _defaultTitle;
 
         // ════════════════════════════════════════════════════════════
         // Unity 생명주기
@@ -49,11 +51,27 @@ namespace LegoTwin.UI
 
         private void Awake()
         {
+            if (_titleText == null && _popupRoot != null)
+            {
+                var texts = _popupRoot.GetComponentsInChildren<TMP_Text>(true);
+                foreach (var text in texts)
+                {
+                    if (text != null && text.gameObject.name == "TitleText")
+                    {
+                        _titleText = text;
+                        break;
+                    }
+                }
+            }
+
             if (_popupRoot != null)
                 _popupRoot.SetActive(false);
 
             if (_canvasGroup != null)
                 _canvasGroup.alpha = 0f;
+
+            if (_titleText != null)
+                _defaultTitle = _titleText.text;
 
             _submitButton?.onClick.AddListener(OnSubmit);
         }
@@ -83,6 +101,15 @@ namespace LegoTwin.UI
         /// </summary>
         public void Show(Action<string> callback)
         {
+            Show(callback, null, null);
+        }
+
+        /// <summary>
+        /// 입력 UI를 표시하고 제목/초기값을 선택적으로 덮어쓴다.
+        /// 자유 모드에서는 같은 입력 UI를 bubble_text 편집에도 재사용한다.
+        /// </summary>
+        public void Show(Action<string> callback, string title, string initialValue)
+        {
             _pendingCallback = callback;
 
             if (!gameObject.activeInHierarchy)
@@ -91,10 +118,13 @@ namespace LegoTwin.UI
             if (_popupRoot != null)
                 _popupRoot.SetActive(true);
 
+            if (_titleText != null)
+                _titleText.text = string.IsNullOrEmpty(title) ? _defaultTitle : title;
+
             // 이전 입력 초기화 후 포커스
             if (_inputField != null)
             {
-                _inputField.text = string.Empty;
+                _inputField.text = initialValue ?? string.Empty;
                 _inputField.ActivateInputField();
             }
 

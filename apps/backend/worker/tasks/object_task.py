@@ -8,21 +8,11 @@ import asyncio
 import shutil
 from pathlib import Path
 
-from redis import Redis
-
-from ...core.config import STORAGE_MODELS, BACKEND_HOST, REDIS_URL, UNITY_GENERATED_MODELS
+from ...core.config import STORAGE_MODELS, BACKEND_HOST, UNITY_GENERATED_MODELS
 from ...core.database import SessionLocal
 from ...models.asset import Asset
+from ...models.session import Session
 from ...services import tripo_service as tripo
-
-ACTIVE_SESSION_KEY = "lego:active_session"
-
-
-def _is_cancelled(session_id: str) -> bool:
-    r = Redis.from_url(REDIS_URL)
-    active = r.get(ACTIVE_SESSION_KEY)
-    r.close()
-    return active is not None and active.decode() != session_id
 
 
 def _seq_num(db, asset: Asset) -> int:
@@ -31,6 +21,19 @@ def _seq_num(db, asset: Asset) -> int:
         Asset.created_at < asset.created_at,
     ).count()
     return count + 1
+
+
+def _is_session_cancelled(db, session_id: str) -> bool:
+    session = db.get(Session, session_id)
+    return session is None or session.status == "cancelled"
+
+
+def _mark_cancelled(db, asset: Asset):
+    if asset.status == "completed":
+        return
+    asset.status = "cancelled"
+    asset.stage = "cancelled"
+    db.commit()
 
 
 def process_object(asset_id: str):
@@ -43,9 +46,12 @@ async def _run(asset_id: str):
     if not asset:
         return
 
-    cur_session_id = asset.session_id
     session_id = None
     try:
+        if _is_session_cancelled(db, asset.session_id):
+            _mark_cancelled(db, asset)
+            return
+
         asset.status = "processing"
         asset.stage = "generating"
         asset.progress = 10
@@ -57,7 +63,8 @@ async def _run(asset_id: str):
         # 1. front 이미지 업로드
         front_path = Path(asset.input_image_path)
         front_token = await tripo.upload_image(front_path)
-        if _is_cancelled(cur_session_id):
+        if _is_session_cancelled(db, asset.session_id):
+            _mark_cancelled(db, asset)
             return
 
         # 2. 나머지 이미지 대기 (최대 90초)
@@ -85,7 +92,8 @@ async def _run(asset_id: str):
             back_token = await tripo.upload_image(back_path)
             left_token = await tripo.upload_image(left_path) if left_path else None
             right_token = await tripo.upload_image(right_path) if right_path else None
-            if _is_cancelled(cur_session_id):
+            if _is_session_cancelled(db, asset.session_id):
+                _mark_cancelled(db, asset)
                 return
             task_id = await tripo.create_multiview_task(
                 front_token, back_token, left_token, right_token
@@ -98,7 +106,8 @@ async def _run(asset_id: str):
         db.commit()
 
         result = await tripo.poll_task(task_id)
-        if _is_cancelled(cur_session_id):
+        if _is_session_cancelled(db, asset.session_id):
+            _mark_cancelled(db, asset)
             return
 
         asset.stage = "downloading"

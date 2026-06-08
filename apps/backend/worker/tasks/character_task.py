@@ -22,29 +22,31 @@ import asyncio
 import time
 from pathlib import Path
 
-from redis import Redis
-
 import shutil
 
-from ...core.config import STORAGE_MODELS, BACKEND_HOST, REDIS_URL, UNITY_GENERATED_MODELS
+from ...core.config import STORAGE_MODELS, BACKEND_HOST, UNITY_GENERATED_MODELS
 from ...core.database import SessionLocal
 from ...models.asset import Asset
+from ...models.session import Session
 from ...services import tripo_service as tripo
-
-ACTIVE_SESSION_KEY = "lego:active_session"
-
-
-def _is_cancelled(session_id: str) -> bool:
-    """현재 세션이 active session이 아니면 True (새 세션이 시작된 것)."""
-    r = Redis.from_url(REDIS_URL)
-    active = r.get(ACTIVE_SESSION_KEY)
-    r.close()
-    return active is not None and active.decode() != session_id
 
 
 def _set_stage(db, asset: Asset, stage: str, progress: int):
     asset.stage = stage
     asset.progress = progress
+    db.commit()
+
+
+def _is_session_cancelled(db, session_id: str) -> bool:
+    session = db.get(Session, session_id)
+    return session is None or session.status == "cancelled"
+
+
+def _mark_cancelled(db, asset: Asset):
+    if asset.status == "completed":
+        return
+    asset.status = "cancelled"
+    asset.stage = "cancelled"
     db.commit()
 
 
@@ -67,9 +69,12 @@ async def _process_character_async(asset_id: str):
     if not asset:
         return
 
-    cur_session_id = asset.session_id
     session_id = None
     try:
+        if _is_session_cancelled(db, asset.session_id):
+            _mark_cancelled(db, asset)
+            return
+
         asset.status = "processing"
         _set_stage(db, asset, "generating", 10)
 
@@ -79,7 +84,8 @@ async def _process_character_async(asset_id: str):
         # 1. 이미지 업로드
         front_path = Path(asset.input_image_path)
         front_token = await tripo.upload_image(front_path)
-        if _is_cancelled(cur_session_id):
+        if _is_session_cancelled(db, asset.session_id):
+            _mark_cancelled(db, asset)
             return
 
         # 2. 나머지 이미지 대기 (최대 90초) — left/back/right 업로드 시간 확보
@@ -110,7 +116,8 @@ async def _process_character_async(asset_id: str):
             back_token = await tripo.upload_image(back_path)
             left_token = await tripo.upload_image(left_path) if left_path else None
             right_token = await tripo.upload_image(right_path) if right_path else None
-            if _is_cancelled(cur_session_id):
+            if _is_session_cancelled(db, asset.session_id):
+                _mark_cancelled(db, asset)
                 return
             model_task_id = await tripo.create_multiview_task(
                 front_token, back_token, left_token, right_token
@@ -121,7 +128,8 @@ async def _process_character_async(asset_id: str):
 
         _set_stage(db, asset, "generating", 30)
         model_result = await tripo.poll_task(model_task_id)
-        if _is_cancelled(cur_session_id):
+        if _is_session_cancelled(db, asset.session_id):
+            _mark_cancelled(db, asset)
             return
 
         # 2-1. pbr_model GLB 다운로드 — 텍스쳐 소스
@@ -141,7 +149,8 @@ async def _process_character_async(asset_id: str):
         rig_task_id = await tripo.create_rig_task(model_task_id, out_format="fbx")
         print(f"[char] rig task 등록 완료 (+{time.time()-t_rig_start:.1f}s)", flush=True)
         rig_result = await tripo.poll_task(rig_task_id)
-        if _is_cancelled(cur_session_id):
+        if _is_session_cancelled(db, asset.session_id):
+            _mark_cancelled(db, asset)
             return
 
         _set_stage(db, asset, "downloading", 80)

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { getStatus } from "../api/client";
+import { finalizeSession, getStatus } from "../api/client";
 import { useSessionStore } from "../store/sessionStore";
 
 const STAGE_MESSAGES: Record<string, string> = {
@@ -53,6 +53,7 @@ export default function LoadingPage() {
   const navigate = useNavigate();
   const [assets, setAssets] = useState<Record<string, AssetStatus>>({});
   const [readyForUnity, setReadyForUnity] = useState(false);
+  const [restarting, setRestarting] = useState(false);
 
   useEffect(() => {
     if (!sessionId) return;
@@ -68,7 +69,16 @@ export default function LoadingPage() {
   const getAsset = (key: string) =>
     assets[key] ?? (key === "object" ? assets["building"] : undefined);
 
-  const handleRestart = () => {
+  const handleRestart = async () => {
+    if (restarting) return;
+    setRestarting(true);
+    if (sessionId) {
+      try {
+        await finalizeSession(sessionId);
+      } catch (error) {
+        console.error("세션 finalize 실패", error);
+      }
+    }
     reset();
     navigate("/start");
   };
@@ -116,9 +126,10 @@ export default function LoadingPage() {
               </div>
               <button
                 onClick={handleRestart}
+                disabled={restarting}
                 className="w-full py-4 rounded-2xl border-2 border-gray-200 text-gray-500 font-bold text-base"
               >
-                새롭게 시작하기
+                {restarting ? "준비 중..." : "새롭게 시작하기"}
               </button>
             </motion.div>
           )}
