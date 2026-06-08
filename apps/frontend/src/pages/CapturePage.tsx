@@ -148,7 +148,8 @@ function CaptureScreen({ step, onDone }: { step: CaptureStep; onDone: (assetId: 
         </button>
       )}
 
-      <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFile} />
+      {/* Tripo API 테스트용: capture 속성을 빼서 파일 시스템에서 이미지를 직접 선택 가능 */}
+      <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
 
       {uploadError && (
         <p className="text-red-400 text-sm text-center">{uploadError}</p>
