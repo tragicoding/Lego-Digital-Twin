@@ -25,6 +25,9 @@ namespace LegoTwin.Character
             ("춤을",   MotionType.Dance),
             ("춤",     MotionType.Dance),
             ("댄스",   MotionType.Dance),
+            ("춰줘",   MotionType.Dance),
+            ("추자",   MotionType.Dance),
+            ("춰",   MotionType.Dance),
             ("dance",  MotionType.Dance),
 
             // ── 달리기 ───────────────────────────────────────────────
@@ -77,6 +80,16 @@ namespace LegoTwin.Character
             ("파이팅",  MotionType.Victory),
             ("화이팅",  MotionType.Victory),
             ("victory", MotionType.Victory),
+
+            // ── 울음 / 슬픔 ──────────────────────────────────────────
+            ("울어",   MotionType.Cry),
+            ("울음",   MotionType.Cry),
+            ("울지",   MotionType.Cry),
+            ("눈물",   MotionType.Cry),
+            ("슬퍼",   MotionType.Cry),
+            ("슬프",   MotionType.Cry),
+            ("cry",    MotionType.Cry),
+            ("sad",    MotionType.Cry),
         };
 
         /// <summary>

@@ -92,8 +92,13 @@ namespace LegoTwin.Character
                 return;
             }
 
-            // 1. 키워드 파싱 → MotionType
+            // 1. 키워드 파싱 → MotionType (인식되는 동작이 없으면 Idle 반환)
             MotionType motionType = MotionPromptParser.Parse(input);
+
+            // 입력은 했지만 매칭되는 동작이 없으면 Cry 로 대체.
+            // (빈 입력은 제외 — Cry 로 가지 않음)
+            if (motionType == MotionType.Idle && !string.IsNullOrWhiteSpace(input))
+                motionType = MotionType.Cry;
 
             // 2. MotionType → AnimationClip (직전 재생 클립 제외, 같은 동작이라도 다른 변형 재생)
             _lastClipByType.TryGetValue(motionType, out var lastClip);
