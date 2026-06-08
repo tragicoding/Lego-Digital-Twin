@@ -133,12 +133,21 @@ namespace LegoTwin.Plaza
             if (_signatureConfirmUI == null)
             {
                 // 확인 다이얼로그 없으면 입력 즉시 저장
-                SessionManager.Instance?.SetSignatureMotion(MotionPromptParser.Parse(input).ToString());
+                SessionManager.Instance?.SetSignatureMotion(SignatureValue(input));
                 _isInteracting = false;
                 return;
             }
 
             StartCoroutine(ShowConfirmAfterDelay(input));
+        }
+
+        // 저장할 시그니처 값 = 방금 재생된 "특정 클립" 이름. 못 읽으면 MotionType 이름으로 폴백.
+        private string SignatureValue(string input)
+        {
+            var clipName = _placedCharacter != null ? _placedCharacter.LastPromptClipName : null;
+            return !string.IsNullOrEmpty(clipName)
+                ? clipName
+                : MotionPromptParser.Parse(input).ToString();
         }
 
         private IEnumerator ShowConfirmAfterDelay(string motionInput)
@@ -156,8 +165,7 @@ namespace LegoTwin.Plaza
                     if (confirmed)
                     {
                         // 예: 시그니처 저장 후 종료
-                        SessionManager.Instance?.SetSignatureMotion(
-                            MotionPromptParser.Parse(motionInput).ToString());
+                        SessionManager.Instance?.SetSignatureMotion(SignatureValue(motionInput));
                         _isInteracting = false;
                     }
                     else

@@ -385,12 +385,13 @@ namespace LegoTwin.Plaza
             var placed = go.GetComponent<PlacedCharacterController>();
             if (placed == null) placed = go.AddComponent<PlacedCharacterController>();
 
-            var motionType = MotionType.Idle;
-            if (!string.IsNullOrEmpty(signatureMotionName) &&
-                System.Enum.TryParse(signatureMotionName, out MotionType parsed))
-                motionType = parsed;
+            // 저장된 시그니처는 "특정 클립 이름"(예: "Dance2"). 그 클립을 그대로 복원.
+            // (옛 데이터의 MotionType 이름 "Dance"도 GetClipByName 이 호환 처리)
+            var signatureClip = motionLibrary != null
+                ? motionLibrary.GetClipByName(signatureMotionName)
+                : null;
 
-            placed.SetupForPlaza(motionLibrary, motionType);
+            placed.SetupForPlaza(motionLibrary, signatureClip);
             _lastSpawnedCharController = placed;
         }
 

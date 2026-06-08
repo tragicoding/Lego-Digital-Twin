@@ -24,5 +24,6 @@ namespace LegoTwin.Character
         Cheer,      // 만세, 환호
         Clap,       // 박수
         Victory,    // 승리, 파이팅
+        Cry,        // 울어, 눈물, 슬퍼
     }
 }

@@ -1,0 +1,174 @@
+================================================================
+Claude Code 작업 기록
+날짜: 2026-06-07
+브랜치: feature/unity
+================================================================
+
+주제: 동작 프롬프트 분기 고도화
+      ① 한 동작에 여러 애니메이션(변형) 지원
+      ② 같은 동작 반복 입력 시 직전과 다른 변형 재생
+      ③ 시그니처 동작을 "특정 클립"으로 저장·복원
+
+
+────────────────────────────────────────────────────────────────
+[세션 1] 히스토리 분석 · 현재 구조 점검 · 브랜치 확인
+────────────────────────────────────────────────────────────────
+
+## 참고 문서
+  DevelopmentHelp_0529.md
+  Claude_0528 / 0528_2 / 0529 / 0530 / 0601 / 0602 / 0603 / 0605 / 0606.txt
+
+## 현재 브랜치
+  feature/unity (허용 브랜치, 정상)
+
+## 구조 점검 (0529 정의 vs 현재)
+  0529에서 정한 폴더 골격(Character/Core/Data/Managers/Mock/Network/
+  Object/Plaza/World)·네임스페이스 체계는 그대로 유지.
+  0529 기준 20개 파일 전부 존재(이동·이름변경·삭제 0건).
+  이후 UI/ 폴더 신설 + 기능 파일 추가로 20 → 35개로 "추가만" 증가.
+  → 구조 이탈 없음. 파괴적 변경 아님.
+
+
+────────────────────────────────────────────────────────────────
+[세션 2] 한 동작 = 여러 애니메이션 + 직전 제외 변형 재생
+────────────────────────────────────────────────────────────────
+
+## 요구사항
+  - 한 MotionType에 여러 클립을 등록할 수 있게.
+  - 같은 동작을 반복 입력하면 "직전에 나온 것만 빼고" 다른 변형 재생.
+    예) "춤춰줘" 1회차 Dance → 2회차 Dance2/Dance3 중 직전 제외 무작위 → ...
+
+## 배경 (이미 보유한 에셋)
+  Animations/Mixamo/ 에 Dance/Dance2/Dance3, Jump/Jump2~4, Run/Run2,
+  Wave/Wave2/Wave3, Sit/Sit2~4, Kick/Kick2~4 등 변형이 이미 임포트돼 있으나
+  라이브러리가 타입당 1개만 사용 중이었음.
+
+## 수정 파일 1: Scripts/Character/MixamoMotionLibrary.cs
+  - MotionEntry 에 variations[] 배열 추가
+    (기존 clip(단일) 필드 유지 → 기존 .asset Inspector 연결 안 깨짐)
+  - 캐시 구조 변경: Dictionary<MotionType, AnimationClip>
+                 → Dictionary<MotionType, List<AnimationClip>>
+    (기본 clip + variations 를 한 풀로 합치고 null·중복 제거)
+  - GetRandomClip(MotionType type, AnimationClip exclude=null) 추가
+      · 풀에서 exclude(직전 클립) 인덱스를 건너뛰어 (N-1)개 중 균등 무작위
+      · 풀이 1개뿐이면 그 클립, 빈 풀이면 Idle 폴백, 그것도 없으면 null
+  - GetClip(기존, 기본 클립 반환) 유지 → 다른 호출부 호환
+  - GetClips(type), HasClip(type) 유지/보강
+
+## 수정 파일 2: Scripts/Character/PlacedCharacterController.cs
+  - _lastClipByType (Dictionary<MotionType, AnimationClip>) 추가
+    → 캐릭터 인스턴스마다 타입별 직전 클립을 독립 기억
+      (라이브러리 에셋은 무상태 → 광장의 여러 캐릭터가 서로 간섭 안 함)
+  - PlayMotionFromPrompt(): GetClip → GetRandomClip(직전 제외) 로 변경,
+    선택 결과를 _lastClipByType 에 갱신
+
+## 결과
+  변형이 연결된 동작은 반복 입력마다 직전과 다른 클립 재생,
+  변형이 없는 동작(클립 1개)은 기존과 100% 동일 동작.
+
+## Unity Editor 작업 (에셋 연결)
+  NPC_MotionLibrary.asset → 각 동작의 Variations 배열에 변형 클립 드래그.
+  (이번 커밋에 포함된 연결분: Dance ← Dance2, Dance3 / Clap ← Clap.anim)
+  기본 Clip 은 건드리지 않고 Variations 에만 추가하면 됨.
+
+
+────────────────────────────────────────────────────────────────
+[세션 3] 시그니처 동작을 "특정 클립"으로 저장·복원
+────────────────────────────────────────────────────────────────
+
+## 요구사항
+  저장 시점에 관람객이 고른 게 "특정 클립"이 되도록.
+  → 화면에서 실제로 본 그 클립을 저장하고, 광장에서 다가갈 때마다
+    항상 그 클립을 동일하게 재생(무작위 변형 아님).
+
+## 설계
+  signature_motion(string)에 MotionType 이름("Dance") 대신
+  "특정 클립 이름"("Dance2")을 저장. 필드 타입은 그대로 string → 포맷 호환.
+
+## 수정 파일 1: Scripts/Character/MixamoMotionLibrary.cs
+  - GetClipByName(string clipName) 추가
+      · 모든 풀에서 clip.name 일치 클립을 반환
+      · 폴백: 옛 데이터의 MotionType 이름("Dance")이면 해당 타입 기본 클립
+        (mock_plaza.json 기존 데이터 호환. Spin/Cheer/Clap 등 동명 클립이
+         없는 타입은 Enum.TryParse 폴백으로 처리)
+
+## 수정 파일 2: Scripts/Character/PlacedCharacterController.cs
+  - _signatureMotionType(MotionType) → _signatureClip(AnimationClip) 로 교체
+  - _lastPromptClip + LastPromptClipName 프로퍼티 추가
+    (가장 최근 프롬프트로 실제 재생된 클립 → 시그니처 저장용 노출)
+  - SetupForPlaza(lib, MotionType) → SetupForPlaza(lib, AnimationClip)
+  - PlaySignatureMotion(): 무작위 제거 → 저장된 _signatureClip 고정 재생
+
+## 수정 파일 3: Scripts/Plaza/PlazaManager.cs
+  - SetupCharacterForPlaza(): Enum.TryParse(MotionType) 제거 →
+    motionLibrary.GetClipByName(name) 로 클립 복원 후 SetupForPlaza 에 주입
+
+## 수정 파일 4: Scripts/Managers/GameFlowManager.cs
+  - ApplySignatureMotion(): _placedCharacter.LastPromptClipName(실제 재생 클립)
+    을 저장. 못 읽으면 MotionPromptParser.Parse(input).ToString() 폴백
+
+## 수정 파일 5: Scripts/Plaza/OwnCreationInteractor.cs
+  - 저장 2곳을 SignatureValue(input) 헬퍼로 통일
+    → _placedCharacter.LastPromptClipName 저장(폴백: 타입 이름)
+
+## 수정 파일 6: Scripts/Managers/SessionManager.cs
+  - SetSignatureMotion 파라미터명 motionTypeName → signatureClipName + 주석
+
+## 수정 파일 7: Scripts/Data/SessionData.cs
+  - signature_motion 주석 갱신(클립 이름 저장 명시)
+
+## 데이터 흐름
+  [저장] "춤춰줘" → Dance2 재생 → _lastPromptClip=Dance2
+         → 예 → SetSignatureMotion("Dance2") → mock_plaza.json / 서버 PATCH
+  [복원] 광장 접근 → GetClipByName("Dance2") → SetupForPlaza(lib, Dance2)
+         → 접근할 때마다 항상 Dance2 고정 재생
+
+## 두 기능의 최종 분리
+  - 프롬프트 입력(PlayMotionFromPrompt): 반복 시 매번 다른 변형 (세션 2)
+  - 시그니처(PlaySignatureMotion): 저장한 그 특정 클립만 고정 (세션 3)
+
+
+────────────────────────────────────────────────────────────────
+[검증]
+────────────────────────────────────────────────────────────────
+
+  IDE 진단(VS Code/OmniSharp): 수정 파일 7종 오류·경고 0건.
+  (MixamoMotionLibrary 의 'new 식 단순화' Hint 10개는 기존 _entries
+   초기화 스타일 제안으로 이번 변경과 무관.)
+
+
+────────────────────────────────────────────────────────────────
+[변경된 파일 목록]
+────────────────────────────────────────────────────────────────
+
+  수정(스크립트):
+    Scripts/Character/MixamoMotionLibrary.cs
+    Scripts/Character/PlacedCharacterController.cs
+    Scripts/Managers/GameFlowManager.cs
+    Scripts/Managers/SessionManager.cs
+    Scripts/Plaza/PlazaManager.cs
+    Scripts/Plaza/OwnCreationInteractor.cs
+    Scripts/Data/SessionData.cs
+
+  수정(에셋):
+    Animations/Mixamo/NPC_MotionLibrary.asset
+      (variations 직렬화 + Dance 변형 2개 + Clap 클립 연결)
+
+  신규(에셋):
+    Animations/Mixamo/Clap.anim (+ .meta)
+
+  신규(기록):
+    History/Claude_0607.txt (+ .meta)
+
+
+────────────────────────────────────────────────────────────────
+[미해결 / 추후 작업]
+────────────────────────────────────────────────────────────────
+
+  [ ] 나머지 동작(Jump/Run/Wave/Sit/Kick)의 Variations 배열도 Inspector 연결
+  [ ] 서버 모드: signature_motion(클립 이름)이 PATCH·플라자 응답에서
+      그대로 라운드트립되는지 통합 테스트
+  [ ] TriLib 서버 캐릭터 + 변형/시그니처 동작 동시 검증
+  [ ] 전시 빌드 전: _enableGuideSkip · FreeCameraController 비활성화
+
+================================================================

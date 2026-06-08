@@ -146,10 +146,11 @@ namespace LegoTwin.Managers
 
         /// <summary>
         /// 현재 세션의 시그니처 동작을 설정한다.
+        /// signatureClipName = 관람객이 고른 특정 클립 이름(예: "Dance2").
         /// Mock: 메모리에만 반영 (앱 종료 시 PlazaManager가 파일로 저장).
         /// Server: 메모리 반영 + PATCH /sessions/{id}/signature-motion API 호출.
         /// </summary>
-        public void SetSignatureMotion(string motionTypeName)
+        public void SetSignatureMotion(string signatureClipName)
         {
             if (CurrentSession == null)
             {
@@ -157,10 +158,10 @@ namespace LegoTwin.Managers
                 return;
             }
 
-            CurrentSession.signature_motion = motionTypeName;
+            CurrentSession.signature_motion = signatureClipName;
 
             if (dataSourceMode == DataSourceMode.Server && _apiClient != null)
-                StartCoroutine(_apiClient.SaveSignatureMotion(CurrentSession.session_id, motionTypeName));
+                StartCoroutine(_apiClient.SaveSignatureMotion(CurrentSession.session_id, signatureClipName));
         }
 
         // ════════════════════════════════════════════════════════════

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace LegoTwin.Character
@@ -10,8 +11,8 @@ namespace LegoTwin.Character
     ///   GuideNPCController (Step 5)
     ///     → PlayMotionFromPrompt("춤춰줘")
     ///     → MotionPromptParser.Parse()
-    ///     → MixamoMotionLibrary.GetClip()
-    ///     → CharacterAnimationController.PlayMotionClip()
+    ///     → MixamoMotionLibrary.GetRandomClip(직전 클립 제외)
+    ///     → CharacterAnimationController.PlayMotionClipLooping()
     ///
     /// 유니티 개발자 체크리스트:
     ///   [ ] 이 컴포넌트를 배치 캐릭터 Prefab(루트)에 추가
@@ -26,8 +27,22 @@ namespace LegoTwin.Character
         public MixamoMotionLibrary motionLibrary;
 
         private CharacterAnimationController _animation;
-        private Animator    _animator;
-        private MotionType  _signatureMotionType = MotionType.Idle;
+        private Animator      _animator;
+
+        // 시그니처 동작 = 관람객이 저장 시점에 고른 "특정 클립" (타입이 아니라 클립 자체).
+        // 광장에서 다가올 때마다 항상 이 클립 그대로 재생된다.
+        private AnimationClip _signatureClip;
+
+        // 동작 타입별 직전 재생 클립 기억 — 같은 동작 반복 입력 시 직전과 다른 변형을 고르기 위함.
+        // 캐릭터 인스턴스마다 독립 (라이브러리 에셋은 상태를 갖지 않음).
+        private readonly Dictionary<MotionType, AnimationClip> _lastClipByType
+            = new Dictionary<MotionType, AnimationClip>();
+
+        // 가장 최근 프롬프트로 실제 재생된 클립 — 시그니처 저장 시 이 클립이 그대로 저장된다.
+        private AnimationClip _lastPromptClip;
+
+        /// <summary>가장 최근 프롬프트로 재생된 클립의 이름(없으면 null). 시그니처 저장용.</summary>
+        public string LastPromptClipName => _lastPromptClip != null ? _lastPromptClip.name : null;
 
         // 초기(스폰) 자세 — 모션 루프의 Root Motion 누적 방지용. Awake에서 한 번만 캡처.
         private Vector3    _initialPos;
@@ -77,16 +92,24 @@ namespace LegoTwin.Character
                 return;
             }
 
-            // 1. 키워드 파싱 → MotionType
+            // 1. 키워드 파싱 → MotionType (인식되는 동작이 없으면 Idle 반환)
             MotionType motionType = MotionPromptParser.Parse(input);
 
-            // 2. MotionType → AnimationClip
-            AnimationClip clip = motionLibrary.GetClip(motionType);
+            // 입력은 했지만 매칭되는 동작이 없으면 Cry 로 대체.
+            // (빈 입력은 제외 — Cry 로 가지 않음)
+            if (motionType == MotionType.Idle && !string.IsNullOrWhiteSpace(input))
+                motionType = MotionType.Cry;
+
+            // 2. MotionType → AnimationClip (직전 재생 클립 제외, 같은 동작이라도 다른 변형 재생)
+            _lastClipByType.TryGetValue(motionType, out var lastClip);
+            AnimationClip clip = motionLibrary.GetRandomClip(motionType, lastClip);
             if (clip == null)
             {
                 Debug.LogWarning($"[PlacedCharacterController] '{input}' → 클립 없음, 모션 생략");
                 return;
             }
+            _lastClipByType[motionType] = clip;
+            _lastPromptClip = clip;   // 시그니처 저장 시 이 클립이 그대로 저장됨
 
             // 3. 클립 교체 후 재생
             if (_animation == null)
@@ -128,27 +151,28 @@ namespace LegoTwin.Character
 
         /// <summary>
         /// 광장 배치 시 PlazaManager가 호출.
-        /// motionLibrary와 시그니처 동작을 주입하고 애니메이션을 재개한다.
+        /// motionLibrary와 시그니처 클립(관람객이 고른 특정 클립)을 주입하고 애니메이션을 재개한다.
+        /// signatureClip 이 null 이면 시그니처 미설정 — 접근해도 재생하지 않는다.
         /// </summary>
-        public void SetupForPlaza(MixamoMotionLibrary lib, MotionType signatureMotion)
+        public void SetupForPlaza(MixamoMotionLibrary lib, AnimationClip signatureClip)
         {
-            motionLibrary        = lib;
-            _signatureMotionType = signatureMotion;
+            motionLibrary  = lib;
+            _signatureClip = signatureClip;
             if (_animator != null) _animator.speed = 1f;
         }
 
-        /// <summary>플레이어 접근 시 시그니처 동작을 루프 재생한다.</summary>
+        /// <summary>
+        /// 플레이어 접근 시 시그니처 동작을 루프 재생한다.
+        /// 관람객이 저장한 그 클립을 항상 동일하게 재생한다(접근할 때마다 같은 동작).
+        /// </summary>
         public void PlaySignatureMotion()
         {
-            if (_signatureMotionType == MotionType.Idle || motionLibrary == null || _animation == null) return;
-
-            var clip = motionLibrary.GetClip(_signatureMotionType);
-            if (clip == null) return;
+            if (_signatureClip == null || _animation == null) return;
 
             if (_animator != null && _animator.speed == 0f) _animator.speed = 1f;
 
             ResetToInitialPose();
-            _animation.PlayMotionClipLooping(clip, ResetToInitialPose);
+            _animation.PlayMotionClipLooping(_signatureClip, ResetToInitialPose);
         }
 
         /// <summary>플레이어 이탈 시 시그니처 동작을 중단하고 idle로 복귀한다.</summary>

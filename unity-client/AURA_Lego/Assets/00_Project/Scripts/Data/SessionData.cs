@@ -21,7 +21,7 @@ namespace LegoTwin.Data
         public string bubble_text;
         public int    likes;
         public bool   ready_for_unity;
-        public string signature_motion;   // MotionType.ToString() e.g. "Dance", "" = 미설정
+        public string signature_motion;   // 시그니처 클립 이름 e.g. "Dance2", "" = 미설정 (옛 데이터는 MotionType 이름 "Dance")
         public SessionAssets assets;
     }
 
@@ -76,7 +76,7 @@ namespace LegoTwin.Data
         public string bubble_text;
         public int    likes;
         public bool   is_top_liked;             // true → 별 표시
-        public string signature_motion;         // MotionType.ToString() e.g. "Dance", "" = 미설정
+        public string signature_motion;         // 시그니처 클립 이름 e.g. "Dance2", "" = 미설정 (옛 데이터는 MotionType 이름)
         public SessionAssets assets;
     }
 
