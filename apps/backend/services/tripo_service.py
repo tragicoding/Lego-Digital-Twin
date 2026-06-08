@@ -36,9 +36,26 @@ import httpx
 from pathlib import Path
 
 #API 설정값
-from ..core.config import TRIPO_API_KEY, TRIPO_BASE_URL
+from ..core.config import (
+    TRIPO_API_KEY,
+    TRIPO_BASE_URL,
+    TRIPO_MODEL_VERSION,
+    TRIPO_DEFAULT_FACE_LIMIT,
+    TRIPO_DEFAULT_TEXTURE_QUALITY,
+)
 #인증 헤더
 _HEADERS = {"Authorization": f"Bearer {TRIPO_API_KEY}"}
+
+
+def _generation_options(face_limit: int) -> dict:
+    """P1 계열 생성 작업에서 공통으로 쓰는 옵션."""
+    return {
+        "model_version": TRIPO_MODEL_VERSION,
+        "face_limit": face_limit,
+        "texture": True,
+        "pbr": True,
+        "texture_quality": TRIPO_DEFAULT_TEXTURE_QUALITY,
+    }
 
 #이미지 파일을 Tipo에 업로드 → file_token 반환
 async def upload_image(image_path: Path) -> str:
@@ -59,14 +76,22 @@ async def upload_image(image_path: Path) -> str:
         return resp.json()["data"]["image_token"]
 
 #이미지를 3D 모델로 변환하는 task를 생성하는 함수.
-async def create_model_task(file_token: str, image_path: Path | None = None) -> str:
+async def create_model_task(
+    file_token: str,
+    image_path: Path | None = None,
+    face_limit: int = TRIPO_DEFAULT_FACE_LIMIT,
+) -> str:
     """image_to_model 태스크를 생성하고 task_id를 반환한다."""
     ext = _file_ext(image_path) if image_path else "png"
     async with httpx.AsyncClient() as c:
         resp = await c.post(
             f"{TRIPO_BASE_URL}/task",
             headers={**_HEADERS, "Content-Type": "application/json"},
-            json={"type": "image_to_model", "file": {"type": ext, "file_token": file_token}, "model_version": "v2.5-20250123"},
+            json={
+                "type": "image_to_model",
+                "file": {"type": ext, "file_token": file_token},
+                **_generation_options(face_limit),
+            },
             timeout=60,
         )
         resp.raise_for_status()
@@ -79,20 +104,21 @@ async def create_multiview_task(
     back_token: str,
     left_token: str | None = None,
     right_token: str | None = None,
+    face_limit: int = TRIPO_DEFAULT_FACE_LIMIT,
 ) -> str:
     """front/left/back/right 이미지로 multiview_to_model 태스크를 생성하고 task_id를 반환한다.
-    left/right 없으면 front로 패딩한다.
+    left/right 없으면 빈 항목으로 생략한다.
     """
     files = [
-        {"type": "jpg", "file_token": front_token},                      # front
-        {"type": "jpg", "file_token": left_token or front_token},        # left
-        {"type": "jpg", "file_token": back_token},                       # back
-        {"type": "jpg", "file_token": right_token or front_token},       # right
+        {"type": "jpg", "file_token": front_token},                # front
+        {"type": "jpg", "file_token": left_token} if left_token else {},   # left
+        {"type": "jpg", "file_token": back_token},                 # back
+        {"type": "jpg", "file_token": right_token} if right_token else {},  # right
     ]
     payload = {
         "type": "multiview_to_model",
         "files": files,
-        "model_version": "v2.5-20250123",
+        **_generation_options(face_limit),
     }
     print(f"[tripo] multiview payload: {payload}", flush=True)
     async with httpx.AsyncClient() as c:

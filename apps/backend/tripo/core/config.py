@@ -7,6 +7,12 @@ load_dotenv(_BASE / ".env")
 
 TRIPO_API_KEY: str = os.environ["TRIPO_API_KEY"]
 TRIPO_BASE_URL: str = "https://api.tripo3d.ai/v2/openapi"
+TRIPO_MODEL_VERSION: str = os.getenv("TRIPO_MODEL_VERSION", "P1-20260311")
+TRIPO_DEFAULT_FACE_LIMIT: int = int(os.getenv("TRIPO_DEFAULT_FACE_LIMIT", "4000"))
+TRIPO_DEFAULT_TEXTURE_QUALITY: str = os.getenv(
+    "TRIPO_DEFAULT_TEXTURE_QUALITY",
+    "standard",
+)
 
 STORAGE_CAPTURES: Path = _BASE / "storage" / "captures"
 STORAGE_MODELS: Path = _BASE / "storage" / "models"
