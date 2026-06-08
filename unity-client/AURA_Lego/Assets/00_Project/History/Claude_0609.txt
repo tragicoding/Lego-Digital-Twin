@@ -1,0 +1,188 @@
+================================================================
+Claude Code 작업 기록
+날짜: 2026-06-09
+브랜치: feature/unity
+================================================================
+
+주제: bubble_text(오브제 한마디) 흐름 완성 + 동작 프롬프트 UX 개선
+      ① 가이드 모드에서 bubble_text 입력 받기
+      ② 이전 관람객 bubble_text를 PlazaSessionView 말풍선에 표시 (현황 점검)
+      ③ Server 모드 동등성 확보 + BubbleTextPrompt 단일 진입점 리팩토링
+      ④ 미인식 동작 입력 시 Cry 후 재입력 유도 (가이드/자유)
+      ⑤ 자유 모드 "창작물 한마디 수정" 제거 + 동작 입력창 나가기 버튼
+
+
+────────────────────────────────────────────────────────────────
+[세션 1] Did_you_do.txt 분석 · bubble_text 현황 점검 · 가이드 입력 추가
+────────────────────────────────────────────────────────────────
+
+## 참고 문서
+  Assets/00_Project/History/Did_you_do.txt
+    (bubble_text는 화면 표시만이 아니라 Unity→백엔드→PostgreSQL→재조회까지
+     왕복돼야 "구현 완료"라는 요구사항 문서)
+
+## 현황 점검 결과 — 대부분 이미 연결돼 있었음
+  - 쓰기: SessionManager.SetBubbleText() → (Server) ApiClient.UpdateBubbleText()
+          → PATCH /sessions/{id}/profile. 메모리(bubble_text·object_name) 동기화.
+  - 이전 관람객 표시: PlazaSessionView.Initialize()가 이미
+          bubbleText.text = session.bubble_text 설정. PlazaManager가
+          mock_plaza.json / GET /unity/plaza/sessions 로 받아 Initialize 호출.
+  - 누락된 것은 "가이드 모드에서 현재 관람객의 입력을 받는 단계" 하나뿐
+          (0529 개정 때 인사말 입력 단계가 삭제된 채였음).
+
+## 구현 — 가이드 시나리오에 bubble_text 입력 단계(Step 2-1) 추가
+  GuideNPCController.cs
+    - 이벤트 추가: event Action<Action<string>> OnBubbleTextInputRequested
+    - Step 2(오브제 공개 "짜잔!") 직후 Step 2-1 삽입:
+        구독자 있으면 입력 UI 요청 → 완료 콜백까지 WaitUntil
+        (구독자 없으면 단계 스킵)
+
+  GameFlowManager.cs
+    - OnBubbleTextInputRequested 핸들러 추가 — MotionPromptUI 재사용해 입력창 오픈,
+      기존 bubble_text prefill, 제출 시 SessionManager.SetBubbleText() 호출
+    - SubscribeNPCEvents / UnsubscribeNPCEvents 에 구독·해제 추가
+
+## 데이터 흐름 (모드 무관)
+  입력 → SetBubbleText (메모리 + Server PATCH)
+       → 자유 모드 진입 시 PlazaManager.AttachViewToCurrentSession()가
+         CurrentSession.bubble_text 를 읽어 내 말풍선에 반영
+       → 다음 관람객: mock_plaza.json / plaza API 로 이전 한마디 표시
+
+
+────────────────────────────────────────────────────────────────
+[세션 2] Server 모드 동등성 + BubbleTextPrompt 단일 진입점 리팩토링
+────────────────────────────────────────────────────────────────
+
+## 배경
+  입력 흐름(prefill + SetBubbleText + 즉시갱신)이 가이드(GameFlowManager)와
+  자유(OwnCreationInteractor) 두 곳에 중복돼 있었음. Server 모드 동등성을
+  구조적으로 보장하고 의존성을 낮추기 위해 단일 진입점으로 통합.
+
+## 신규: Scripts/UI/BubbleTextPrompt.cs (static 헬퍼)
+  - Open(MotionPromptUI, onDone, TMP_Text liveLabel, title)
+  - 저장은 항상 SessionManager.SetBubbleText 한 경로만 거침
+    → Mock/Server 분기가 호출부에 노출되지 않음 (모드 무관 동일 동작)
+  - liveLabel(TMP_Text)만 받아 PlazaSessionView(Plaza 레이어)에 직접 의존 안 함
+  - 현재값 prefill(세션 메모리 우선, 없으면 라벨 폴백) + 제출 시 즉시 라벨 갱신
+
+## 적용
+  - GameFlowManager.OnBubbleTextInputRequested → BubbleTextPrompt.Open 한 줄로 축소
+  - OwnCreationInteractor → OnBubbleTextSubmitted/CurrentBubbleText 중복 제거,
+    BubbleTextPrompt.Open 호출로 대체
+
+## 결론 — Server 모드는 코드 분기 없이 동일 동작
+  쓰기(SetBubbleText 내부 분기) / 내 말풍선(CurrentSession 메모리 읽기) /
+  이전 말풍선(plaza API)이 모두 모드 무관. caller에 모드 코드가 없어
+  Server 전환 시 흐름 차이가 발생할 여지 자체가 없음.
+
+
+────────────────────────────────────────────────────────────────
+[세션 3] 미인식 동작 입력 → Cry 후 재입력 유도
+────────────────────────────────────────────────────────────────
+
+## 요구
+  맞는 모션 타입이 없는 입력은 Cry 모션이 나온 뒤 시그니처 안내 대신
+  "다른 동작으로 다시 해볼까요?"(가이드) 로 넘어가게.
+
+## 핵심 — "미인식" 판정 단일화
+  미인식 = MotionPromptParser.Parse(input) == MotionType.Idle.
+  이 값은 PlayMotionFromPrompt 안에서 이미 계산됨 → 반환만 추가(파싱 중복 없음).
+
+## 수정
+  PlacedCharacterController.cs
+    - PlayMotionFromPrompt: void → bool 반환
+      (인식 매칭 true / Cry 폴백 false, 설정오류 early-return은 true)
+
+  GuideNPCController.cs (Step 3 while 루프)
+    - recognized = placedCharacter.PlayMotionFromPrompt(...)
+    - !recognized 이면 시그니처 확인 건너뛰고 isRetry=true; continue
+      → 루프 상단 "다른 동작으로 다시 해볼까요?"
+    - isRetry(재시도 멘트)와 explainedSignature(시그니처 설명 1회)를 분리
+      → 첫 입력이 미인식이어도 이후 첫 인식 모션에서 설명이 정상 1회 노출
+
+  ※ 자유 모드(OwnCreationInteractor)도 동일 bool 소비 (세션 4에서 안내 추가)
+
+
+────────────────────────────────────────────────────────────────
+[세션 4] 자유 모드 "창작물 한마디 수정" 제거 + 동작 입력창 나가기 버튼
+────────────────────────────────────────────────────────────────
+
+## (1) 자유 모드 미인식 안내 (OwnCreationInteractor)
+  OnMotionSubmitted: PlayMotionFromPrompt 반환값으로 미인식 판별 →
+    RepromptAfterDelay(): confirmDelay 후 MotionPromptUI를 안내 제목
+    "그 동작은 잘 모르겠어요!\n다른 동작을 입력해주세요" 로 재오픈.
+
+## (2) 자유 모드 "창작물 한마디 수정" 제거
+  - PromptForBubbleTextOrFinish() 메서드 삭제
+  - 시그니처 확인 "예" / 나가기 확인 "예" 분기를 FinishInteraction() 직결
+  - 미사용 _sessionView 필드·할당 정리 (데드코드 제거)
+  - 가이드 모드 bubble_text 입력(Step 2-1)은 그대로 유지
+
+## (3) 동작 입력 프롬프트 UI 나가기 버튼 (MotionPromptUI)
+  - SignatureMotionConfirmUI 와 동일 패턴:
+      Show(callback, title, initial, bool showExitButton, Action onExit) 오버로드 추가
+      (기존 오버로드는 showExitButton=false 로 위임 → 가이드/ bubble 입력 영향 없음)
+  - _exitButton 미연결 시 PopupRoot 자식 중 이름 "ExitButton" 자동 탐색
+  - 나가기 클릭 → 제출 없이 닫고 onExit 호출. Close/OnSubmit 에서 _pendingExit 정리
+  - OwnCreationInteractor 의 모션 입력창 3곳(최초/미인식 재입력/시그니처 "아니오"
+    재입력)에서 showExitButton:true, onExit:FinishInteraction 으로 연결
+    → 자유 모드에서만 나가기 노출. 가이드 모드 모션 입력은 선형 시나리오라 미노출.
+
+## 남은 Inspector/Scene 작업 (코드 아님)
+  - MotionPromptUI PopupRoot 하위에 "나가기" Button 추가
+    (이름 "ExitButton" 이면 자동 연결, 또는 _exitButton 슬롯 직접 연결)
+  - PlazaSessionView 프리팹의 bubbleText 필드 연결 확인 (이전 관람객 한마디 표시)
+
+
+────────────────────────────────────────────────────────────────
+[세션 5] 안내 모드 미인식 재시도 멘트 타이밍 단축
+────────────────────────────────────────────────────────────────
+
+## 문제
+  가이드 모드에서 Cry 재생 후 "다른 동작으로 다시 해볼까요?" 가 너무 늦게 나옴.
+
+## 원인
+  Step 3에서 인식/미인식 공통으로 WaitForSeconds(3f) 가 먼저 실행됨.
+
+## 수정 (GuideNPCController.cs)
+  - 미인식(Cry) 경로: WaitForSeconds(1f) 만 대기 후 즉시 continue
+  - 인식 경로: 기존 WaitForSeconds(3f) 유지 (모션 충분히 재생 후 다음 단계)
+  → Cry 직후 약 1초 만에 재시도 멘트 노출.
+
+
+────────────────────────────────────────────────────────────────
+[변경된 파일 목록]
+────────────────────────────────────────────────────────────────
+
+  신규:
+    Scripts/UI/BubbleTextPrompt.cs              bubble_text 입력 단일 진입점
+
+  수정:
+    Scripts/Character/GuideNPCController.cs       Step 2-1 입력 단계, 미인식 재시도, 타이밍
+    Scripts/Character/PlacedCharacterController.cs PlayMotionFromPrompt bool 반환(인식 여부)
+    Scripts/Managers/GameFlowManager.cs          OnBubbleTextInputRequested 핸들러·구독
+    Scripts/Plaza/OwnCreationInteractor.cs       미인식 재입력, 한마디 수정 제거, 나가기 연결
+    Scripts/UI/MotionPromptUI.cs                 나가기 버튼(showExitButton/onExit)
+
+  ※ 에디터 실시간 편집분(Main.unity·XR prefab·TMP 폰트·ProjectSettings·
+    Project_OnePager·Logs·UserSettings 등)은 무관 단위라 이번 커밋에서 제외.
+
+
+────────────────────────────────────────────────────────────────
+[커밋 내역]
+────────────────────────────────────────────────────────────────
+
+  feat(unity): 가이드 bubble_text 입력·미인식 모션 재입력·동작 입력창 나가기 버튼
+  docs(unity): 0609 작업 기록 추가
+
+
+────────────────────────────────────────────────────────────────
+[미해결 / 추후 작업]
+────────────────────────────────────────────────────────────────
+
+  [ ] (Scene) MotionPromptUI 에 "ExitButton" 추가, PlazaSessionView.bubbleText 연결 확인
+  [ ] Server 모드 통합 테스트 — bubble_text PATCH·plaza 응답 라운드트립
+  [ ] 서버 캐릭터 아바타 왜곡(0608) · 서버 모드 렉(0608) 해결
+  [ ] 전시 빌드 전: _enableGuideSkip · FreeCameraController 비활성화
+
+================================================================
