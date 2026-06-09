@@ -161,8 +161,8 @@ async def _process_character_async(asset_id: str):
         print(f"[char] FBX 저장 완료: {fbx_path.name} (+{time.time()-t_rig_start:.1f}s)", flush=True)
 
         # 4-1. Unity StreamingAssets로 복사
-        shutil.copy(fbx_path, UNITY_GENERATED_MODELS / fbx_path.name)
-        shutil.copy(texture_glb_path, UNITY_GENERATED_MODELS / texture_glb_path.name)
+        shutil.copyfile(fbx_path, UNITY_GENERATED_MODELS / fbx_path.name)
+        shutil.copyfile(texture_glb_path, UNITY_GENERATED_MODELS / texture_glb_path.name)
         print(f"[char] Unity 복사 완료: {UNITY_GENERATED_MODELS}", flush=True)
 
         # 5. DB 업데이트

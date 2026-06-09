@@ -118,7 +118,7 @@ async def _run(asset_id: str):
         await tripo.download_glb(result, glb_path)
 
         # Unity StreamingAssets로 복사
-        shutil.copy(glb_path, UNITY_GENERATED_MODELS / glb_path.name)
+        shutil.copyfile(glb_path, UNITY_GENERATED_MODELS / glb_path.name)
         print(f"[obj] Unity 복사 완료: {glb_path.name}", flush=True)
 
         asset.model_url = f"{BACKEND_HOST}/static/models/{glb_path.name}"
