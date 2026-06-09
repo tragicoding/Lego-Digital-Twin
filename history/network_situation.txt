@@ -104,3 +104,36 @@ netsh advfirewall firewall add rule name="WSL2 8000" dir=in action=allow protoco
 2. capstone/Lego- ~~/ bash scripts/start_exhibition.sh <windows IP>
 
 3. unity -> .../server_config.json의 base_url 윈도우로 바꿈.
+
+리깅/유니티 런타임 트러블슈팅 메모
+
+- 증상
+서버 모드에서 Tripo FBX는 FBX viewer에서는 정상인데 Unity에서만 몸이 비틀림.
+
+- 최종 원인
+Mixamo 클립 문제가 아니라 "서버 모드에서 Animator.avatar를 무엇으로 쓰느냐"가 원인이었음.
+Mock 모드는 Unity 에디터 임포트가 만든 검증된 Humanoid Avatar를 사용해서 정상.
+Server 모드는 TriLib 런타임 Avatar를 사용하면서 리타게팅 기준이 어긋나 비틀림 발생.
+
+- 최종 해결
+server 캐릭터 로드 시 `mockCharacterPrefab` 의 검증된 Humanoid Avatar를 먼저 재사용.
+로그에서 아래 문구가 뜨면 성공 경로:
+`[TripoFbxLoader] mockCharacterPrefab의 검증 Avatar 재사용: UnnamedModel`
+
+- fallback
+reference avatar가 맞지 않을 때는 HumanoidAvatarBuilder fallback이 동작함.
+예시 로그:
+`[TripoFbxLoader] TriLib Avatar를 HumanoidAvatarBuilder로 교체: UnnamedModel`
+
+- 기타 Unity 로그 정리
+`Unable to start Oculus XR Plugin`
+  Standalone 자동 XR 초기화 경고. PC에서 헤드셋 없이 테스트할 때는 무시 가능.
+  현재는 `Assets/XR/XRGeneralSettingsPerBuildTarget.asset` 에서 Standalone 자동 시작을 꺼 둠.
+
+`DontDestroyOnLoad only works for root GameObjects`
+  ApiClient가 루트가 아닌 자식 오브젝트였던 경고.
+  현재는 Awake에서 부모에서 분리 후 `DontDestroyOnLoad` 호출하도록 수정.
+
+`Couldn't create a Convex Mesh ... maximum polygons limit (256)`
+  고폴리 런타임 GLB에 convex MeshCollider를 붙이려 해서 생긴 경고.
+  현재는 전시용으로 Renderer bounds 기반 BoxCollider 프록시를 생성하도록 변경.

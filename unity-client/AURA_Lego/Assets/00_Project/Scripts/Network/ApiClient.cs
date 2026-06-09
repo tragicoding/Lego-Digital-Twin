@@ -25,6 +25,13 @@ namespace LegoTwin.Network
         private void Awake()
         {
             if (Instance != null) { Destroy(gameObject); return; }
+
+            if (transform.parent != null)
+            {
+                // DontDestroyOnLoad는 루트 오브젝트에서만 안전하므로 먼저 부모에서 분리한다.
+                transform.SetParent(null, true);
+            }
+
             Instance = this;
             DontDestroyOnLoad(gameObject);
         }
