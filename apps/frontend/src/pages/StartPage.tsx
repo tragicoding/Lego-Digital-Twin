@@ -1,32 +1,13 @@
-/*
-session 생성
-StartPage 접속
-↓
-사용자가 시작하기 클릭
-↓
-createSession()으로 백엔드에 세션 생성 요청
-↓
-응답으로 session_id 받음
-↓
-Zustand store에 session_id 저장
-↓
-/capture 페이지로 이동
-
-*/
-
-
-
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 import { createSession } from "../api/client";
 import { useSessionStore } from "../store/sessionStore";
+import PrimaryButton from "../components/PrimaryButton";
 
 export default function StartPage() {
-  //페이지 이동을 위함.
   const navigate = useNavigate();
   const setSessionId = useSessionStore((s) => s.setSessionId);
-//시작하기 버튼 클릭 시, 서버에 세션 생성 요청을 보내고
-// , 응답으로 받은 session_id를 전역 상태에 저장한 뒤,
-//  촬영 페이지로 이동한다.
+
   const handleStart = async () => {
     const res = await createSession();
     setSessionId(res.data.session_id);
@@ -34,44 +15,63 @@ export default function StartPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-6">
-      <div className="w-full max-w-md bg-white rounded-3xl shadow-lg p-10 flex flex-col items-center gap-8">
-        {/* 로고 */}
-        <div className="w-16 h-16 bg-blue-500 rounded-2xl flex items-center justify-center">
-          <span className="text-white text-3xl">🧱</span>
-        </div>
+    <div className="min-h-screen w-full bg-white flex flex-col items-center justify-center px-6">
 
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900 mb-3">레고 VR 월드</h1>
-          <p className="text-gray-500 text-base leading-relaxed">
-            직접 만든 레고가<br />
-            VR 놀이공원 안에 등장합니다.
-          </p>
-        </div>
+      {/* 로고 영역 — 텍스트 + 블록을 relative 컨테이너 안에서 겹쳐 배치 */}
+      <div className="relative w-full">
+        {/* MINIVERSE 텍스트 */}
+        <motion.img
+          src="/images/miniverse-logo-crop.png"
+          alt="MINIVERSE"
+          className="w-full object-contain"
+          initial={{ opacity: 0, scale: 0.85, y: 12 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.65, ease: [0.34, 1.56, 0.64, 1] }}
+        />
 
-        <div className="w-full bg-blue-50 rounded-2xl p-5">
-          <p className="text-blue-700 text-sm font-medium text-center">
-            촬영 순서 안내
-          </p>
-          <div className="mt-3 flex justify-around">
-            {["캐릭터", "건축물", "자동차"].map((item, i) => (
-              <div key={item} className="flex flex-col items-center gap-1">
-                <span className="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
-                  {i + 1}
-                </span>
-                <span className="text-gray-700 text-sm">{item}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <button
-          onClick={handleStart}
-          className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 rounded-2xl text-lg transition-colors"
-        >
-          시작하기
-        </button>
+        {/* 블록 — 위에서 공처럼 튀며 reference 위치로 낙하 */}
+        <motion.img
+          src="/images/block.png"
+          alt=""
+          className="absolute pointer-events-none"
+          style={{
+            width: "13%",
+            right: "-9%",
+            top: "-48%",
+            mixBlendMode: "multiply",   // 흰 배경 투명 처리
+          }}
+          initial={{ y: -300, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{
+            delay: 0.6,
+            type: "spring",
+            stiffness: 340,
+            damping: 7,
+            mass: 0.6,
+          }}
+        />
       </div>
+
+      {/* 설명 문구 */}
+      <motion.p
+        className="text-gray-500 text-base text-center leading-relaxed mt-6"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.8, duration: 0.5 }}
+      >
+        나만의 레고가<br />디지털 세상에 등장합니다
+      </motion.p>
+
+      {/* 시작 버튼 */}
+      <motion.div
+        className="w-3/4 mt-6"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 1.3, duration: 0.5 }}
+      >
+        <PrimaryButton onClick={handleStart}>시작하기</PrimaryButton>
+      </motion.div>
+
     </div>
   );
 }

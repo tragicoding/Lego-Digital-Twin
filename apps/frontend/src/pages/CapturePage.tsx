@@ -1,162 +1,212 @@
-/*
-캐릭터 → 건축물 → 자동차 순서로 사진을 선택/촬영하고, 
-백엔드에 업로드하는 페이지
-*/
-
-
-
-
-import { useState, useRef } from "react";
-//useState: 화면 상태 관리
-//useRef: 숨겨진 file input을 버튼으로 클릭시키기 위해 사용
+import { useState, useRef, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { uploadAsset } from "../api/client";
-//백엔드에 이미지 업로드하는 API 함수
 import { useSessionStore } from "../store/sessionStore";
-//sessionId, 업로드 완료 상태를 가져오기 위해 사용
+import PrimaryButton from "../components/PrimaryButton";
 
+interface GuideStep  { type: "guide";   text: string }
+interface CaptureStep{ type: "capture"; assetType: "character" | "object"; label: string; emoji: string; view?: "front" | "back" | "left" | "right" }
+type Step = GuideStep | CaptureStep;
 
-const STEPS = [
-  { type: "character", label: "캐릭터", emoji: "🧍", desc: "레고 캐릭터를 조립하고 촬영하세요" },
-  { type: "building",  label: "건축물", emoji: "🏰", desc: "레고 건축물을 조립하고 촬영하세요" },
-  { type: "vehicle",   label: "자동차", emoji: "🚗", desc: "레고 자동차를 조립하고 촬영하세요" },
-]; //촬영 단계 정의 배열 
+const STEPS: Step[] = [
+  { type: "guide",   text: "안녕하세요!" },
+  { type: "guide",   text: "MINIVERSE에 오신걸 환영합니다!" },
+  { type: "guide",   text: "먼저 여러분의 NPC가 될\n캐릭터를 촬영할게요!" },
+  { type: "guide",   text: "캐릭터를 앞에 표시된\n곳에 올려주세요!" },
+  { type: "guide",   text: "캐릭터 정면 촬영을\n시작합니다" },
+  { type: "capture", assetType: "character", label: "캐릭터 정면", emoji: "🧍", view: "front" },
+  { type: "guide",   text: "캐릭터를 왼쪽으로\n90도 돌려주세요!" },
+  { type: "guide",   text: "캐릭터 좌측면 촬영을\n시작합니다" },
+  { type: "capture", assetType: "character", label: "캐릭터 좌측면", emoji: "↩️", view: "left" },
+  { type: "guide",   text: "캐릭터를 다시 90도\n돌려서 뒷면을 보여주세요!" },
+  { type: "guide",   text: "캐릭터 후면 촬영을\n시작합니다" },
+  { type: "capture", assetType: "character", label: "캐릭터 후면", emoji: "🔄", view: "back" },
+  { type: "guide",   text: "캐릭터를 다시 90도\n돌려서 우측면을 보여주세요!" },
+  { type: "guide",   text: "캐릭터 우측면 촬영을\n시작합니다" },
+  { type: "capture", assetType: "character", label: "캐릭터 우측면", emoji: "↪️", view: "right" },
+  { type: "guide",   text: "이제 당신이 조립한\n오브제를 촬영할게요!" },
+  { type: "guide",   text: "오브제를 앞에 표시된\n곳에 올려주세요!" },
+  { type: "guide",   text: "오브제 정면 촬영을\n시작합니다" },
+  { type: "capture", assetType: "object", label: "오브제 정면", emoji: "🧱", view: "front" },
+  { type: "guide",   text: "오브제를 왼쪽으로\n90도 돌려주세요!" },
+  { type: "guide",   text: "오브제 좌측면 촬영을\n시작합니다" },
+  { type: "capture", assetType: "object", label: "오브제 좌측면", emoji: "↩️", view: "left" },
+  { type: "guide",   text: "오브제를 다시 90도\n돌려주세요!" },
+  { type: "guide",   text: "오브제 후면 촬영을\n시작합니다" },
+  { type: "capture", assetType: "object", label: "오브제 후면", emoji: "🔄", view: "back" },
+  { type: "guide",   text: "오브제를 다시 90도\n돌려주세요!" },
+  { type: "guide",   text: "오브제 우측면 촬영을\n시작합니다" },
+  { type: "capture", assetType: "object", label: "오브제 우측면", emoji: "↪️", view: "right" },
+];
 
-export default function CapturePage() {
-  const navigate = useNavigate();
-  const { sessionId, setUploaded, uploads } = useSessionStore();
-  //전역 store에서 세 가지를 가져온다.
-  /*
-  {
-  sessionId: "abc123",
-  uploads: {
-    character: true,
-    building: true
-  }
+function GuideScreen({ step, onNext }: { step: GuideStep; onNext: () => void }) {
+  useEffect(() => {
+    const t = setTimeout(onNext, 2400);
+    return () => clearTimeout(t);
+  }, [step.text]);
+
+  const words = step.text.split(/(\n)/).flatMap((seg) =>
+    seg === "\n" ? ["\n"] : seg.split(" ")
+  );
+
+  return (
+    <motion.div
+      key={step.text}
+      className="min-h-screen flex flex-col items-center justify-center px-8 cursor-pointer select-none"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.3 }}
+      onClick={onNext}
+    >
+      <p className="text-4xl font-black text-gray-900 text-center leading-tight">
+        {words.map((w, i) =>
+          w === "\n" ? (
+            <br key={i} />
+          ) : (
+            <motion.span
+              key={`${step.text}-${i}`}
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.07, duration: 0.35 }}
+              className="inline-block mr-2"
+            >
+              {w}
+            </motion.span>
+          )
+        )}
+      </p>
+      <motion.p
+        className="text-gray-300 text-sm mt-12"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1.2 }}
+      >
+        화면을 탭하면 넘어갑니다
+      </motion.p>
+    </motion.div>
+  );
 }
-  */
-  const [current, setCurrent] = useState(0); //useState 상태들
-  const [loading, setLoading] = useState(false);//업로드 중인지 여부
-  const [preview, setPreview] = useState<string | null>(null); //선택한 이미지 미리보기 URL을 저장
-  //사진을 선택하면 화면에 이미지가 보이게 만드는 값
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+function CaptureScreen({ step, onDone }: { step: CaptureStep; onDone: (assetId: string) => void }) {
+  const { sessionId } = useSessionStore();
+  const [preview, setPreview] = useState<string | null>(null);
+  const [file, setFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-//숨겨진 파일 선택 input을 직접 클릭시키기 위한 참조.
-//실제 input은 화면에 안 보이게 되어 있음.
-  const step = STEPS[current];//현재 단계 정보 가져옴
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setSelectedFile(file);
-    setPreview(URL.createObjectURL(file));
+    const f = e.target.files?.[0];
+    if (!f) return;
+    setFile(f);
+    setPreview(URL.createObjectURL(f));
+    setUploadError(null);
   };
 
-  const handleUpload = async () => {
-    if (!sessionId || !selectedFile) return;//세션 ID가 없거나 파일이 없으면 업로드하지 않고 종료
+  const handleUpload = () => {
+    if (!sessionId || !file) return;
+    setUploading(true);
+    setUploadError(null);
 
-    setLoading(true); //업로드 시작 상태로 변경
-    await uploadAsset(sessionId, step.type, selectedFile);
-    //백엔드에 이미지 업로드 요청 보낸다.
-    //sessionID, step.type,selectedFile을 보낸다. 
-    setUploaded(step.type);//업로드 끝나면 Zustand에 기록
+    // 백그라운드 업로드 — await 없이 fire-and-forget
+    // worker가 비동기로 처리하므로 응답을 기다릴 필요 없음
+    uploadAsset(sessionId, step.assetType, file, step.view ?? "front").catch((e) => {
+      console.error("백그라운드 업로드 실패", e);
+    });
 
-    //초기화 
-    setPreview(null);
-    setSelectedFile(null);
-    setLoading(false);
-
-    //다음 단계로 이동. 
-    //현재 단계가 마지막 단계가 아니면 다음 단계로 이동, 마지막 단계면 프로필 페이지로 이동
-    // -> /profile 페이지로 이동.
-    if (current < STEPS.length - 1) {
-      setCurrent((c) => c + 1);
-    } else {
-      navigate("/profile");
-    }
+    // 400ms 후 즉시 다음 화면으로 이동
+    setTimeout(() => onDone(""), 400);
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-6">
-      <div className="w-full max-w-md flex flex-col gap-5">
-        {/* 진행 바 */}
-        <div className="flex gap-2">
-          {STEPS.map((s, i) => (
-            <div
-              key={s.type}
-              className={`flex-1 h-1.5 rounded-full transition-colors ${
-                i <= current ? "bg-blue-500" : "bg-gray-200"
-              }`}
-            />
-          ))}
-        </div>
-
-        <div className="bg-white rounded-3xl shadow-lg p-8 flex flex-col gap-6">
-          <div className="text-center">
-            <span className="text-5xl">{step.emoji}</span>
-            <h2 className="text-2xl font-bold text-gray-900 mt-3">{step.label} 촬영</h2>
-            <p className="text-gray-500 text-sm mt-2">{step.desc}</p>
-          </div>
-
-          {/* 미리보기 */}
-          {preview ? (
-            <div className="relative rounded-2xl overflow-hidden bg-gray-100 aspect-square">
-              <img src={preview} className="w-full h-full object-cover" />
-            </div>
-          ) : (
-            <button
-              onClick={() => fileRef.current?.click()}
-              className="aspect-square rounded-2xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center gap-3 text-gray-400 hover:border-blue-400 hover:text-blue-400 transition-colors"
-            >
-              <span className="text-4xl">📷</span>
-              <span className="text-sm font-medium">사진 선택 또는 촬영</span>
-            </button>
-          )}
-
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            className="hidden"
-            onChange={handleFile}
-          />
-
-          <div className="flex gap-3">
-            {preview && (
-              <button
-                onClick={() => { setPreview(null); setSelectedFile(null); }}
-                className="flex-1 py-3 rounded-2xl border border-gray-200 text-gray-600 font-medium"
-              >
-                다시 찍기
-              </button>
-            )}
-            <button
-              onClick={preview ? handleUpload : () => fileRef.current?.click()}
-              disabled={loading}
-              className="flex-1 py-3 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-2xl transition-colors disabled:opacity-50"
-            >
-              {loading ? "업로드 중..." : preview ? "업로드" : "촬영하기"}
-            </button>
-          </div>
-        </div>
-
-        {/* 완료 항목 */}
-        <div className="flex gap-2 justify-center">
-          {STEPS.map((s) => (
-            <div
-              key={s.type}
-              className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${
-                uploads[s.type]
-                  ? "bg-blue-100 text-blue-600"
-                  : "bg-gray-100 text-gray-400"
-              }`}
-            >
-              {uploads[s.type] ? "✓" : "○"} {s.label}
-            </div>
-          ))}
-        </div>
+    <motion.div
+      key={step.assetType}
+      className="min-h-screen flex flex-col justify-center gap-5 px-6 py-10"
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.35 }}
+    >
+      <div className="text-center">
+        <span className="text-5xl">{step.emoji}</span>
+        <h2 className="text-2xl font-black text-gray-900 mt-2">{step.label} 촬영</h2>
       </div>
+
+      {preview ? (
+        <div className="rounded-2xl overflow-hidden aspect-square bg-gray-100">
+          <img src={preview} className="w-full h-full object-cover" />
+        </div>
+      ) : (
+        <button
+          onClick={() => fileRef.current?.click()}
+          className="aspect-square rounded-2xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-3 text-gray-400 hover:border-purple-400 hover:text-purple-400 transition-colors"
+        >
+          <span className="text-5xl">📷</span>
+          <span className="text-sm font-medium">사진 선택 또는 촬영</span>
+        </button>
+      )}
+
+      {/* Tripo API 테스트용: capture 속성을 빼서 파일 시스템에서 이미지를 직접 선택 가능 */}
+      <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
+
+      {uploadError && (
+        <p className="text-red-400 text-sm text-center">{uploadError}</p>
+      )}
+
+      <div className="flex gap-3">
+        {preview && (
+          <PrimaryButton variant="secondary" onClick={() => { setPreview(null); setFile(null); }}>
+            다시 찍기
+          </PrimaryButton>
+        )}
+        <PrimaryButton onClick={preview ? handleUpload : () => fileRef.current?.click()} disabled={uploading}>
+          {uploading ? "업로드 중..." : preview ? "업로드" : "촬영하기"}
+        </PrimaryButton>
+      </div>
+    </motion.div>
+  );
+}
+
+export default function CapturePage() {
+  const [stepIdx, setStepIdx] = useState(0);
+  const navigate = useNavigate();
+  const { setUploaded, setCharacterAssetId, setObjectAssetId } = useSessionStore();
+
+  const step = STEPS[stepIdx];
+  const next = () => setStepIdx((i) => i + 1);
+
+  const handleCaptureDone = (assetId: string) => {
+    const s = step as CaptureStep;
+    if (s.assetType === "character" && (s.view ?? "front") === "front") {
+      setCharacterAssetId(assetId);
+      setUploaded("character");
+    } else if (s.assetType === "object" && (s.view ?? "front") === "front") {
+      setObjectAssetId(assetId);
+      setUploaded("object");
+    }
+    if (stepIdx >= STEPS.length - 1) navigate("/profile");
+    else next();
+  };
+
+  const captureSteps = STEPS.filter((s) => s.type === "capture");
+  const doneCount = captureSteps.filter((s) => STEPS.indexOf(s) < stepIdx).length;
+
+  return (
+    <div className="relative">
+      <div className="fixed top-0 left-0 right-0 z-10 flex gap-2 px-6 pt-5 max-w-md mx-auto">
+        {captureSteps.map((_, i) => (
+          <div key={i} className={`flex-1 h-1 rounded-full transition-colors duration-500 ${i < doneCount ? "bg-purple-500" : "bg-gray-200"}`} />
+        ))}
+      </div>
+      <AnimatePresence mode="wait">
+        {step.type === "guide" ? (
+          <GuideScreen key={stepIdx} step={step} onNext={next} />
+        ) : (
+          <CaptureScreen key={stepIdx} step={step as CaptureStep} onDone={handleCaptureDone} />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

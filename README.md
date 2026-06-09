@@ -1,137 +1,279 @@
-# Lego Digital Twin
+# LEGO Digital Twin / MINIVERSE
 
-> 물리 세계에서 조립한 레고 모형을 카메라로 인식하고, VR 레고 놀이공원 안에 그대로 재현하는 디지털 트윈 시스템
+MINIVERSE is an exhibition system where visitors photograph a LEGO character and object, generate 3D assets through Tripo, and display the results inside a Unity VR plaza.
 
----
+## Team
 
-## 프로젝트 개요
+| Name | Affiliation | Role |
+| --- | --- | --- |
+| Yejin Kim | Chung-Ang University | Project Manager / Team Leader |
+| Jinseo Kim | Chung-Ang University | Software Engineer / Lead Developer |
+| Yumin Kim | Chung-Ang University | Unity Developer / Lead Designer |
+| Seoyeon Lee | Chung-Ang University | Animator / Sub Project Manager |
 
-사용자가 물리 보드 위에서 레고를 조립하면, 카메라가 이를 3D로 인식하여 Unity VR 환경에 실시간으로 재현합니다.
-VR 헤드셋을 착용한 사용자는 레고 놀이공원 안에서 자신이 직접 만든 모형이 살아 숨쉬는 것을 경험하게 됩니다.
+## Development Roles
 
-```
-[물리 세계]                        [가상 세계 (VR)]
- 사용자 레고 조립
-      │
-      ▼
- 카메라 촬영 → Vision Engine → 3D 모델 생성
-                                    │
-                                    ▼
-                             Unity 놀이공원에 배치
-                                    │
-                                    ▼
-                          VR 헤드셋으로 경험
-```
+- System Architect, Backend, Frontend, System Automation: Jinseo Kim
+- Unity Design, Unity Script: Yumin Kim
 
----
+## Development Environment
 
-## 주요 인터랙션
+- Linux or WSL for backend, workers, and frontend
+- Windows for running the Unity project
+- Python environment at `/home/jskim/anaconda3/envs/triposr`
+- Node.js and npm
+- Docker Desktop or Docker Engine for PostgreSQL and Redis
 
-| 물리 세계 입력 | 가상 세계 반응 |
-|---|---|
-| 레고 모형 조립 | Unity 공원 내 동일 모형 생성 |
-| 조명 밝기 조절 | 대기 변화 (낮 / 노을 / 밤 / 흐림 / 눈 / 비) |
-| VR 착용 중 박수 | 불꽃 축제 시작 |
+## What This Repository Contains
 
----
+- `apps/backend`
+  FastAPI API server, PostgreSQL models, Redis/RQ worker tasks, Tripo integration, Unity-facing APIs
+- `apps/frontend`
+  React + Vite tablet/kiosk capture app, plus the admin dashboard
+- `unity-client`
+  Unity VR client that loads the current visitor session and the accumulated plaza data
+- `scripts`
+  Local automation helpers such as IP sync and stack startup
+- `history`
+  team notes, troubleshooting logs, and internal implementation records
 
-## 시스템 아키텍처
+## System Overview
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                     Lego Digital Twin                   │
-│                                                         │
-│  ┌──────────────┐    ┌──────────────┐    ┌───────────┐  │
-│  │   카메라     │───▶│   backend    │───▶│unity-client│ │
-│  │  (Windows)   │    │  (FastAPI)   │    │  (Unity)  │  │
-│  └──────────────┘    └──────┬───────┘    └───────────┘  │
-│                             │ Tripo3D API               │
-│                      ┌──────▼───────┐                   │
-│                      │  hardware    │                   │
-│                      │  (Arduino)   │                   │
-│                      └──────────────┘                   │
-└─────────────────────────────────────────────────────────┘
-```
+The project is split into persistent storage, async processing, and runtime clients.
 
-| 모듈 | 역할 | 기술 스택 |
-|---|---|---|
-| `backend/tripo` | 카메라 수신, Tripo3D API 연동, Unity 전달 | Python, FastAPI, Tripo3D API |
-| `unity-client` | VR 놀이공원 렌더링, 인터랙션 | Unity, C#, XR |
-| `hardware` | 조명·박수 입력 감지 | Arduino, C++ |
+- `FastAPI`
+  Owns session APIs, uploads, profile updates, Unity data endpoints, and WebSocket broadcast
+- `PostgreSQL`
+  Stores durable exhibition data such as sessions, likes, `bubble_text`, signature motions, and generated asset URLs
+- `Redis`
+  Backs the RQ job queues, the Unity waiting queue, and realtime pub/sub events
+- `RQ workers`
+  Run heavy Tripo generation jobs in the background
+- `Unity`
+  Polls the active session, loads runtime models, and builds the plaza from stored visitor data
 
----
+## Runtime Data Flow
 
-## 개발 환경
+1. The frontend creates a visitor session with `POST /sessions`.
+2. The visitor uploads multi-view images for character and object assets.
+3. FastAPI stores images under `apps/backend/storage/images/...` and enqueues background jobs.
+4. RQ workers call Tripo, download generated files, and store outputs under `apps/backend/storage/models/...`.
+5. Generated asset URLs are saved into PostgreSQL.
+6. When a session is fully ready, the backend adds its session id to the Redis list `lego:unity_queue`.
+7. Unity fetches the current active session with `/sessions/active` and `/unity/sessions/{id}`.
+8. When Unity enters plaza mode, it loads previous visitor data from `/unity/plaza/sessions`.
 
-| 항목 | 사양 |
-|---|---|
-| GPU | NVIDIA RTX 4070 Laptop (Ada Lovelace) |
-| OS | Windows + WSL2 (Ubuntu 24.04) |
-| Python | 3.9 (Conda) |
-| CUDA | 11.8 |
-| Unity | 6000.x |
+## Queues and Realtime Channels
 
----
+RQ queues:
 
-## 브랜치 전략
+- `lego-character`
+- `lego-object`
 
-```
-main                  ← 최종 배포 (직접 커밋 금지)
-└── develop           ← 통합 브랜치 (모든 PR의 대상)
-    ├── feature/unity     ← Unity 클라이언트
-    ├── feature/vision    ← Vision Engine
-    ├── feature/backend   ← 백엔드 서버
-    ├── feature/hardware  ← 하드웨어 제어
-    └── feature/test      ← 통합 테스트
-```
+Redis list:
 
-### 기본 워크플로우
+- `lego:unity_queue`
+  ordered list of fully completed sessions that Unity should consume
+
+Redis pub/sub channel:
+
+- `lego:events`
+  broadcasts `session_ready` and `likes_updated`
+
+## Current Execution Model
+
+This repository currently uses Docker Compose for infrastructure only:
+
+- PostgreSQL
+- Redis
+
+The application processes themselves run locally:
+
+- FastAPI via the `triposr` Python environment
+- RQ workers via `run_worker.py`
+- frontend via Vite
+- admin dashboard via a second Vite entry on port `3001`
+
+This matches the current codebase better than the old full-container setup, because the repo no longer contains backend/frontend Dockerfiles.
+
+## Environment Variables
+
+Main backend configuration lives in:
+
+- `apps/backend/.env`
+- `apps/frontend/.env.local`
+
+Important variables:
+
+- `DATABASE_URL`
+- `REDIS_URL`
+- `TRIPO_API_KEY`
+- `BACKEND_HOST`
+- `VITE_API_URL`
+
+## Quick Start
+
+### 1. One-command startup
 
 ```bash
-# 1. 작업 시작 전: develop 최신 내용 반영
-git checkout feature/본인브랜치
-git fetch origin
-git merge origin/develop
-
-# 2. 작업 후 push
-git add .
-git commit -m "feat(파트): 작업 내용"
-git push origin feature/본인브랜치
-
-# 3. GitHub에서 feature/* → develop PR 생성
+bash scripts/start_exhibition.sh <Windows-IP>
 ```
 
-### 커밋 메시지 규칙
+This automation script performs the full startup flow:
 
-```
-feat(파트):     새 기능 추가
-fix(파트):      버그 수정
-refactor(파트): 리팩토링
-docs(파트):     문서 수정
-chore(파트):    빌드, 설정 변경
-```
+- updates `apps/frontend/.env.local` and `apps/backend/.env`
+- updates Unity `StreamingAssets/Config/server_config.json`
+- optionally updates DB asset URLs through `scripts/update_network_ip.py`
+- starts `db` and `redis` via Docker Compose
+- starts the backend, worker supervisor, frontend, and admin dashboard
 
----
+It will prompt for the Windows IP if you omit `<Windows-IP>`.
 
-## 디렉토리 구조
+Before running it, update Windows portproxy manually in an Administrator PowerShell using the current WSL IP.
 
-```
-Lego-Digital-Twin/
-├── apps/
-│   ├── backend/tripo/   # 중앙 백엔드 (카메라 → Tripo → Unity)
-│   └── hardware/        # Arduino 제어
-├── unity-client/        # Unity VR 클라이언트
-├── docs/                # 환경 설정 문서
-└── .gitignore
+Use this as the default exhibition startup command. It already includes the IP update step internally, so you do not need to run `scripts/update_network_ip.py` separately beforehand.
+
+### 2. Manual step-by-step startup
+
+```bash
+docker compose up -d db redis
+python scripts/update_network_ip.py <Windows-IP>
+bash scripts/run_exhibition.sh
 ```
 
----
+Use this manual path only when you want to update IP-sensitive config without immediately starting the whole stack, or when you need to start each part separately for debugging.
 
-## 팀 구성
+This starts:
 
-| 역할 | 담당 브랜치 |
-|---|---|
-| Vision Engine | `feature/vision` |
-| Unity 클라이언트 | `feature/unity` |
-| 백엔드 | `feature/backend` |
-| 하드웨어 | `feature/hardware` |
+- backend on `:8000`
+- worker supervisor
+- frontend on `:3000`
+- admin dashboard on `:3001`
+
+### 3. Open the UIs
+
+- frontend: `http://localhost:3000`
+- admin: `http://localhost:3001`
+- backend health: `http://localhost:8000/health`
+
+## Manual Start Commands
+
+If you do not want to use the startup script:
+
+### Backend
+
+```bash
+/home/jskim/anaconda3/envs/triposr/bin/python -m uvicorn apps.backend.main:app --host 0.0.0.0 --port 8000
+```
+
+### Workers
+
+```bash
+/home/jskim/anaconda3/envs/triposr/bin/python run_worker.py
+```
+
+### Frontend
+
+```bash
+cd apps/frontend
+npm run dev -- --host 0.0.0.0 --port 3000
+```
+
+### Admin Dashboard
+
+```bash
+cd apps/frontend
+npm run dev:admin -- --host 0.0.0.0 --port 3001
+```
+
+## Unity Notes
+
+- Unity should be run from `unity-client/AURA_Lego`
+- The Unity client consumes:
+  - `/sessions/active`
+  - `/unity/sessions/{session_id}`
+  - `/unity/plaza/sessions`
+  - WebSocket like updates
+- Plaza data includes:
+  - generated character and object models
+  - likes
+  - `bubble_text`
+  - signature motions
+
+### Runtime Avatar Note
+
+Server-mode character retargeting is expected to reuse the validated Humanoid `Avatar`
+from `GeneratedCharacterSpawner.mockCharacterPrefab` before falling back to runtime avatar
+rebuild paths.
+
+This is important because the main server-side twisting issue was not caused by the
+Mixamo clips themselves, but by the runtime `Avatar` source used for TriLib-loaded FBX
+characters.
+
+If the fix is active, Unity logs should include:
+
+- `[TripoFbxLoader] mockCharacterPrefab의 검증 Avatar 재사용: ...`
+
+If that path cannot be applied, the loader falls back to:
+
+- `[TripoFbxLoader] TriLib Avatar를 HumanoidAvatarBuilder로 교체: ...`
+
+### Runtime Physics Note
+
+Generated runtime objects now use a simple bounds-based `BoxCollider` proxy instead of
+auto-generated convex `MeshCollider`s. This avoids Unity warnings on high-polygon GLB
+meshes and is a better fit for exhibition use where simple gravity/collision is enough.
+
+### XR Note
+
+Standalone auto-start for XR is disabled in project settings so local PC testing can run
+without Oculus runtime or an attached headset. Re-enable XR startup in Unity XR settings
+when testing on actual VR hardware.
+
+## Admin / Exhibition Operations
+
+The admin dashboard is intended for live exhibition operation and debugging.
+
+Typical tasks:
+
+- inspect session queue state
+- inspect worker state
+- inspect Redis / backend health
+- cancel bad visitor sessions
+- remove sessions from the Unity queue
+- reset exhibition state when needed
+
+## Important Scripts
+
+- `scripts/start_exhibition.sh`
+  default exhibition startup entrypoint; runs IP update + Docker + backend/worker/frontend/admin
+- `scripts/run_exhibition.sh`
+  process startup helper for backend, workers, frontend, and admin only
+- `scripts/update_network_ip.py`
+  maintenance helper for updating IP-sensitive local config when the Windows IP changes
+- `run_worker.py`
+  starts and supervises the two RQ workers
+
+## Important Paths
+
+- `apps/backend/storage/images`
+  uploaded visitor images
+- `apps/backend/storage/models`
+  generated Tripo outputs
+- `history/network_situation.txt`
+  Windows/WSL networking notes for mobile or tablet access
+
+## Cleanup Notes
+
+Legacy paths that used to describe an older Tripo-only prototype have been removed from the active architecture. The current source of truth is:
+
+- `apps/backend` for the live backend
+- `apps/frontend` for the live web apps
+- `unity-client` for the VR client
+
+## Development Guidance
+
+- Treat PostgreSQL as the durable record of sessions and asset metadata
+- Treat Redis as transient orchestration state
+- Treat RQ workers as the only place that should perform heavy Tripo generation
+- Treat `SessionManager` in Unity as the write entry point for visitor-facing session edits such as `bubble_text`

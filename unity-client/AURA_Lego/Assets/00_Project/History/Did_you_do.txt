@@ -1,0 +1,196 @@
+Did you properly implement bubble_text?
+
+This document is for the teammate AI working on Unity.
+Read this before changing anything related to bubble_text, object_name, the free-mode interaction UI, or backend sync.
+
+Goal
+
+The important requirement is NOT just "show bubble_text on screen".
+The critical requirement is:
+
+1. The visitor can change bubble_text from Unity.
+2. Unity sends that value to backend immediately.
+3. Backend saves it into PostgreSQL sessions.bubble_text.
+4. Unity can read the saved value back through the existing session/plaza APIs.
+5. Plaza UI updates correctly for the current visitor and for existing visitors.
+
+Current status checked
+
+The following parts are already connected in code:
+
+1. Unity -> backend write path exists
+   - SessionManager.SetBubbleText(string bubbleText)
+   - File:
+     Assets/00_Project/Scripts/Managers/SessionManager.cs
+   - This updates:
+     - CurrentSession.bubble_text
+     - CurrentSession.object_name
+   - In Server mode it calls:
+     ApiClient.UpdateBubbleText(CurrentSession.session_id, bubbleText)
+
+2. Backend API exists and writes to DB
+   - PATCH /sessions/{id}/profile
+   - File:
+     apps/backend/api/routers/sessions.py
+   - body.bubble_text is written to:
+     session.bubble_text
+   - db.commit() is already called
+
+3. DB column exists
+   - File:
+     apps/backend/models/session.py
+   - Column:
+     bubble_text
+
+4. Backend -> Unity read path exists
+   - GET /unity/sessions/{session_id}
+   - GET /unity/plaza/sessions
+   - File:
+     apps/backend/api/routers/unity_data.py
+   - These responses already include bubble_text
+
+5. Plaza display UI exists
+   - PlazaSessionView has a bubbleText field
+   - File:
+     Assets/00_Project/Scripts/Plaza/PlazaSessionView.cs
+   - Prefab:
+     Assets/Prefabs/Object/PlazaSessionView.prefab
+
+6. MotionPromptUI exists in the scene and is reused for input
+   - File:
+     Assets/00_Project/Scripts/UI/MotionPromptUI.cs
+   - Scene:
+     Assets/Scenes/Main.unity
+
+7. Own-creation interaction already uses the input flow
+   - File:
+     Assets/00_Project/Scripts/Plaza/OwnCreationInteractor.cs
+   - It now asks the player whether to edit bubble_text after signature-motion flow
+
+Important conclusion
+
+Backend + DB reflection is already implemented and was actually tested.
+The DB test confirmed that writing bubble_text through the backend updates PostgreSQL sessions.bubble_text correctly.
+
+What must be true in Unity
+
+If you are modifying or re-implementing this feature, the final behavior MUST follow this structure:
+
+1. Input source
+   - There must be a real Unity interaction where the current visitor can enter or edit bubble_text.
+   - Do NOT leave SetBubbleText() unused.
+   - A method existing in code is not enough. A player-facing trigger must call it.
+
+2. Single source of truth
+   - Use SessionManager.SetBubbleText(...)
+   - Do NOT bypass SessionManager and directly call ApiClient from random UI code unless absolutely necessary.
+   - SessionManager is the safest shared entry point because it updates local session memory and backend together.
+
+3. Immediate backend sync
+   - In Server mode, bubble_text must be sent immediately with:
+     PATCH /sessions/{id}/profile
+   - Do NOT make this a Unity-only local field.
+   - Do NOT store it only in a TMP text component.
+
+4. Local visual update
+   - After saving, update the visible current-session UI immediately.
+   - At minimum:
+     - current session memory
+     - current plaza speech bubble / text
+   - The player should see the change without restarting the scene.
+
+5. Read compatibility
+   - Existing plaza/current-session load paths must keep working:
+     - SessionManager.Apply(...)
+     - PlazaSessionView.Initialize(...)
+   - Do NOT rename bubble_text without also updating backend schemas and Unity DTOs.
+
+Required implementation shape
+
+If this feature is missing or broken, implement it in this order:
+
+Step 1. Keep SessionManager as the write entry point
+   - Add or keep:
+     public void SetBubbleText(string bubbleText)
+   - It must:
+     - update CurrentSession.bubble_text
+     - update CurrentSession.object_name
+     - call ApiClient.UpdateBubbleText(...) in Server mode
+
+Step 2. Keep ApiClient request shape stable
+   - PATCH /sessions/{id}/profile
+   - JSON body must include:
+     {
+       "bubble_text": "..."
+     }
+   - Do not invent a separate bubble endpoint unless the backend changes too
+
+Step 3. Provide an actual player-facing Unity UI
+   Recommended method:
+   - Reuse MotionPromptUI
+   - Let the player open it from the own-creation interaction flow
+   - After signature motion flow, ask:
+     "Do you want to edit your bubble text?"
+   - If yes:
+     - open MotionPromptUI with a custom title
+     - prefill current bubble_text if possible
+     - on submit -> call SessionManager.SetBubbleText(input)
+
+Step 4. Update current plaza text immediately
+   - If the current visitor's PlazaSessionView is already visible,
+     update its bubbleText TMP field immediately after submit
+   - This is for UX only
+   - The backend sync is still the most important part
+
+Step 5. Do not break guide mode / free mode flow
+   - Keep the existing interaction order as much as possible
+   - Do not replace the whole flow with a new unrelated popup system unless necessary
+   - Reuse:
+     - MotionPromptUI
+     - SignatureMotionConfirmUI
+     - OwnCreationInteractor
+
+What is NOT enough
+
+These are not acceptable as a final implementation:
+
+1. Only changing TMP text on screen
+2. Only updating SessionData in memory
+3. Only writing object_name but not bubble_text
+4. Adding a UI field that never calls backend
+5. Adding a backend endpoint but never invoking it from Unity
+
+Verification checklist
+
+Before saying the feature is complete, verify all of these:
+
+1. In Unity free mode, interact with the current visitor's creation.
+2. Enter a new bubble_text value.
+3. Confirm the visible bubble text changes immediately.
+4. Confirm Unity called PATCH /sessions/{id}/profile.
+5. Confirm PostgreSQL sessions.bubble_text changed.
+6. Confirm GET /unity/sessions/{id} returns the new bubble_text.
+7. Confirm GET /unity/plaza/sessions also returns the new bubble_text.
+8. Confirm plaza reload still shows the changed value.
+
+Recommended files to inspect first
+
+Unity
+ - Assets/00_Project/Scripts/Managers/SessionManager.cs
+ - Assets/00_Project/Scripts/Network/ApiClient.cs
+ - Assets/00_Project/Scripts/Plaza/OwnCreationInteractor.cs
+ - Assets/00_Project/Scripts/UI/MotionPromptUI.cs
+ - Assets/00_Project/Scripts/Plaza/PlazaSessionView.cs
+ - Assets/Scenes/Main.unity
+
+Backend
+ - apps/backend/api/routers/sessions.py
+ - apps/backend/api/routers/unity_data.py
+ - apps/backend/models/session.py
+ - apps/backend/schemas/session.py
+
+Bottom line
+
+If bubble_text does not reach PostgreSQL, the implementation is not done.
+If Unity only shows text locally, the implementation is not done.
+If the current visitor can edit bubble_text and that value is immediately reflected in backend + DB + later Unity reads, then it is done correctly.

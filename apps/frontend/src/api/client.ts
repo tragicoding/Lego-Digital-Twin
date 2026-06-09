@@ -17,10 +17,25 @@ LoadingPage
 //axios는 프론트엔드에서 백엔드 API를 호출할 때 쓰는 HTTP 요청 라이브러리
 import axios from "axios";
 
-//백엔드 서버 주소 정한다. 
-//.env 파일에서 VITE_API_URL로 설정한 값이 있으면 그걸 쓰고,
-//  없으면 localhost:8000을 기본값으로 사용한다.
-const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
+function resolveBaseUrl() {
+  const configured = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
+
+  if (typeof window === "undefined") {
+    return configured;
+  }
+
+  const { hostname, protocol } = window.location;
+  if (hostname === "localhost" || hostname === "127.0.0.1") {
+    return `${protocol}//localhost:8000`;
+  }
+
+  return configured;
+}
+
+//백엔드 서버 주소 정한다.
+//로컬 PC에서 localhost로 admin/frontend를 열면 localhost:8000을 우선 사용하고,
+//태블릿이나 다른 기기에서 접속할 때는 .env의 VITE_API_URL을 사용한다.
+const BASE_URL = resolveBaseUrl();
 
 //Axios 인스턴스 생성.
 //api라는 이름으로 기능들에 접근. 
@@ -50,10 +65,16 @@ form 안에는
 asset_type: "character"
 file: 이미지 파일
 */
-export const uploadAsset = (sessionId: string, assetType: string, file: File) => {
+export const uploadAsset = (
+  sessionId: string,
+  assetType: string,
+  file: File,
+  view: "front" | "back" | "left" | "right" = "front",
+) => {
   const form = new FormData();
   form.append("asset_type", assetType);
   form.append("file", file);
+  form.append("view", view);
   return api.post(`/sessions/${sessionId}/assets`, form);
 };
 
@@ -65,7 +86,9 @@ PATCH는 기존 데이터 중 일부만 수정할 때 많이 쓴다.
 nickname은 필수고, 나머지는 선택값.
 */
 export const updateProfile = (sessionId: string, data: {
-  nickname: string;
+  nickname?: string;
+  character_npc_name?: string;
+  object_name?: string;
   phone?: string;
   bubble_text?: string;
   favorite_theme?: string;
@@ -82,3 +105,27 @@ GET /sessions/{sessionId}/status
 */
 export const getStatus = (sessionId: string) =>
   api.get(`/sessions/${sessionId}/status`);
+
+export const finalizeSession = (sessionId: string) =>
+  api.post(`/sessions/${sessionId}/finalize`);
+
+export const getAdminDashboard = () =>
+  api.get("/admin/dashboard");
+
+export const clearAdminQueue = (queueName: "lego-character" | "lego-object") =>
+  api.delete(`/admin/queues/${queueName}`);
+
+export const clearUnityQueue = () =>
+  api.delete("/admin/unity-queue");
+
+export const removeUnityQueueSession = (sessionId: string) =>
+  api.delete(`/sessions/unity-queue/${sessionId}`);
+
+export const cancelAdminSession = (sessionId: string) =>
+  api.post(`/sessions/${sessionId}/cancel`);
+
+export const deleteAdminSession = (sessionId: string) =>
+  api.delete(`/admin/sessions/${sessionId}`);
+
+export const resetAdminDatabase = () =>
+  api.delete("/admin/db/reset");

@@ -1,0 +1,218 @@
+================================================================
+Claude Code 작업 기록
+날짜: 2026-06-08
+브랜치: feature/unity
+================================================================
+
+주제: ① Sing(노래) 모션 추가 → 클립 소실로 제거(순변화 없음)
+      ② TriLib 서버 캐릭터 애니메이션 "깨짐" 원인 진단
+      ③ 서버 모드 렉 원인 진단
+      ④ Mock vs Server 리타게팅 방식 비교
+
+※ 이 세션의 ②③④는 코드 변경 없는 "진단·분석" 작업이다. 결론과 근거를
+  뒤에 남겨, 실제 수정 작업 시 재조사 없이 바로 착수할 수 있게 한다.
+
+
+────────────────────────────────────────────────────────────────
+[세션 1] Sing 모션 추가 → 제거
+────────────────────────────────────────────────────────────────
+
+## 경위
+  - "모션에 Sing 추가" 요청으로 MotionType.cs 주석의 "새 모션 추가 4단계"대로
+    enum Sing(=12) + 파서 키워드(노래해/노래/불러/sing/song) + 라이브러리
+    기본 _entries + NPC_MotionLibrary.asset(motionType 12 → Sing.anim GUID)
+    까지 연결.
+  - 그러나 작업 도중 Unity 에디터에서 Sing.anim·Ch46_nonPBR@Singing.fbx 가
+    프로젝트에서 사라짐(리포 전역 검색으로 부재 확인). asset 의 motionType:12 가
+    "없는 클립을 가리키는 깨진 참조"가 됨.
+  - 사용자 지시로 Sing 모션 타입 제거 결정.
+
+## 처리(되돌림 — 내가 추가한 Sing 부분만)
+  - MotionType.cs            : enum Sing 줄 제거
+  - MotionPromptParser.cs    : 노래 키워드 5종 제거
+  - MixamoMotionLibrary.cs   : 기본 _entries 의 Sing 엔트리 제거
+  - 코드 내 Sing 잔존 0건 확인.
+  - 이전 세션부터 있던 Cry 모션·Dance 키워드 작업은 손대지 않고 유지.
+  - NPC_MotionLibrary.asset 의 motionType:12 정리는 에디터가 실시간 편집 중이라
+    텍스트 직접 수정 대신 Unity Inspector 에서 제거하도록 사용자에게 안내.
+
+## 결론
+  Sing 은 클립 자체가 프로젝트에서 사라져 보류. 코드 순변화 없음.
+
+
+────────────────────────────────────────────────────────────────
+[세션 2] (진단) TriLib 서버 캐릭터 애니메이션 깨짐 — 근본 원인
+────────────────────────────────────────────────────────────────
+
+## 증상
+  서버 모드(TriLib 로 Tripo 리깅 FBX 런타임 로드)에서 Mixamo 모션이 깨짐/왜곡.
+
+## 조사로 배제된 후보
+  - 클립 타입?  Dance.anim 커브가 RootT/RootQ/LeftFootT 등 "머슬·IK 커브"
+    → Humanoid 머슬 클립 확정. 어떤 휴머노이드 아바타든 리타게팅 가능 → 클립 무죄.
+  - TripoFbxLoader 의 본 이름 매핑이 틀렸나?  삭제된 HumanoidAvatarBuilder.cs를
+    git 히스토리(bf05694^)에서 꺼내 대조 → 22본 이름→HumanBodyBones 대응이
+    "완전히 동일". 매핑 무죄.
+  - HumanLimit 이 0으로 죽나?  TriLib HumanLimit.cs 확인 → useDefaultValues 의
+    필드 기본값이 true. new HumanLimit() 도 "기본 머슬 한계 사용" → 무죄.
+
+## 진짜 차이 = "아바타를 만드는 경로"
+  | 항목         | HumanoidAvatarBuilder(직접)        | TripoFbxLoader(TriLib)            |
+  |-------------|------------------------------------|----------------------------------|
+  | 빌드 주체    | AvatarBuilder.BuildHumanAvatar     | ByNameHumanoidAvatarMapper +     |
+  |             |                                    | AvatarDefinition.CreateFromThisModel |
+  | T-포즈 기준  | 인스턴스의 실제 현재 포즈를         | TriLib 내부 파이프라인이          |
+  |             | SkeletonBone[] 로 통째 캡처        | 임포트 시점 기준 생성             |
+  | 클립·엔진    | 동일(Mecanim Humanoid)             | 동일                             |
+  → 리타게팅 품질은 "본 이름"이 아니라 "아바타의 T-포즈/머슬 기준 프레임"이 결정.
+    Tripo 리그는 A-포즈 → 런타임 빌드에서 기준이 어긋나면 모든 클립이 틀어짐.
+
+## 핵심 추가 발견 — "수정 전에도 잘 됐는데 왜?" 규명
+  - HumanoidAvatarBuilder.Build() 는 GeneratedCharacterSpawner 에서 전 커밋
+    통틀어 "줄곧 주석 처리"(// HumanoidAvatarBuilder.Build(go);) → 스폰 경로에서
+    실제로 호출된 적이 없음(삭제 노트의 "미사용"과 일치).
+  - 따라서 과거에 잘 되던 애니메이션 = Mock 모드(에디터 임포트 FBX 프리팹).
+    Mock 아바타는 Unity FBX 임포터가 임포트 시점에 만든 "검증된 아바타".
+    → BoneMap(Mixamo-only/+Tripo)이 동작에 0의 영향. 그래서 수정 전후 동일.
+  - BoneMap.BoneMap 의 Tripo 이름 추가는 "순수 가산"(Mixamo 후보 먼저, Tripo
+    나중). Mixamo 모델은 첫 후보에서 잡혀 변화 없음. Tripo 모델은 추가분 없으면
+    Head 1개만 매핑 → isValid=false. → 되돌리면 능력만 잃음. 되돌릴 이유 없음.
+
+## Mock vs Server 리타게팅(세션 4 질문에 대한 답)
+  - 리타게팅 엔진/경로/클립/재생 코드(CharacterAnimationController →
+    AnimatorOverrideController "Motion" → Animator)는 두 모드가 100% 동일.
+  - 유일한 차이 = Animator.avatar 의 출처:
+      Mock  : 에디터 FBX 임포터가 만든 검증 아바타  → 정상
+      Server: TriLib 이 런타임에 만든 아바타        → 왜곡
+  → 같은 클립·같은 엔진인데 Server 만 깨지는 이유는 "아바타 출처" 하나뿐.
+
+## 해결 방향(미적용, 추후)
+  리타게팅을 바꾸는 게 아니라 "Server 타깃 아바타를 Mock 수준으로" 맞춘다:
+    (a) 에디터에서 임포트·검증한 Tripo FBX 의 Avatar 1개를 런타임 로드 모델
+        Animator.avatar 에 재사용(모든 Tripo 캐릭터 동일 스켈레톤이라 공유 가능),
+        또는
+    (b) HumanoidAvatarBuilder 복원해 BuildHumanAvatar 로 런타임 빌드(클립 입히기
+        전 바인드 포즈에서 Build 호출).
+  TriLib 은 메시·스켈레톤만 로드(자동 휴머노이드 아바타 생성 끔)하도록 구성.
+
+
+────────────────────────────────────────────────────────────────
+[세션 3] (진단) 서버 모드 렉
+────────────────────────────────────────────────────────────────
+
+## 코드에서 확인된 비용 지점
+  ① 런타임 임포트 자체(TriLib FBX + glTFast GLB) — 로드 순간 큰 hitch.
+     메시 업로드/아바타 빌드/새 머티리얼 첫 렌더 시 셰이더 컴파일.
+     가이드+배치 캐릭터 2마리 + 각자 texture GLB 까지 → 비용 2~3배.
+  ② 오브제 물리(GeneratedObjectSpawner): applyGravity 기본 true →
+     동적 Rigidbody + 콜라이더 없으면 고폴리 메시마다 convex MeshCollider
+     자동 생성 → convex 쿠킹 hitch + 지속 물리 연산(전시물엔 불필요).
+  ③ Tripo 고폴리 지오메트리(Mock 은 저폴리 최적화) → 캐릭터 매 프레임 스키닝 +
+     렌더 지속 비용. 지속 저FPS 의 핵심.
+  ④ 텍스처 GLB 우회(CharacterAnimationController.ApplyTextureFromUrl):
+     캐릭터마다 임시 GLB 씬을 통째 인스턴스화해 머티리얼만 추출 → 추가 로드.
+  ⑤ 광장 다중 창작물 로드 시 ①③④ N배 누적.
+  ※ TriLib 옵션 기본값은 과하지 않음(GenerateColliders=false, ReadEnabled=false)
+    → 캐릭터 로드 비용은 대부분 1회성.
+
+## 해결 방향(미적용, 추후)
+  - 지속 저FPS: 백엔드 메시 decimation(최우선), 오브제 물리 단순화/끄기
+    (proxy collider·kinematic), 캐릭터 스키닝/본 수 제한·LOD.
+  - 로드 hitch: 로딩 화면으로 은폐, 셰이더 프리워밍, 텍스처 GLB 우회 제거.
+  - 먼저 Unity Profiler 로 스파이크가 Rendering/Physics/Scripts/GC 중
+    무엇인지 1프레임 측정 → 지배 원인 즉시 판별.
+
+
+────────────────────────────────────────────────────────────────
+[변경된 파일 — 이번 커밋 대상]
+────────────────────────────────────────────────────────────────
+
+  신규(기록):
+    History/Claude_0608.txt
+
+  ※ 모션 스크립트(MotionType/MotionPromptParser/MixamoMotionLibrary)의 Cry·Dance
+    잔여 변경과 NPC_MotionLibrary.asset 은 에디터 실시간 편집분과 뒤섞여 있어
+    이번 문서 커밋에 포함하지 않음(별도 논리 단위로 분리).
+
+
+────────────────────────────────────────────────────────────────
+[세션 5] (커밋) 진단 문서 + 모션(Cry·Dance) 분리 커밋
+────────────────────────────────────────────────────────────────
+
+  위 세션 1~3을 정리해 2개 논리 단위로 커밋(git.md 준수):
+    b9dacb8 docs(unity): 0608 작업 기록 추가 — Sing 보류, TriLib 리타게팅·서버 렉 진단
+    ee96161 feat(unity): Cry 모션 추가·Spin/Cheer 클립 연결·Dance 변형, 미인식 입력 Cry 폴백
+      (스크립트 4 + NPC_MotionLibrary.asset + Cheer/Cry/Dance4/Spin.anim)
+  에디터 실시간 편집분(Materials·npc_30 fbx·UI 프리팹·Main.unity·ProjectSettings·
+  Logs 등)은 무관 단위라 제외.
+
+
+────────────────────────────────────────────────────────────────
+[세션 6] MapTeleport(지도 텔레포트) 기능 마무리
+────────────────────────────────────────────────────────────────
+
+## 시작 상태 점검
+  PlayerTeleporter.cs / MapTeleportUI.cs 가 이미 존재(거의 완성).
+  씬에 MapTeleportUI 컴포넌트 배치·필드 연결됨, _destinations 만 비어 있었음.
+  GameFlowManager 는 텔레포트를 PlayerTeleporter.Teleport(CC-safe)에 위임 중.
+
+## (1) 버튼 자유 배치 — Layout Group 제거 (MapTeleportUI.cs)
+  요청: 목적지 버튼을 Grid/Vertical Layout Group 없이 자유 배치하고 싶음.
+  변경: "프리팹 런타임 생성(Instantiate)+컨테이너 자동 배열" →
+        "씬에 직접 배치한 버튼을 목적지에 1:1 배선" 방식.
+    - Destination 구조체: { string label, Transform point }
+                       → { Button button, Transform point }
+    - _buttonContainer / _destinationButtonPrefab 필드 제거(불필요)
+    - BuildDestinationButtons() → WireDestinationButtons() (onClick 연결만)
+    - TMP 라벨 자동 세팅 제거(버튼 텍스트는 씬에서 직접)
+    - 등록 핸들러를 (Button, UnityAction)로 보관 → OnDestroy 에서 등록분만 해제
+      (인스펙터에서 단 다른 onClick 보존)
+  → Button.prefab 은 자동 생성용이 아니라 "수동 배치 템플릿"으로 의미 변경.
+
+## (2) MapButton 열림 표시 색 토글 (MapTeleportUI.cs)
+  요청: 패널이 켜져 있으면 MapButton 색이 바뀌고, 다시 눌러 닫히면 원래 색.
+  구현(Unity Button 표준):
+    - Awake 에서 원래 ColorBlock 캡처 → 열림용(normal·selected 를 _openColor 로) 변형 생성
+    - SetOpen()이 _mapButton.colors 를 열림/닫힘으로 교체
+    - colors 교체는 다음 상태전이까지 반영 늦음 → targetGraphic.color 에 즉시 1회 직접 적용
+    - hover/press 색은 원래 값 유지(클릭 피드백 보존)
+    - 인스펙터 필드 _openColor(기본 밝은 파랑) 추가
+  ※ 토글 자체(ToggleMap=SetOpen(!_open))는 이미 구현돼 "다시 누르면 닫힘"은 정상.
+    안 닫히면 열린 패널이 MapButton 을 덮어 Raycast 가로채는 씬 문제(패널 배경
+    Raycast Target 해제 / 버튼을 위로 / 클릭-아웃사이드 등으로 해결) — 안내만 함.
+
+## (3) 자유 모드 진입 시 MapTeleportUI·QuitUI 활성화 (GameFlowManager.cs)
+  - UI 필드 추가: _mapTeleportUI, _quitUI (GameObject)
+  - OnFreeModeSwitched(): 자유 모드 진입 시 두 UI SetActive(true)
+    (정상 Step 5 이벤트 + 디버그 스킵 경로 양쪽에서 호출됨)
+  - Start() 맨 앞: 두 UI SetActive(false) → 인스펙터에서 끄지 않아도 자동 비활성화,
+    자유 모드 전까지 숨김. (null 가드로 미연결 시 무시)
+  → 인스펙터에선 두 필드 "연결"만 하면 됨(비활성 수동 설정 불필요).
+
+## 검증
+  IDE 진단(MapTeleportUI.cs / GameFlowManager.cs) 오류·경고 0건.
+
+## 변경 파일
+  신규: Scripts/Core/PlayerTeleporter.cs (+ .meta)
+        Scripts/UI/MapTeleportUI.cs (+ .meta)
+        Prefabs/UI/Button.prefab (+ .meta)  — 수동 배치 버튼 템플릿
+  수정: Scripts/Managers/GameFlowManager.cs
+        (PlayerTeleporter 위임 + 자유모드 UI 활성/시작 시 비활성)
+
+## 남은 인스펙터 작업(코드 아님)
+  - MapTeleportUI._destinations 에 (배치한 Button + 목표 Transform) 등록
+  - GameFlowManager._mapTeleportUI / _quitUI 에 각 UI GameObject 연결
+  - (씬 Main.unity 저장·커밋은 무관 편집분과 분리되어 추후 별도 정리)
+
+
+────────────────────────────────────────────────────────────────
+[미해결 / 추후 작업]
+────────────────────────────────────────────────────────────────
+
+  [ ] 서버 캐릭터 아바타: 검증 아바타 재사용(a) 또는 HumanoidAvatarBuilder 복원(b)
+      으로 교체 → Mock 수준 리타게팅 확보
+  [ ] 서버 모드 렉: Profiler 측정 후 메시 decimation·오브제 물리 단순화
+  [ ] Sing 모션: 클립(Singing FBX/Sing.anim) 재확보 시 재추가
+  [ ] 전시 빌드 전: _enableGuideSkip · FreeCameraController 비활성화
+
+================================================================

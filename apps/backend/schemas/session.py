@@ -8,10 +8,16 @@ class SessionCreateResponse(BaseModel):
 
 
 class ProfileUpdate(BaseModel):
-    nickname: str
+    nickname: Optional[str] = None
+    character_npc_name: Optional[str] = None  # → nickname
+    object_name: Optional[str] = None          # → bubble_text
     phone: Optional[str] = None
     bubble_text: Optional[str] = None
     favorite_theme: Optional[str] = None
+
+
+class SignatureMotionUpdate(BaseModel):
+    signature_motion: str
 
 
 class SessionResponse(BaseModel):
