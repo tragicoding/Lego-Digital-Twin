@@ -81,23 +81,30 @@ namespace LegoTwin.Character
         /// 사용자 입력 문자열을 파싱해 해당하는 Mixamo 모션을 재생한다.
         /// GuideNPCController Step 5에서 호출.
         ///
+        /// 반환값: 입력이 알려진 동작 키워드와 매칭됐으면 true,
+        ///         매칭되는 동작이 없어 Cry 로 폴백 재생했으면 false.
+        ///         (호출자가 미인식 입력을 구분해 재입력을 유도하는 데 사용)
+        ///
         /// 사용 예:
-        ///   placedChar.PlayMotionFromPrompt("춤춰줘");
+        ///   bool recognized = placedChar.PlayMotionFromPrompt("춤춰줘");
         /// </summary>
-        public void PlayMotionFromPrompt(string input)
+        public bool PlayMotionFromPrompt(string input)
         {
             if (motionLibrary == null)
             {
                 Debug.LogWarning("[PlacedCharacterController] motionLibrary가 연결되지 않았습니다.");
-                return;
+                return true;   // 설정 오류 — 재입력 유도(false) 대상이 아니므로 흐름은 진행
             }
 
             // 1. 키워드 파싱 → MotionType (인식되는 동작이 없으면 Idle 반환)
             MotionType motionType = MotionPromptParser.Parse(input);
 
+            // 입력이 알려진 동작과 매칭됐는지 (Idle = 매칭 키워드 없음 = 미인식)
+            bool recognized = motionType != MotionType.Idle;
+
             // 입력은 했지만 매칭되는 동작이 없으면 Cry 로 대체.
             // (빈 입력은 제외 — Cry 로 가지 않음)
-            if (motionType == MotionType.Idle && !string.IsNullOrWhiteSpace(input))
+            if (!recognized && !string.IsNullOrWhiteSpace(input))
                 motionType = MotionType.Cry;
 
             // 2. MotionType → AnimationClip (직전 재생 클립 제외, 같은 동작이라도 다른 변형 재생)
@@ -106,7 +113,7 @@ namespace LegoTwin.Character
             if (clip == null)
             {
                 Debug.LogWarning($"[PlacedCharacterController] '{input}' → 클립 없음, 모션 생략");
-                return;
+                return recognized;
             }
             _lastClipByType[motionType] = clip;
             _lastPromptClip = clip;   // 시그니처 저장 시 이 클립이 그대로 저장됨
@@ -115,7 +122,7 @@ namespace LegoTwin.Character
             if (_animation == null)
             {
                 Debug.LogWarning("[PlacedCharacterController] CharacterAnimationController를 찾을 수 없습니다.");
-                return;
+                return recognized;
             }
 
             // 첫 프롬프트 입력 시 애니메이션 재개 (speed=0 → 1)
@@ -125,6 +132,8 @@ namespace LegoTwin.Character
             // 새 모션 시작 전 초기 자리로 복원 (이전 모션 드리프트 제거)
             ResetToInitialPose();
             _animation.PlayMotionClipLooping(clip, ResetToInitialPose);
+
+            return recognized;
         }
 
         /// <summary>

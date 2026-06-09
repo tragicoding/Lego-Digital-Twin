@@ -32,7 +32,6 @@ namespace LegoTwin.Plaza
         private PlacedCharacterController _placedCharacter;
         private MotionPromptUI            _motionPromptUI;
         private SignatureMotionConfirmUI  _signatureConfirmUI;
-        private PlazaSessionView          _sessionView;
 
         private bool _isInteracting;
         private bool _playerInRange;   // OnTriggerEnter 누락 방어용
@@ -55,7 +54,6 @@ namespace LegoTwin.Plaza
             _motionPromptUI     = promptUI;
             _signatureConfirmUI = confirmUI;
             _interactPanel      = panel;
-            _sessionView        = GetComponent<PlazaSessionView>();
 
             if (_interactPanel == null) return;
 
@@ -125,12 +123,22 @@ namespace LegoTwin.Plaza
             }
 
             _isInteracting = true;
-            _motionPromptUI.Show(OnMotionSubmitted);
+            // 나가기 버튼 표시 → 누르면 인터랙션 종료
+            _motionPromptUI.Show(OnMotionSubmitted, null, null, true, FinishInteraction);
         }
 
         private void OnMotionSubmitted(string input)
         {
-            _placedCharacter?.PlayMotionFromPrompt(input);
+            bool recognized = true;
+            if (_placedCharacter != null)
+                recognized = _placedCharacter.PlayMotionFromPrompt(input);
+
+            // 매칭되는 동작이 없으면(Cry 폴백 재생됨) 시그니처 안내 대신 다른 동작 재입력을 유도한다.
+            if (!recognized)
+            {
+                StartCoroutine(RepromptAfterDelay());
+                return;
+            }
 
             if (_signatureConfirmUI == null)
             {
@@ -141,6 +149,18 @@ namespace LegoTwin.Plaza
             }
 
             StartCoroutine(ShowConfirmAfterDelay(input));
+        }
+
+        // 미인식 입력 시: Cry 폴백이 잠깐 재생되도록 대기한 뒤 안내 문구와 함께 입력창을 다시 연다.
+        private IEnumerator RepromptAfterDelay()
+        {
+            yield return new WaitForSeconds(confirmDelay);
+            _motionPromptUI?.Show(
+                OnMotionSubmitted,
+                "그 동작은 잘 모르겠어요!\n다른 동작을 입력해주세요",
+                null,
+                true,
+                FinishInteraction);
         }
 
         // 저장할 시그니처 값 = 방금 재생된 "특정 클립" 이름. 못 읽으면 MotionType 이름으로 폴백.
@@ -168,12 +188,12 @@ namespace LegoTwin.Plaza
                     {
                         // 예: 시그니처 저장 후 종료
                         SessionManager.Instance?.SetSignatureMotion(SignatureValue(motionInput));
-                        PromptForBubbleTextOrFinish();
+                        FinishInteraction();
                     }
                     else
                     {
-                        // 아니오: 모션 프롬프트 재표시
-                        _motionPromptUI?.Show(OnMotionSubmitted);
+                        // 아니오: 모션 프롬프트 재표시 (나가기 가능)
+                        _motionPromptUI?.Show(OnMotionSubmitted, null, null, true, FinishInteraction);
                     }
                 },
                 showExitButton: true,
@@ -188,7 +208,7 @@ namespace LegoTwin.Plaza
                 confirmed =>
                 {
                     if (confirmed)
-                        PromptForBubbleTextOrFinish();      // 예: 저장 없이 종료
+                        FinishInteraction();                // 예: 저장 없이 종료
                     else
                         ShowSignatureConfirm(motionInput);  // 아니오: 시그니처 확인으로 복귀
                 },
@@ -197,62 +217,6 @@ namespace LegoTwin.Plaza
                 message: "입력 종료 시 이전 동작으로\n유지됩니다.",
                 noCaption: "시그니처 동작 설정으로\n돌아갈래요"
             );
-        }
-
-        private void PromptForBubbleTextOrFinish()
-        {
-            if (_signatureConfirmUI == null || _motionPromptUI == null)
-            {
-                FinishInteraction();
-                return;
-            }
-
-            _signatureConfirmUI.Show(
-                confirmed =>
-                {
-                    if (confirmed)
-                    {
-                        _motionPromptUI.Show(
-                            OnBubbleTextSubmitted,
-                            "내 창작물 한마디를\n입력하세요",
-                            CurrentBubbleText());
-                    }
-                    else
-                    {
-                        FinishInteraction();
-                    }
-                },
-                showExitButton: false,
-                onExit: null,
-                message: "창작물 한마디를\n수정할까요?",
-                noCaption: "지금은 그대로 둘래요"
-            );
-        }
-
-        private void OnBubbleTextSubmitted(string input)
-        {
-            var bubbleText = string.IsNullOrWhiteSpace(input) ? CurrentBubbleText() : input.Trim();
-            if (!string.IsNullOrEmpty(bubbleText))
-            {
-                SessionManager.Instance?.SetBubbleText(bubbleText);
-
-                if (_sessionView != null && _sessionView.bubbleText != null)
-                    _sessionView.bubbleText.text = bubbleText;
-            }
-
-            FinishInteraction();
-        }
-
-        private string CurrentBubbleText()
-        {
-            var session = SessionManager.Instance?.CurrentSession;
-            if (!string.IsNullOrWhiteSpace(session?.bubble_text))
-                return session.bubble_text.Trim();
-
-            if (_sessionView != null && _sessionView.bubbleText != null)
-                return _sessionView.bubbleText.text ?? string.Empty;
-
-            return string.Empty;
         }
 
         private void FinishInteraction()

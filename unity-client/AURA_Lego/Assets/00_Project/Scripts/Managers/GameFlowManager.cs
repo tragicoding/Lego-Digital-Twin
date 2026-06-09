@@ -319,6 +319,20 @@ namespace LegoTwin.Managers
         }
 
         /// <summary>
+        /// [Step 2-1] 오브제 한마디(bubble_text) 입력 요청.
+        /// MotionPromptUI를 재사용해 입력창을 열고, 제출 시 SessionManager.SetBubbleText로
+        /// 메모리 + (Server 모드) 백엔드 PATCH /sessions/{id}/profile 까지 즉시 반영한다.
+        /// 입력값은 자유 모드 광장 진입 시 AttachViewToCurrentSession에서 말풍선에 그대로 반영된다.
+        /// </summary>
+        private void OnBubbleTextInputRequested(Action<string> onDone)
+        {
+            // 가이드 모드: 아직 광장 뷰가 없으므로 liveLabel 없이 입력만 받는다.
+            // 저장값은 자유 모드 진입 시 AttachViewToCurrentSession이 말풍선에 반영한다.
+            // 저장은 BubbleTextPrompt → SessionManager.SetBubbleText 단일 경로 (Mock/Server 공통).
+            BubbleTextPrompt.Open(_motionPromptUI, onDone);
+        }
+
+        /// <summary>
         /// [Step 3-1] 시그니처 동작 설정 확인 다이얼로그 표시.
         /// 예 선택 시 SessionData에 저장 + Server Mode이면 API 전송.
         /// </summary>
@@ -363,6 +377,7 @@ namespace LegoTwin.Managers
             npc.OnFreeModeSwitched                  += OnFreeModeSwitched;
             npc.OnGuideFinished                     += OnGuideFinished;
             npc.OnMotionPromptRequested             += OnMotionPromptRequested;
+            npc.OnBubbleTextInputRequested          += OnBubbleTextInputRequested;
             npc.OnPlayerTeleportRequested           += OnPlayerTeleportRequested;
             npc.OnSignatureMotionConfirmRequested   += OnSignatureMotionConfirmRequested;
         }
@@ -374,6 +389,7 @@ namespace LegoTwin.Managers
             _currentNPC.OnFreeModeSwitched                  -= OnFreeModeSwitched;
             _currentNPC.OnGuideFinished                     -= OnGuideFinished;
             _currentNPC.OnMotionPromptRequested             -= OnMotionPromptRequested;
+            _currentNPC.OnBubbleTextInputRequested          -= OnBubbleTextInputRequested;
             _currentNPC.OnPlayerTeleportRequested           -= OnPlayerTeleportRequested;
             _currentNPC.OnSignatureMotionConfirmRequested   -= OnSignatureMotionConfirmRequested;
             _currentNPC = null;
