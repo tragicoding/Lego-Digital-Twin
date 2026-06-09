@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using UnityEngine;
 using LegoTwin.Data;
 
@@ -15,6 +17,9 @@ namespace LegoTwin.Character
     /// </summary>
     public class CharacterAnimationController : MonoBehaviour
     {
+        private static readonly Dictionary<string, Material[]> MaterialCache = new();
+        private static readonly Dictionary<string, Task<Material[]>> MaterialLoadTasks = new();
+
         [Header("NPC Info")]
         public string npcName;
         public string bubbleText;
@@ -217,35 +222,75 @@ namespace LegoTwin.Character
 
         private async void ApplyTextureFromUrl(string url)
         {
-            var gltf = new GLTFast.GltfImport();
-            bool ok = await gltf.Load(url);
-            if (!ok)
+            Material[] sharedMaterials = await GetOrLoadSharedMaterials(url);
+            if (sharedMaterials == null || sharedMaterials.Length == 0)
             {
                 Debug.LogWarning($"[CharacterAnimationController] {npcName}: 텍스쳐 GLB 로드 실패: {url}");
                 return;
             }
 
-            // GLB 씬을 비활성 임시 컨테이너에 인스턴스화해 머티리얼 추출
-            var container = new GameObject("_TempGltfMaterial");
-            container.SetActive(false);
-            await gltf.InstantiateMainSceneAsync(container.transform);
-
-            var srcRenderer = container.GetComponentInChildren<Renderer>();
-            if (srcRenderer != null && srcRenderer.sharedMaterials.Length > 0)
+            var dstRenderers = GetComponentsInChildren<SkinnedMeshRenderer>(true);
+            if (dstRenderers.Length == 0)
             {
-                var dstRenderers = GetComponentsInChildren<SkinnedMeshRenderer>(true);
-                if (dstRenderers.Length > 0)
-                {
-                    foreach (var dstRenderer in dstRenderers)
-                        dstRenderer.materials = srcRenderer.sharedMaterials;
-                }
-                else
-                {
-                    Debug.LogWarning($"[CharacterAnimationController] {npcName}: SkinnedMeshRenderer 없음 — 텍스쳐 적용 생략");
-                }
+                Debug.LogWarning($"[CharacterAnimationController] {npcName}: SkinnedMeshRenderer 없음 — 텍스쳐 적용 생략");
+                return;
             }
 
-            Destroy(container);
+            foreach (var dstRenderer in dstRenderers)
+                dstRenderer.sharedMaterials = sharedMaterials;
+        }
+
+        private static Task<Material[]> GetOrLoadSharedMaterials(string url)
+        {
+            if (string.IsNullOrEmpty(url))
+                return Task.FromResult<Material[]>(null);
+
+            if (MaterialCache.TryGetValue(url, out var cached))
+                return Task.FromResult(cached);
+
+            if (MaterialLoadTasks.TryGetValue(url, out var inFlight))
+                return inFlight;
+
+            var task = LoadSharedMaterials(url);
+            MaterialLoadTasks[url] = task;
+            return task;
+        }
+
+        private static async Task<Material[]> LoadSharedMaterials(string url)
+        {
+            try
+            {
+                var gltf = new GLTFast.GltfImport();
+                bool ok = await gltf.Load(url);
+                if (!ok) return null;
+
+                // GLB 씬을 비활성 임시 컨테이너에 인스턴스화해 머티리얼 추출
+                var container = new GameObject("_TempGltfMaterial");
+                container.SetActive(false);
+                await gltf.InstantiateMainSceneAsync(container.transform);
+
+                var srcRenderer = container.GetComponentInChildren<Renderer>();
+                if (srcRenderer == null || srcRenderer.sharedMaterials.Length == 0)
+                {
+                    Object.Destroy(container);
+                    return null;
+                }
+
+                var clonedMaterials = new Material[srcRenderer.sharedMaterials.Length];
+                for (int i = 0; i < srcRenderer.sharedMaterials.Length; i++)
+                {
+                    var source = srcRenderer.sharedMaterials[i];
+                    clonedMaterials[i] = source != null ? new Material(source) : null;
+                }
+
+                MaterialCache[url] = clonedMaterials;
+                Object.Destroy(container);
+                return clonedMaterials;
+            }
+            finally
+            {
+                MaterialLoadTasks.Remove(url);
+            }
         }
     }
 }
