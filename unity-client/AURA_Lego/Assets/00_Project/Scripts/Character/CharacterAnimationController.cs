@@ -272,7 +272,7 @@ namespace LegoTwin.Character
                 var srcRenderer = container.GetComponentInChildren<Renderer>();
                 if (srcRenderer == null || srcRenderer.sharedMaterials.Length == 0)
                 {
-                    Object.Destroy(container);
+                    UnityEngine.Object.Destroy(container);
                     return null;
                 }
 
@@ -284,7 +284,7 @@ namespace LegoTwin.Character
                 }
 
                 MaterialCache[url] = clonedMaterials;
-                Object.Destroy(container);
+                UnityEngine.Object.Destroy(container);
                 return clonedMaterials;
             }
             finally
