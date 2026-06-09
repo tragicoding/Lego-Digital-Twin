@@ -140,13 +140,69 @@ Claude Code 작업 기록
 
 
 ────────────────────────────────────────────────────────────────
+[세션 5] 광장 오브제 배치 버그 수정 (버그 3종)
+────────────────────────────────────────────────────────────────
+
+## Bug 1 — 오브제 XZ 위치 밀림 (해결)
+
+  원인: RuntimePhysicsUtil.SetupSimplePhysics() 에서 FreezeRotation만 설정,
+        XZ 이동이 열려 있어 중력 낙하 중 바닥 콜라이더 형태로 인해 밀림.
+  수정: RigidbodyConstraints에 FreezePositionX | FreezePositionZ 추가.
+        오브제가 스폰 X/Z 위치를 유지하며 수직 낙하.
+
+## Bug 2 — 오브제 땅 파묻힘 (Mock 프리팹, 해결)
+
+  원인:
+    ① CollisionDetectionMode.Discrete — 고속 낙하 시 바닥 콜라이더 관통(tunneling).
+    ② SetupSimplePhysics()에서 기존 Collider 있으면 return — 프리팹의
+       잘못된 BoxCollider가 그대로 사용(center/size가 scale·pivot 불일치).
+  수정:
+    ① CollisionDetectionMode.Continuous 추가.
+    ② 기존 Collider 유무 무관하게 항상 Renderer.bounds로 루트 BoxCollider 재계산
+       (AddBoundsBoxCollider → ApplyBoundsBoxCollider 로 변경).
+
+## Bug 3 — GLB 오브제 땅 파묻힘 (서버 모드, 해결)
+
+  원인: SpawnObjectFromServerAsync() 에서 GLTFast InstantiateMainSceneAsync()
+        완료 직후 SetupObjectPhysics() 호출 → 이 시점 renderer.bounds 미초기화
+        → BoxCollider.size ≈ (0,0,0) → 충돌 없이 낙하 관통.
+  수정:
+    ① PlazaManager: await InstantiateMainSceneAsync() 후 await Awaitable.NextFrameAsync()
+       1프레임 대기 → renderer.bounds 초기화 보장.
+    ② RuntimePhysicsUtil: bounds.y < 0.001f 이면 기본값 (center=0, size=1)
+       안전망 추가 → 경고 로그 출력.
+
+## Bug 4 — EventSystem NaN 경고 (해결)
+
+  원인: XR Input Module → Standalone Input Module 전환 후 EventSystem이
+        모든 WorldSpace Canvas에 마우스 레이를 쏘기 시작.
+        PlazaSessionView는 point.rotation으로 고정 배치 → 카메라와 edge-on이 되는
+        순간 GraphicRaycaster 교점 계산이 NaN.
+  수정: PlazaSessionView.LateUpdate() 추가 — NPCSpeechBubble과 동일하게
+        transform.forward = _cam.transform.forward (빌보드 회전).
+
+
+────────────────────────────────────────────────────────────────
 [변경된 파일 목록]
 ────────────────────────────────────────────────────────────────
 
   신규 생성:
     History/Claude_0610.txt
 
-  수정된 파일 없음 (코드 변경 없는 점검·분석·가이드 세션)
+  수정(스크립트):
+    Scripts/Object/RuntimePhysicsUtil.cs
+      — Continuous 감지, FreezePositionXZ, ApplyBoundsBoxCollider 항상 재계산,
+        zero-bounds 안전망
+
+    Scripts/Plaza/PlazaManager.cs
+      — SpawnObjectFromServerAsync: await Awaitable.NextFrameAsync() 추가
+
+    Scripts/Plaza/PlazaSessionView.cs
+      — LateUpdate 빌보드 추가 (NaN 수정)
+
+  수정(Unity Editor):
+    Scenes/Main.unity, Prefabs/Object/XR Origin (XR Rig).prefab
+      — XR 비활성화, BGM 추가, 씬 오브젝트 조정
 
 
 ────────────────────────────────────────────────────────────────
@@ -155,11 +211,12 @@ Claude Code 작업 기록
 
   [ ] (씬 작업) MotionPromptUI에 "ExitButton" 추가
                 PlazaSessionView.bubbleText 필드 연결 확인
-  [ ] (씬 작업) XR Plug-in Management OpenXR 해제 → Standalone Input Module 교체
   [ ] Server 모드 통합 테스트 — bubble_text PATCH·plaza 응답 라운드트립
   [ ] 서버 캐릭터 아바타 왜곡 해결 (EnsureHumanoidAvatar referenceAvatar 경로 실측)
   [ ] 서버 모드 렉 해결 (Profiler 측정 → 메시 decimation·물리 단순화)
   [ ] TriLib 설치 (CAU 머신) — Unity Asset Store 구매 계정으로 로그인 후 임포트
   [ ] 전시 빌드 전: _enableGuideSkip · FreeCameraController 비활성화
+  [ ] NPCSpeechBubble Canvas의 GraphicRaycaster 제거 확인 (Unity Editor)
+  [ ] NPC 에셋 커밋 여부 결정 (totoro 13MB, walle 16MB → Git LFS 검토)
 
 ================================================================

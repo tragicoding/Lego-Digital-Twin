@@ -464,6 +464,9 @@ namespace LegoTwin.Plaza
             root.transform.SetPositionAndRotation(dropPos, point.rotation);
             root.transform.localScale = Vector3.one * objectSpawnScale;
             await gltf.InstantiateMainSceneAsync(root.transform);
+            // GLTFast 인스턴스화 직후 renderer.bounds가 미초기화 상태일 수 있으므로
+            // 1프레임 대기 후 BoxCollider 계산 (크기 0으로 낙하 관통하는 버그 방지)
+            await Awaitable.NextFrameAsync();
             SetupObjectPhysics(root);
         }
 
