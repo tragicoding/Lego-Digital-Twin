@@ -20,7 +20,7 @@ MINIVERSE is an exhibition system where visitors photograph a LEGO character and
 
 - Linux or WSL for backend, workers, and frontend
 - Windows for running the Unity project
-- Python environment at `/home/jskim/anaconda3/envs/triposr`
+- Python environment at `/home/jskim/miniconda3/envs/triposr`
 - Node.js and npm
 - Docker Desktop or Docker Engine for PostgreSQL and Redis
 
@@ -163,13 +163,13 @@ If you do not want to use the startup script:
 ### Backend
 
 ```bash
-/home/jskim/anaconda3/envs/triposr/bin/python -m uvicorn apps.backend.main:app --host 0.0.0.0 --port 8000
+/home/jskim/miniconda3/envs/triposr/bin/python -m uvicorn apps.backend.main:app --host 0.0.0.0 --port 8000
 ```
 
 ### Workers
 
 ```bash
-/home/jskim/anaconda3/envs/triposr/bin/python run_worker.py
+/home/jskim/miniconda3/envs/triposr/bin/python run_worker.py
 ```
 
 ### Frontend

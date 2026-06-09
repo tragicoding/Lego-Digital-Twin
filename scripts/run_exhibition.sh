@@ -3,7 +3,8 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LOG_DIR="$ROOT_DIR/history/.run_logs"
-PYTHON_BIN="/home/jskim/anaconda3/envs/triposr/bin/python"
+PYTHON_BIN="/home/jskim/miniconda3/envs/triposr/bin/python"
+NVM_DIR="${HOME}/.nvm"
 
 mkdir -p "$LOG_DIR"
 
@@ -18,7 +19,7 @@ start_port_service() {
     return
   fi
 
-  nohup bash -lc "cd '$ROOT_DIR' && $command" >"$log_file" 2>&1 &
+  setsid bash -c ". '$NVM_DIR/nvm.sh' 2>/dev/null; cd '$ROOT_DIR' && $command" >"$log_file" 2>&1 </dev/null &
   local pid=$!
   echo "$pid" > "$LOG_DIR/$name.pid"
 
@@ -39,7 +40,7 @@ start_worker() {
     return
   fi
 
-  nohup bash -lc "cd '$ROOT_DIR' && $PYTHON_BIN run_worker.py" >"$log_file" 2>&1 &
+  setsid bash -c "cd '$ROOT_DIR' && $PYTHON_BIN run_worker.py" >"$log_file" 2>&1 </dev/null &
   local pid=$!
   echo "$pid" > "$LOG_DIR/worker.pid"
 

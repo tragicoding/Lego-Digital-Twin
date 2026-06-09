@@ -126,10 +126,12 @@ def update_unity_server_config(path: Path, new_ip: str, port: str = "8000") -> s
 
 
 def main() -> None:
-    if len(sys.argv) != 2 or not IP_RE.match(sys.argv[1].strip()):
+    positional = [a for a in sys.argv[1:] if not a.startswith("-")]
+    yes_flag = "--yes" in sys.argv or "-y" in sys.argv
+    if len(positional) != 1 or not IP_RE.match(positional[0].strip()):
         print(__doc__)
         sys.exit(1)
-    new_ip = sys.argv[1].strip()
+    new_ip = positional[0].strip()
 
     print(f"새 IP: {new_ip}\n")
 
@@ -144,7 +146,11 @@ def main() -> None:
 
     old_hosts = {h for h in (old_frontend, old_backend, old_unity) if h}
     print(f"\n[4/4] DB(assets.model_url/thumbnail_url) 치환 대상 구 호스트: {sorted(old_hosts) + ['localhost:8000']}")
-    answer = input("DB를 위 새 IP로 일괄 변경할까요? (y/N): ").strip().lower()
+    if yes_flag:
+        answer = "y"
+        print("DB를 위 새 IP로 일괄 변경할까요? (y/N): y  [--yes 플래그로 자동 확인]")
+    else:
+        answer = input("DB를 위 새 IP로 일괄 변경할까요? (y/N): ").strip().lower()
     if answer == "y":
         update_db_urls(old_hosts, new_ip)
     else:

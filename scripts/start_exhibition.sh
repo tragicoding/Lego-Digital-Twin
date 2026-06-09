@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PYTHON_BIN="/home/jskim/anaconda3/envs/triposr/bin/python"
+PYTHON_BIN="/home/jskim/miniconda3/envs/triposr/bin/python"
 
 WINDOWS_IP="${1:-}"
 
@@ -43,7 +43,7 @@ update_project_network_ip() {
   echo "[1/3] Updating project network config with Windows IP: $WINDOWS_IP"
   (
     cd "$ROOT_DIR"
-    "$PYTHON_BIN" scripts/update_network_ip.py "$WINDOWS_IP"
+    "$PYTHON_BIN" scripts/update_network_ip.py "$WINDOWS_IP" --yes
   )
 }
 
