@@ -2,6 +2,28 @@
 
 MINIVERSE is an exhibition system where visitors photograph a LEGO character and object, generate 3D assets through Tripo, and display the results inside a Unity VR plaza.
 
+## Team
+
+| Name | Affiliation | Role |
+| --- | --- | --- |
+| Yejin Kim | Chung-Ang University | Project Manager / Team Leader |
+| Jinseo Kim | Chung-Ang University | Software Engineer / Lead Developer |
+| Yumin Kim | Chung-Ang University | Unity Developer / Lead Designer |
+| Seoyeon Lee | Chung-Ang University | Animator / Sub Project Manager |
+
+## Development Roles
+
+- System Architect, Backend, Frontend, System Automation: Jinseo Kim
+- Unity Design, Unity Script: Yumin Kim
+
+## Development Environment
+
+- Linux or WSL for backend, workers, and frontend
+- Windows for running the Unity project
+- Python environment at `/home/jskim/anaconda3/envs/triposr`
+- Node.js and npm
+- Docker Desktop or Docker Engine for PostgreSQL and Redis
+
 ## What This Repository Contains
 
 - `apps/backend`
@@ -74,14 +96,6 @@ The application processes themselves run locally:
 
 This matches the current codebase better than the old full-container setup, because the repo no longer contains backend/frontend Dockerfiles.
 
-## Requirements
-
-- Linux or WSL for backend, workers, and frontend
-- Windows for running the Unity project
-- Python environment at `/home/jskim/anaconda3/envs/triposr`
-- Node.js and npm
-- Docker Desktop or Docker Engine for PostgreSQL and Redis
-
 ## Environment Variables
 
 Main backend configuration lives in:
@@ -99,23 +113,35 @@ Important variables:
 
 ## Quick Start
 
-### 1. Start infrastructure
+### 1. One-command startup
+
+```bash
+bash scripts/start_exhibition.sh <Windows-IP>
+```
+
+This automation script performs the full startup flow:
+
+- updates `apps/frontend/.env.local` and `apps/backend/.env`
+- updates Unity `StreamingAssets/Config/server_config.json`
+- optionally updates DB asset URLs through `scripts/update_network_ip.py`
+- starts `db` and `redis` via Docker Compose
+- starts the backend, worker supervisor, frontend, and admin dashboard
+
+It will prompt for the Windows IP if you omit `<Windows-IP>`.
+
+Before running it, update Windows portproxy manually in an Administrator PowerShell using the current WSL IP.
+
+Use this as the default exhibition startup command. It already includes the IP update step internally, so you do not need to run `scripts/update_network_ip.py` separately beforehand.
+
+### 2. Manual step-by-step startup
 
 ```bash
 docker compose up -d db redis
-```
-
-### 2. Update local network config if your Windows IP changed
-
-```bash
-python scripts/update_network_ip.py
-```
-
-### 3. Start the exhibition stack
-
-```bash
+python scripts/update_network_ip.py <Windows-IP>
 bash scripts/run_exhibition.sh
 ```
+
+Use this manual path only when you want to update IP-sensitive config without immediately starting the whole stack, or when you need to start each part separately for debugging.
 
 This starts:
 
@@ -124,7 +150,7 @@ This starts:
 - frontend on `:3000`
 - admin dashboard on `:3001`
 
-### 4. Open the UIs
+### 3. Open the UIs
 
 - frontend: `http://localhost:3000`
 - admin: `http://localhost:3001`
@@ -189,10 +215,12 @@ Typical tasks:
 
 ## Important Scripts
 
+- `scripts/start_exhibition.sh`
+  default exhibition startup entrypoint; runs IP update + Docker + backend/worker/frontend/admin
 - `scripts/run_exhibition.sh`
-  local startup helper for backend, workers, frontend, and admin
+  process startup helper for backend, workers, frontend, and admin only
 - `scripts/update_network_ip.py`
-  updates IP-sensitive local config when the host IP changes
+  maintenance helper for updating IP-sensitive local config when the Windows IP changes
 - `run_worker.py`
   starts and supervises the two RQ workers
 

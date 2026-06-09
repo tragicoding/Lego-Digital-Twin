@@ -81,7 +81,26 @@ apps/backend/.env → BACKEND_HOST=http://<새 Windows IP>:8000
 
 8. 태블릿에서 접속 테스트
 http://<새 Windows IP>:3000 으로 프론트엔드 접속 확인.
+
 -> script/update_network_ip.py
 
 conda activate triposr
-python scripts/update_network_ip.py <새 Windows IP>
+python scripts/update_network_ip.py <새 Windows IP
+
+자동화 스크립트
+1. windows powershell 관리자 권한
+netsh interface portproxy delete v4tov4 listenport=3000 listenaddress=0.0.0.0
+netsh interface portproxy delete v4tov4 listenport=3001 listenaddress=0.0.0.0
+netsh interface portproxy delete v4tov4 listenport=8000 listenaddress=0.0.0.0
+
+netsh interface portproxy add v4tov4 listenport=3000 listenaddress=0.0.0.0 connectport=3000 connectaddress=172.28.225.24
+netsh interface portproxy add v4tov4 listenport=3001 listenaddress=0.0.0.0 connectport=3001 connectaddress=172.28.225.24
+netsh interface portproxy add v4tov4 listenport=8000 listenaddress=0.0.0.0 connectport=8000 connectaddress=172.28.225.24
+
+netsh advfirewall firewall add rule name="WSL2 3000" dir=in action=allow protocol=TCP localport=3000 profile=any
+netsh advfirewall firewall add rule name="WSL2 3001" dir=in action=allow protocol=TCP localport=3001 profile=any
+netsh advfirewall firewall add rule name="WSL2 8000" dir=in action=allow protocol=TCP localport=8000 profile=any
+
+2. capstone/Lego- ~~/ bash scripts/start_exhibition.sh <windows IP>
+
+3. unity -> .../server_config.json의 base_url 윈도우로 바꿈.

@@ -204,10 +204,12 @@ def _queue_snapshot(name: str, redis_conn: Redis) -> dict:
     }
     for registry_cls in REGISTRY_TYPES:
         registry = registry_cls(name, connection=redis_conn)
-        registries[registry_cls.__name__] = [
-            _serialize_job(job)
-            for job in registry.get_jobs()
-        ]
+        jobs = []
+        for job_id in registry.get_job_ids():
+            job = queue.fetch_job(job_id)
+            if job is not None:
+                jobs.append(_serialize_job(job))
+        registries[registry_cls.__name__] = jobs
     return {
         "name": name,
         "count": queue.count,
