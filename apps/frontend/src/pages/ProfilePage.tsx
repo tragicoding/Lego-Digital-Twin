@@ -52,14 +52,21 @@ export default function ProfilePage() {
   const [charName, setCharName] = useState("");
   const [objName, setObjName] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async () => {
     if (!sessionId || !objName.trim()) return;
     setSubmitting(true);
-    setCharacterNpcName(charName);
-    setObjectName(objName);
-    await updateProfile(sessionId, { character_npc_name: charName, object_name: objName });
-    navigate("/loading");
+    setError(null);
+    try {
+      setCharacterNpcName(charName);
+      setObjectName(objName);
+      await updateProfile(sessionId, { character_npc_name: charName, object_name: objName });
+      navigate("/loading");
+    } catch {
+      setError("저장에 실패했습니다. 다시 시도해주세요.");
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -98,6 +105,9 @@ export default function ProfilePage() {
           />
         )}
       </AnimatePresence>
+      {error && (
+        <p className="fixed bottom-8 left-0 right-0 text-center text-red-500 text-sm px-6">{error}</p>
+      )}
     </div>
   );
 }

@@ -58,10 +58,14 @@ export default function LoadingPage() {
   useEffect(() => {
     if (!sessionId) return;
     const poll = setInterval(async () => {
-      const res = await getStatus(sessionId);
-      setAssets(res.data.assets);
-      setReadyForUnity(res.data.ready_for_unity);
-      if (res.data.ready_for_unity) clearInterval(poll);
+      try {
+        const res = await getStatus(sessionId);
+        setAssets(res.data.assets);
+        setReadyForUnity(res.data.ready_for_unity);
+        if (res.data.ready_for_unity) clearInterval(poll);
+      } catch {
+        // 네트워크 일시 오류는 무시하고 다음 폴링에서 재시도
+      }
     }, 3000);
     return () => clearInterval(poll);
   }, [sessionId]);

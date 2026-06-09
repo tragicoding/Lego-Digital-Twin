@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { createSession } from "../api/client";
@@ -7,11 +8,20 @@ import PrimaryButton from "../components/PrimaryButton";
 export default function StartPage() {
   const navigate = useNavigate();
   const setSessionId = useSessionStore((s) => s.setSessionId);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleStart = async () => {
-    const res = await createSession();
-    setSessionId(res.data.session_id);
-    navigate("/capture");
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await createSession();
+      setSessionId(res.data.session_id);
+      navigate("/capture");
+    } catch {
+      setError("서버 연결에 실패했습니다. 다시 시도해주세요.");
+      setLoading(false);
+    }
   };
 
   return (
@@ -69,7 +79,12 @@ export default function StartPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 1.3, duration: 0.5 }}
       >
-        <PrimaryButton onClick={handleStart}>시작하기</PrimaryButton>
+        <PrimaryButton onClick={handleStart} disabled={loading}>
+          {loading ? "연결 중..." : "시작하기"}
+        </PrimaryButton>
+        {error && (
+          <p className="text-red-500 text-sm text-center mt-3">{error}</p>
+        )}
       </motion.div>
 
     </div>
