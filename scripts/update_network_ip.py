@@ -16,7 +16,8 @@ update_network_ip.py — 노트북 네트워크(와이파이) 변경 시 IP 일�
 하는 일:
   1. apps/frontend/.env.local 의 VITE_API_URL 을 새 IP로 갱신
   2. apps/backend/.env 의 BACKEND_HOST 를 새 IP로 갱신
-  3. DB(assets 테이블)의 model_url / thumbnail_url 에 저장된 구 호스트
+  3. unity-client/.../server_config.json 의 base_url 을 새 IP로 갱신
+  4. DB(assets 테이블)의 model_url / thumbnail_url 에 저장된 구 호스트
      (변경 전 VITE_API_URL / BACKEND_HOST / localhost)를 새 IP로 일괄 치환
 
 주의:
@@ -27,10 +28,20 @@ update_network_ip.py — 노트북 네트워크(와이파이) 변경 시 IP 일�
 import re
 import sys
 from pathlib import Path
+import json
 
 ROOT = Path(__file__).resolve().parent.parent
 FRONTEND_ENV = ROOT / "apps" / "frontend" / ".env.local"
 BACKEND_ENV = ROOT / "apps" / "backend" / ".env"
+UNITY_SERVER_CONFIG = (
+    ROOT
+    / "unity-client"
+    / "AURA_Lego"
+    / "Assets"
+    / "StreamingAssets"
+    / "Config"
+    / "server_config.json"
+)
 
 IP_RE = re.compile(r"^\d{1,3}(\.\d{1,3}){3}$")
 
@@ -86,6 +97,34 @@ def update_db_urls(old_hosts: set[str], new_ip: str, port: str = "8000") -> None
     print(f"  DB 총 {total}건 변경")
 
 
+def update_unity_server_config(path: Path, new_ip: str, port: str = "8000") -> str | None:
+    """Unity server_config.json의 base_url을 새 IP로 갱신하고 기존 host:port를 반환한다."""
+    if not path.exists():
+        print(f"  [경고] {path.relative_to(ROOT)} 파일이 없어 Unity 설정 갱신을 건너뜀")
+        return None
+
+    try:
+        data = json.loads(path.read_text())
+    except json.JSONDecodeError:
+        print(f"  [경고] {path.relative_to(ROOT)} JSON 파싱 실패 — Unity 설정 갱신을 건너뜀")
+        return None
+
+    old_url = data.get("base_url")
+    old_host_port = None
+    if isinstance(old_url, str):
+        m = re.match(r"^http://([^:\s]+):?(\d*)$", old_url.strip())
+        if m:
+            old_host = m.group(1)
+            old_port = m.group(2) or port
+            old_host_port = f"{old_host}:{old_port}"
+
+    new_url = f"http://{new_ip}:{port}"
+    data["base_url"] = new_url
+    path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n")
+    print(f"  {path.relative_to(ROOT)}: base_url → {new_url}")
+    return old_host_port
+
+
 def main() -> None:
     if len(sys.argv) != 2 or not IP_RE.match(sys.argv[1].strip()):
         print(__doc__)
@@ -94,14 +133,17 @@ def main() -> None:
 
     print(f"새 IP: {new_ip}\n")
 
-    print("[1/3] frontend/.env.local 갱신")
+    print("[1/4] frontend/.env.local 갱신")
     old_frontend = update_env_var(FRONTEND_ENV, "VITE_API_URL", new_ip)
 
-    print("[2/3] backend/.env 갱신")
+    print("[2/4] backend/.env 갱신")
     old_backend = update_env_var(BACKEND_ENV, "BACKEND_HOST", new_ip)
 
-    old_hosts = {h for h in (old_frontend, old_backend) if h}
-    print(f"\n[3/3] DB(assets.model_url/thumbnail_url) 치환 대상 구 호스트: {sorted(old_hosts) + ['localhost:8000']}")
+    print("[3/4] Unity server_config.json 갱신")
+    old_unity = update_unity_server_config(UNITY_SERVER_CONFIG, new_ip)
+
+    old_hosts = {h for h in (old_frontend, old_backend, old_unity) if h}
+    print(f"\n[4/4] DB(assets.model_url/thumbnail_url) 치환 대상 구 호스트: {sorted(old_hosts) + ['localhost:8000']}")
     answer = input("DB를 위 새 IP로 일괄 변경할까요? (y/N): ").strip().lower()
     if answer == "y":
         update_db_urls(old_hosts, new_ip)
@@ -109,6 +151,7 @@ def main() -> None:
         print("  DB 변경을 건너뜀")
 
     print("\n완료. FastAPI / RQ Worker / Frontend(dev server)를 재시작해야 새 설정이 반영됩니다.")
+    print("Unity는 Windows 쪽 작업본이 WSL 변경분을 pull 한 뒤 다시 열어야 새 base_url을 읽습니다.")
     print("(WSL2 포트포워딩·방화벽 설정은 이 스크립트가 다루지 않으니 history/network_situation.txt 참고)")
 
 

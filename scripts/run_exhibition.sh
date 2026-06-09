@@ -19,7 +19,16 @@ start_port_service() {
   fi
 
   nohup bash -lc "cd '$ROOT_DIR' && $command" >"$log_file" 2>&1 &
-  echo $! > "$LOG_DIR/$name.pid"
+  local pid=$!
+  echo "$pid" > "$LOG_DIR/$name.pid"
+
+  sleep 2
+  if ! kill -0 "$pid" 2>/dev/null; then
+    echo "[$name] failed to start. Recent log:"
+    sed -n '1,120p' "$log_file"
+    return 1
+  fi
+
   echo "[$name] started on :$port (log: $log_file)"
 }
 
@@ -31,7 +40,16 @@ start_worker() {
   fi
 
   nohup bash -lc "cd '$ROOT_DIR' && $PYTHON_BIN run_worker.py" >"$log_file" 2>&1 &
-  echo $! > "$LOG_DIR/worker.pid"
+  local pid=$!
+  echo "$pid" > "$LOG_DIR/worker.pid"
+
+  sleep 2
+  if ! kill -0 "$pid" 2>/dev/null; then
+    echo "[worker] failed to start. Recent log:"
+    sed -n '1,120p' "$log_file"
+    return 1
+  fi
+
   echo "[worker] started (log: $log_file)"
 }
 
