@@ -322,7 +322,8 @@ namespace LegoTwin.Plaza
                             Destroy(wrapper);
                             charGo = SpawnMockCharacter(session.session_id, point, sessionIndex);
                             done = true;
-                        });
+                        },
+                        GetReferenceAvatar(sessionIndex));
 
                     yield return new WaitUntil(() => done);
                 }
@@ -417,6 +418,18 @@ namespace LegoTwin.Plaza
             go.name = $"PlazaChar_{sessionId}";
             go.transform.localScale = Vector3.one * characterSpawnScale;
             return go;
+        }
+
+        private Avatar GetReferenceAvatar(int sessionIndex)
+        {
+            var prefab = PickMockPrefab(mockCharacterPrefabs, sessionIndex);
+            if (prefab == null) return null;
+
+            var animator = prefab.GetComponentInChildren<Animator>(true);
+            if (animator == null) return null;
+
+            var avatar = animator.avatar;
+            return avatar != null && avatar.isValid && avatar.isHuman ? avatar : null;
         }
 
         // 오브제에 Rigidbody(중력) + Collider 자동 부착
