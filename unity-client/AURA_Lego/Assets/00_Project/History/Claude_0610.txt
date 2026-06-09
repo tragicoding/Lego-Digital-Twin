@@ -1,0 +1,165 @@
+================================================================
+Claude Code 작업 기록
+날짜: 2026-06-10
+브랜치: feature/unity
+================================================================
+
+주제: ① 히스토리 전체 복기 및 현재 상태 점검
+      ② 서버 모드 캐릭터 로드 가능 여부 점검
+      ③ GTX 1060 성능 예측
+      ④ VR 환경 제거 → 키보드+마우스 전환 방법 정리
+
+※ 이 세션은 코드 변경 없는 "점검·분석·환경 전환 가이드" 작업이다.
+
+
+────────────────────────────────────────────────────────────────
+[세션 1] 히스토리 전체 복기 및 브랜치 확인
+────────────────────────────────────────────────────────────────
+
+## 현재 브랜치
+  feature/unity (허용 브랜치, 정상)
+
+## 참고 문서
+  Claude_0528 / 0528_2 / 0529 / 0530 / 0601 / 0602 / 0603
+  / 0605 / 0606 / 0607 / 0608 / 0609.txt
+
+## 전체 작업 흐름 요약 (0528 → 0609)
+
+  | 날짜   | 주요 작업 |
+  |--------|-----------|
+  | 0528   | GameFlowManager, DialogueUI 신규. GuideNPCController 시나리오 기본. (test_app 브랜치) |
+  | 0528_2 | CharacterRigImporter, HumanoidAvatarBuilder, PlayerFollowGuide 신규. Bool/Trigger 자동 감지. |
+  | 0529   | feature/unity 전환. 시나리오 개정(순간이동, FreeModePopup), MotionPromptUI, Mixamo 클립 추가. |
+  | 0530   | PlazaManager 전면 보강, 투표 UI(LikeSystem, PlazaSessionView), Mock 광장 배치 구현. |
+  | 0601   | 서버 모드 버그 6종 수정(WebSocket, 비동기 타이밍 등), Mock 세션 풀 순환, 광장 물리·UI 개선. |
+  | 0602   | DialogueUI → NPC 머리 위 World Space 전환. 시그니처 동작 전체 구현. HeartEffect, NPCWander, NPCSpeechBubble 신규. |
+  | 0603   | OwnCreationInteractor 신규(자유 모드 창작물 인터랙션). Root Motion 누적 버그 수정. QuitButton 신규. |
+  | 0605   | FreeCameraController 전면 재작성(CharacterController 기반, IME 대응). 가이드 스킵(Backspace). |
+  | 0606   | GLB(A안) vs FBX+TriLib(B안) 비교 → B안 채택. TripoFbxLoader 신규, #if TRILIB 가드. |
+  | 0607   | 동작 변형 지원(한 타입 여러 클립, 직전 제외 무작위). 시그니처를 "특정 클립 이름"으로 저장·복원. |
+  | 0608   | Sing 모션 보류. TriLib 리타게팅 왜곡 원인 진단(아바타 출처 문제). 서버 렉 원인 진단. MapTeleport 마무리. |
+  | 0609   | bubble_text 흐름 완성(가이드 Step 2-1 추가). BubbleTextPrompt 단일 진입점. 미인식 → Cry 후 재입력. |
+
+
+────────────────────────────────────────────────────────────────
+[세션 2] 서버 모드 캐릭터 로드 가능 여부 점검
+────────────────────────────────────────────────────────────────
+
+## 점검 내용
+  GeneratedCharacterSpawner.cs, TripoFbxLoader.cs 코드 직접 확인
+
+## 이 머신(CAU) — TriLib 미설치
+  Assets/TriLib* 폴더 없음 → TRILIB define 미정의
+  → 서버 모드 실행 시 자동으로 Mock 프리팹 폴백
+  (TriLib은 유료 에셋 → .gitignore 제외, 수동 설치 필요)
+
+## TriLib 설치 환경에서의 로드 흐름
+  GeneratedCharacterSpawner.LoadFromServer()
+    → TripoFbxLoader.Load(fbx_url, wrapper)
+    → 로드 완료 후 EnsureHumanoidAvatar():
+        1순위: mockCharacterPrefab의 검증된 Avatar 재사용  (왜곡 회피)
+        2순위: HumanoidAvatarBuilder.Build() 런타임 빌드  (폴백)
+        3순위: TriLib Avatar 유지                         (왜곡 가능)
+
+## 0608 진단 vs 현재 코드 비교
+  0608에서 "해결 방향 미적용"이라고 했지만,
+  실제 TripoFbxLoader.EnsureHumanoidAvatar()에 이미 referenceAvatar
+  재사용 로직이 구현되어 있음 → 실제 동작은 Unity 테스트 필요.
+
+## TriLib 설치 방법 (수동, Unity Editor에서)
+  1. Unity Editor 실행 → Window > Package Manager
+  2. My Assets → TriLib 2 - Model Loading Package → Download → Import
+  3. Project Settings > TriLib > "Disable in editor glTF2 importing" 체크
+     (glTFast와 .glb 임포터 충돌 방지 — 필수)
+  4. TRILIB define 자동 등록 확인
+     (TriLibDefineSetup.cs가 자동으로 Scripting Define Symbols에 TRILIB 추가)
+
+
+────────────────────────────────────────────────────────────────
+[세션 3] GTX 1060 성능 예측
+────────────────────────────────────────────────────────────────
+
+## Mock 모드 — 그럭저럭 가능
+  저폴리 최적화 프리팹 사용 → 캐릭터·오브제 수 적으면 동작 가능
+
+## Server 모드 — 힘들 가능성 높음
+  0608에서 확인된 성능 병목:
+
+  | 원인 | 영향 |
+  |------|------|
+  | Tripo 고폴리 지오메트리 | 매 프레임 스키닝 → 지속 저FPS 핵심 |
+  | TriLib FBX 로드 순간   | 셰이더 컴파일·메시 업로드 hitch   |
+  | 광장 다중 캐릭터+오브제 | 위 비용 N배 누적                  |
+  | texture GLB 우회 로드  | 추가 임시 씬 인스턴스 비용         |
+
+  GTX 1060은 VR 최소 사양 수준이며 위 문제들은 더 좋은 GPU에서도
+  확인된 상황 → 서버 모드 전시 환경에서는 RTX 2060 이상 권장.
+
+
+────────────────────────────────────────────────────────────────
+[세션 4] VR 환경 제거 → 키보드+마우스 전환
+────────────────────────────────────────────────────────────────
+
+## VR 제거 시 성능 이점
+
+  | 항목 | 설명 |
+  |------|------|
+  | 2배 렌더링 제거 | 왼쪽·오른쪽 눈 각각 렌더 → 단일 렌더로 절반 |
+  | 해상도 복귀     | Quest 기준 1832×1920×2 → 1920×1080 |
+  | fps 타겟 완화   | 90fps 강제 → 60fps 충분 |
+  | XR 오버헤드 제거 | 컴포지터, XR SDK 컴포넌트 제거 |
+
+## FreeCameraController 현재 상태
+  이미 키보드+마우스 완전 동작. XR 컴포넌트 자동 비활성화 포함.
+  코드 수정 없이 Project Settings 변경만으로 전환 가능.
+
+## Unity Editor 전환 절차 (코드 변경 없음)
+
+  Step 1 — XR 비활성화 (성능 핵심)
+    Edit > Project Settings > XR Plug-in Management
+    → PC 탭 > OpenXR 체크 해제
+
+  Step 2 — EventSystem 교체
+    Hierarchy > EventSystem 선택
+    → XR UI Input Module 제거 → Standalone Input Module 추가
+    (마우스 클릭이 UI에 안 먹히는 문제 방지)
+
+  Step 3 — FreeCameraController 활성 확인
+    Hierarchy > XR Origin > Camera Offset > Main Camera
+    → FreeCameraController 컴포넌트가 enabled 상태인지 확인
+
+  Step 4 — Mock 모드 확인
+    Hierarchy > SessionManager > Data Source Mode = Mock 확인
+
+## 조작법 (전환 후)
+  마우스 오른쪽 버튼 + 드래그  — 시선 회전
+  WASD                          — 이동
+  Space                         — 점프
+  Shift                         — 빠른 이동
+  Backspace                     — 가이드 스킵 (자유모드 바로 진입)
+
+
+────────────────────────────────────────────────────────────────
+[변경된 파일 목록]
+────────────────────────────────────────────────────────────────
+
+  신규 생성:
+    History/Claude_0610.txt
+
+  수정된 파일 없음 (코드 변경 없는 점검·분석·가이드 세션)
+
+
+────────────────────────────────────────────────────────────────
+[미해결 / 추후 작업]
+────────────────────────────────────────────────────────────────
+
+  [ ] (씬 작업) MotionPromptUI에 "ExitButton" 추가
+                PlazaSessionView.bubbleText 필드 연결 확인
+  [ ] (씬 작업) XR Plug-in Management OpenXR 해제 → Standalone Input Module 교체
+  [ ] Server 모드 통합 테스트 — bubble_text PATCH·plaza 응답 라운드트립
+  [ ] 서버 캐릭터 아바타 왜곡 해결 (EnsureHumanoidAvatar referenceAvatar 경로 실측)
+  [ ] 서버 모드 렉 해결 (Profiler 측정 → 메시 decimation·물리 단순화)
+  [ ] TriLib 설치 (CAU 머신) — Unity Asset Store 구매 계정으로 로그인 후 임포트
+  [ ] 전시 빌드 전: _enableGuideSkip · FreeCameraController 비활성화
+
+================================================================
