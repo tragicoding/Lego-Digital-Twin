@@ -200,6 +200,36 @@ npm run dev:admin -- --host 0.0.0.0 --port 3001
   - `bubble_text`
   - signature motions
 
+### Runtime Avatar Note
+
+Server-mode character retargeting is expected to reuse the validated Humanoid `Avatar`
+from `GeneratedCharacterSpawner.mockCharacterPrefab` before falling back to runtime avatar
+rebuild paths.
+
+This is important because the main server-side twisting issue was not caused by the
+Mixamo clips themselves, but by the runtime `Avatar` source used for TriLib-loaded FBX
+characters.
+
+If the fix is active, Unity logs should include:
+
+- `[TripoFbxLoader] mockCharacterPrefab의 검증 Avatar 재사용: ...`
+
+If that path cannot be applied, the loader falls back to:
+
+- `[TripoFbxLoader] TriLib Avatar를 HumanoidAvatarBuilder로 교체: ...`
+
+### Runtime Physics Note
+
+Generated runtime objects now use a simple bounds-based `BoxCollider` proxy instead of
+auto-generated convex `MeshCollider`s. This avoids Unity warnings on high-polygon GLB
+meshes and is a better fit for exhibition use where simple gravity/collision is enough.
+
+### XR Note
+
+Standalone auto-start for XR is disabled in project settings so local PC testing can run
+without Oculus runtime or an attached headset. Re-enable XR startup in Unity XR settings
+when testing on actual VR hardware.
+
 ## Admin / Exhibition Operations
 
 The admin dashboard is intended for live exhibition operation and debugging.

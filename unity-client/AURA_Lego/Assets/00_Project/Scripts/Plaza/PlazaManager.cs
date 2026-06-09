@@ -6,6 +6,7 @@ using LegoTwin.Character;
 using LegoTwin.Data;
 using LegoTwin.Managers;
 using LegoTwin.Network;
+using LegoTwin.Object;
 using LegoTwin.UI;
 
 namespace LegoTwin.Plaza
@@ -421,24 +422,7 @@ namespace LegoTwin.Plaza
         // 오브제에 Rigidbody(중력) + Collider 자동 부착
         private static void SetupObjectPhysics(GameObject go)
         {
-            var rb = go.GetComponent<Rigidbody>();
-            if (rb == null) rb = go.AddComponent<Rigidbody>();
-            rb.useGravity  = true;
-            rb.constraints = RigidbodyConstraints.FreezeRotation;
-
-            // 기존 Collider 없을 때만 MeshCollider 자동 추가
-            if (go.GetComponentInChildren<Collider>() == null)
-            {
-                foreach (var mf in go.GetComponentsInChildren<MeshFilter>())
-                {
-                    if (mf.sharedMesh == null) continue;
-                    var col = mf.gameObject.GetComponent<MeshCollider>();
-                    if (col == null) col = mf.gameObject.AddComponent<MeshCollider>();
-                    col.sharedMesh = mf.sharedMesh;
-                    col.convex     = true;   // Dynamic Rigidbody 필수
-                }
-            }
-
+            RuntimePhysicsUtil.SetupSimplePhysics(go);
         }
 
         private async System.Threading.Tasks.Task SpawnObjectFromServerAsync(
