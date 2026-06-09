@@ -237,17 +237,66 @@ namespace LegoTwin.Character
 
         private static void EnsureHumanoidAvatar(GameObject wrapper)
         {
-            var animator = wrapper.GetComponentInChildren<Animator>(true);
-            if (animator == null) return;
+            var animator = FindOrCreateAnimator(wrapper);
+            if (animator == null)
+            {
+                Debug.LogWarning($"[TripoFbxLoader] Animator를 찾거나 만들지 못함: {wrapper.name}");
+                return;
+            }
 
             var avatar = animator.avatar;
-            if (avatar != null && avatar.isValid && avatar.isHuman) return;
-
+            bool hadValidTriLibAvatar = avatar != null && avatar.isValid && avatar.isHuman;
             if (HumanoidAvatarBuilder.Build(animator.gameObject))
             {
-                Debug.LogWarning(
-                    $"[TripoFbxLoader] TriLib Avatar 비정상 → HumanoidAvatarBuilder fallback 적용: {animator.gameObject.name}");
+                Debug.LogWarning(hadValidTriLibAvatar
+                    ? $"[TripoFbxLoader] TriLib Avatar를 HumanoidAvatarBuilder로 교체: {animator.gameObject.name}"
+                    : $"[TripoFbxLoader] TriLib Avatar 비정상 → HumanoidAvatarBuilder fallback 적용: {animator.gameObject.name}");
+                return;
             }
+
+            Debug.LogWarning(
+                $"[TripoFbxLoader] HumanoidAvatarBuilder 적용 실패, TriLib Avatar 유지: {animator.gameObject.name}");
+        }
+
+        private static Animator FindOrCreateAnimator(GameObject wrapper)
+        {
+            if (wrapper == null) return null;
+
+            var animator = wrapper.GetComponentInChildren<Animator>(true);
+            if (animator != null) return animator;
+
+            var renderers = wrapper.GetComponentsInChildren<SkinnedMeshRenderer>(true);
+            foreach (var renderer in renderers)
+            {
+                if (renderer == null) continue;
+
+                var host = FindAnimatorHost(wrapper.transform, renderer.rootBone, renderer.transform);
+                if (host == null) continue;
+
+                animator = host.GetComponent<Animator>();
+                if (animator == null)
+                    animator = host.gameObject.AddComponent<Animator>();
+
+                Debug.LogWarning(
+                    $"[TripoFbxLoader] Animator 없음 → 스켈레톤 루트에 Animator 추가: {host.name}");
+                return animator;
+            }
+
+            return null;
+        }
+
+        private static Transform FindAnimatorHost(
+            Transform wrapperRoot,
+            Transform rootBone,
+            Transform rendererTransform)
+        {
+            var candidate = rootBone != null ? rootBone : rendererTransform;
+            if (candidate == null) return null;
+
+            while (candidate.parent != null && candidate.parent != wrapperRoot)
+                candidate = candidate.parent;
+
+            return candidate;
         }
 
         private static void LogLoadedRenderers(GameObject wrapper)
