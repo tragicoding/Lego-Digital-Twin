@@ -55,6 +55,14 @@ namespace LegoTwin.Plaza
             }
         }
 
+        private void LateUpdate()
+        {
+            // 카메라 방향과 평행(edge-on)이 되면 GraphicRaycaster 교점 계산이 NaN → 빌보드로 방지
+            if (_cam == null) _cam = Camera.main;
+            if (_cam != null)
+                transform.forward = _cam.transform.forward;
+        }
+
 /// <summary>PlazaManager가 세션 생성 시 호출.</summary>
         public void Initialize(PlazaSessionData session, bool isTop)
         {

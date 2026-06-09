@@ -11163,8 +11163,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LegoTwin.Core.FreeCameraController
   moveSpeed: 10
   fastMoveSpeed: 30
-  scrollSpeed: 20
   mouseSensitivity: 2
+  jumpHeight: 2.5
+  gravity: 25
 --- !u!1 &5493947885790984794
 GameObject:
   m_ObjectHideFlags: 0
