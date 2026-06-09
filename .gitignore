@@ -92,5 +92,29 @@ apps/engine-vision/Wonder3D/benchmark_log.json
 apps/backend/storage/images/*/
 apps/backend/storage/models/
 
-# --- Frontend build cache ---
+# --- Frontend build cache & dependencies ---
 apps/frontend/.vite/
+apps/frontend/node_modules/
+apps/frontend/dist/
+apps/frontend/dist-admin/
+
+# --- Root level vite cache ---
+.vite/
+
+# --- Local run logs ---
+history/.run_logs/
+
+# --- Windows Zone.Identifier 파일 ---
+*.Zone.Identifier
+*:Zone.Identifier
+
+# --- TriLib 2 (Unity Asset Store 유료 에셋) ---
+# public 저장소라 재배포(EULA 위반) 방지를 위해 커밋 금지.
+# 각 개발자가 본인 Unity 계정으로 Asset Store에서 설치한다.
+# (TripoFbxLoader 는 TRILIB define 으로 가드되어 미설치 시 Mock 폴백)
+# 폴더 제외가 내부 .meta 재포함(위 !*.meta)을 차단하며,
+# 폴더 자체의 .meta 는 아래에서 명시적으로 제외(뒤 규칙이 우선).
+unity-client/**/Assets/TriLib/
+unity-client/**/Assets/TriLib.meta
+unity-client/**/Assets/TriLibInstaller/
+unity-client/**/Assets/TriLibInstaller.meta

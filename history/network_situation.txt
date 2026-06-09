@@ -1,0 +1,139 @@
+1. 핫스팟연결
+
+[태블릿]  →  [Windows]  →  [WSL2]
+              :3000            :3000  (Frontend)
+              :8000            :8000  (FastAPI)
+
+
+태블릿은 Windows IP만 볼 수 있다.
+WSL2는 Windows 안에 숨어있어서 직접 접근이 안된다.
+
+2. 포트포워딩
+Windows:8000으로 오면 WSL2:8000으로 넘겨줘.
+
+2-1 WSL2에서 ip 확인
+hostname -I
+->172.28.225.24
+
+2-2 Windows powershell(관리자)에서 Wsl IP 방금 확인한 거로 교체
+netsh interface portproxy delete v4tov4 listenport=3000 listenaddress=0.0.0.0
+netsh interface portproxy delete v4tov4 listenport=8000 listenaddress=0.0.0.0
+netsh interface portproxy add v4tov4 listenport=8000 listenaddress=0.0.0.0 connectport=8000 connectaddress=172.28.225.24
+netsh interface portproxy add v4tov4 listenport=3000 listenaddress=0.0.0.0 connectport=3000 connectaddress=172.28.225.24
+
+방화벽 허용
+netsh advfirewall firewall add rule name="WSL2 3000" dir=in action=allow protocol=TCP localport=3000 profile=any
+netsh advfirewall firewall add rule name="WSL2 8000" dir=in action=allow protocol=TCP localport=8000 profile=any
+
+3. cmd에서
+ip config
+
+무선 LAN 어댑터 Wi-Fi:
+
+   연결별 DNS 접미사. . . . :
+   IPv4 주소 . . . . . . . . . : 192.168.25.53  -> window IP
+   서브넷 마스크 . . . . . . . : 255.255.255.0
+   기본 게이트웨이 . . . . . . : 192.168.25.1
+
+3-1 frontend/.env.local
+http://192.168.25.53:8000   알맞게 교체. 
+
+backend/.evn
+BACKEND_HOST=http://165.194.202.153:8000
+
+DB URL일괄 업데이트. 
+
+conda activate triposr
+python scripts/update_network_ip.py <새 Windows IP>
+
+-> 자동화 스트립트 
+노트북 환경(와이파이)이 바뀌었을 때 체크리스트
+1. WSL2 내부 IP 재확인 (WSL/Windows 재시작 시 매번 바뀔 수 있음)
+
+hostname -I
+→ 예: 172.28.225.24
+
+2. PowerShell(관리자)에서 포트포워딩 갱신
+기존 규칙을 지우고 새 WSL2 IP로 다시 등록:
+
+
+netsh interface portproxy delete v4tov4 listenport=3000 listenaddress=0.0.0.0
+netsh interface portproxy delete v4tov4 listenport=8000 listenaddress=0.0.0.0
+netsh interface portproxy add v4tov4 listenport=8000 listenaddress=0.0.0.0 connectport=8000 connectaddress=<새 WSL2 IP>
+netsh interface portproxy add v4tov4 listenport=3000 listenaddress=0.0.0.0 connectport=3000 connectaddress=<새 WSL2 IP>
+3. 방화벽 규칙 (새 네트워크에서 막히는 경우만 재등록)
+
+netsh advfirewall firewall add rule name="WSL2 3000" dir=in action=allow protocol=TCP localport=3000 profile=any
+netsh advfirewall firewall add rule name="WSL2 8000" dir=in action=allow protocol=TCP localport=8000 profile=any
+4. Windows의 새 Wi-Fi IP 확인 (= 태블릿/Unity가 접속할 주소)
+
+ipconfig
+→ "무선 LAN 어댑터 Wi-Fi"의 IPv4 주소 확인 (예: 165.194.203.212)
+
+5. 코드 설정에 새 Windows IP 반영
+apps/frontend/.env.local → VITE_API_URL=http://<새 Windows IP>:8000
+apps/backend/.env → BACKEND_HOST=http://<새 Windows IP>:8000
+6. (기존 생성 모델이 있다면) DB의 model_url/thumbnail_url 일괄 변경
+오늘 한 것처럼 assets 테이블의 구 호스트 → 새 호스트로 치환 (Unity가 예전 세션의 모델을 못 받아오는 걸 방지).
+
+7. 서버 재시작
+.env를 수정했으니 FastAPI / RQ Worker / Frontend(Vite는 .env.local 변경 시 보통 자동 반영되지만 안 되면 재시작) 다시 실행.
+
+8. 태블릿에서 접속 테스트
+http://<새 Windows IP>:3000 으로 프론트엔드 접속 확인.
+
+-> script/update_network_ip.py
+
+conda activate triposr
+python scripts/update_network_ip.py <새 Windows IP
+
+자동화 스크립트
+1. windows powershell 관리자 권한
+netsh interface portproxy delete v4tov4 listenport=3000 listenaddress=0.0.0.0
+netsh interface portproxy delete v4tov4 listenport=3001 listenaddress=0.0.0.0
+netsh interface portproxy delete v4tov4 listenport=8000 listenaddress=0.0.0.0
+
+netsh interface portproxy add v4tov4 listenport=3000 listenaddress=0.0.0.0 connectport=3000 connectaddress=172.28.225.24
+netsh interface portproxy add v4tov4 listenport=3001 listenaddress=0.0.0.0 connectport=3001 connectaddress=172.28.225.24
+netsh interface portproxy add v4tov4 listenport=8000 listenaddress=0.0.0.0 connectport=8000 connectaddress=172.28.225.24
+
+netsh advfirewall firewall add rule name="WSL2 3000" dir=in action=allow protocol=TCP localport=3000 profile=any
+netsh advfirewall firewall add rule name="WSL2 3001" dir=in action=allow protocol=TCP localport=3001 profile=any
+netsh advfirewall firewall add rule name="WSL2 8000" dir=in action=allow protocol=TCP localport=8000 profile=any
+
+2. capstone/Lego- ~~/ bash scripts/start_exhibition.sh <windows IP>
+
+3. unity -> .../server_config.json의 base_url 윈도우로 바꿈.
+
+리깅/유니티 런타임 트러블슈팅 메모
+
+- 증상
+서버 모드에서 Tripo FBX는 FBX viewer에서는 정상인데 Unity에서만 몸이 비틀림.
+
+- 최종 원인
+Mixamo 클립 문제가 아니라 "서버 모드에서 Animator.avatar를 무엇으로 쓰느냐"가 원인이었음.
+Mock 모드는 Unity 에디터 임포트가 만든 검증된 Humanoid Avatar를 사용해서 정상.
+Server 모드는 TriLib 런타임 Avatar를 사용하면서 리타게팅 기준이 어긋나 비틀림 발생.
+
+- 최종 해결
+server 캐릭터 로드 시 `mockCharacterPrefab` 의 검증된 Humanoid Avatar를 먼저 재사용.
+로그에서 아래 문구가 뜨면 성공 경로:
+`[TripoFbxLoader] mockCharacterPrefab의 검증 Avatar 재사용: UnnamedModel`
+
+- fallback
+reference avatar가 맞지 않을 때는 HumanoidAvatarBuilder fallback이 동작함.
+예시 로그:
+`[TripoFbxLoader] TriLib Avatar를 HumanoidAvatarBuilder로 교체: UnnamedModel`
+
+- 기타 Unity 로그 정리
+`Unable to start Oculus XR Plugin`
+  Standalone 자동 XR 초기화 경고. PC에서 헤드셋 없이 테스트할 때는 무시 가능.
+  현재는 `Assets/XR/XRGeneralSettingsPerBuildTarget.asset` 에서 Standalone 자동 시작을 꺼 둠.
+
+`DontDestroyOnLoad only works for root GameObjects`
+  ApiClient가 루트가 아닌 자식 오브젝트였던 경고.
+  현재는 Awake에서 부모에서 분리 후 `DontDestroyOnLoad` 호출하도록 수정.
+
+`Couldn't create a Convex Mesh ... maximum polygons limit (256)`
+  고폴리 런타임 GLB에 convex MeshCollider를 붙이려 해서 생긴 경고.
+  현재는 전시용으로 Renderer bounds 기반 BoxCollider 프록시를 생성하도록 변경.

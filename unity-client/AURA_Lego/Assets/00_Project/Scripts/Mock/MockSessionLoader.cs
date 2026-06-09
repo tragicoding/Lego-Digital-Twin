@@ -1,27 +1,56 @@
+using System.Collections.Generic;
 using UnityEngine;
 using LegoTwin.Data;
 
 namespace LegoTwin.Mock
 {
     /// <summary>
-    /// Resources/Mock/mock_session.json을 로드해 SessionData를 반환한다.
-    /// Server Mode에서는 사용되지 않는다.
+    /// Mock 세션 데이터를 로드한다.
+    ///
+    /// 우선순위:
+    ///   1. Resources/Mock/mock_session_pool.json — 복수 세션 풀 (PlayerPrefs로 순환)
+    ///   2. Resources/Mock/mock_session.json      — 단일 세션 (fallback)
+    ///
+    /// 풀 순환 방식:
+    ///   앱 실행마다 PlayerPrefs("MockSessionIndex")를 1씩 증가시켜
+    ///   sessions[index % count] 를 현재 관람객 세션으로 사용한다.
     /// </summary>
     public static class MockSessionLoader
     {
-        private const string ResourcePath = "Mock/mock_session";
+        private const string PoolResourcePath    = "Mock/mock_session_pool";
+        private const string SingleResourcePath  = "Mock/mock_session";
+        private const string PlayerPrefsIndexKey = "MockSessionIndex";
+
+        [System.Serializable]
+        private class SessionPool { public List<SessionData> sessions; }
 
         public static SessionData Load()
         {
-            var asset = Resources.Load<TextAsset>(ResourcePath);
+            // ── 1. 풀 파일 시도 ────────────────────────────────────────
+            var poolAsset = Resources.Load<TextAsset>(PoolResourcePath);
+            if (poolAsset != null)
+            {
+                var pool = JsonUtility.FromJson<SessionPool>(poolAsset.text);
+                if (pool?.sessions != null && pool.sessions.Count > 0)
+                {
+                    int idx     = PlayerPrefs.GetInt(PlayerPrefsIndexKey, 0);
+                    var session = pool.sessions[idx % pool.sessions.Count];
+
+                    PlayerPrefs.SetInt(PlayerPrefsIndexKey, idx + 1);
+                    PlayerPrefs.Save();
+                    return session;
+                }
+            }
+
+            // ── 2. 단일 파일 fallback ──────────────────────────────────
+            var asset = Resources.Load<TextAsset>(SingleResourcePath);
             if (asset == null)
             {
-                Debug.LogError("[MockSessionLoader] Resources/Mock/mock_session.json 을 찾을 수 없습니다.");
+                Debug.LogError("[MockSessionLoader] mock_session.json 을 찾을 수 없습니다.");
                 return null;
             }
 
             var data = JsonUtility.FromJson<SessionData>(asset.text);
-            Debug.Log($"[MockSessionLoader] 로드 완료 — character: {data.assets?.character?.npc_name}, object: {data.assets?.@object?.object_name}");
             return data;
         }
     }

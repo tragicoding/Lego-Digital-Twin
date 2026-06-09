@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { getStatus } from "../api/client";
+import { finalizeSession, getStatus } from "../api/client";
 import { useSessionStore } from "../store/sessionStore";
 
 const STAGE_MESSAGES: Record<string, string> = {
@@ -48,9 +49,11 @@ function ProgressCard({ label, emoji, asset }: { label: string; emoji: string; a
 }
 
 export default function LoadingPage() {
-  const { sessionId, characterNpcName, objectName } = useSessionStore();
+  const { sessionId, reset } = useSessionStore();
+  const navigate = useNavigate();
   const [assets, setAssets] = useState<Record<string, AssetStatus>>({});
   const [readyForUnity, setReadyForUnity] = useState(false);
+  const [restarting, setRestarting] = useState(false);
 
   useEffect(() => {
     if (!sessionId) return;
@@ -63,10 +66,22 @@ export default function LoadingPage() {
     return () => clearInterval(poll);
   }, [sessionId]);
 
-  const charName = characterNpcName || "캐릭터";
-  const objName  = objectName || "오브제";
   const getAsset = (key: string) =>
     assets[key] ?? (key === "object" ? assets["building"] : undefined);
+
+  const handleRestart = async () => {
+    if (restarting) return;
+    setRestarting(true);
+    if (sessionId) {
+      try {
+        await finalizeSession(sessionId);
+      } catch (error) {
+        console.error("세션 finalize 실패", error);
+      }
+    }
+    reset();
+    navigate("/start");
+  };
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-6 py-10">
@@ -76,7 +91,7 @@ export default function LoadingPage() {
             <motion.div key="loading" className="flex flex-col gap-5">
               <div className="text-center">
                 <h2 className="text-xl font-black text-gray-900 leading-snug">
-                  {charName}와 {objName}이<br />3D로 변환 중입니다!
+                  3D로 변환 중입니다!
                 </h2>
                 <p className="text-gray-400 text-sm mt-2">잠시만 기다려 주세요</p>
               </div>
@@ -109,6 +124,13 @@ export default function LoadingPage() {
               >
                 VR 입장 준비 완료 ✓
               </div>
+              <button
+                onClick={handleRestart}
+                disabled={restarting}
+                className="w-full py-4 rounded-2xl border-2 border-gray-200 text-gray-500 font-bold text-base"
+              >
+                {restarting ? "준비 중..." : "새롭게 시작하기"}
+              </button>
             </motion.div>
           )}
         </AnimatePresence>
