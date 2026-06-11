@@ -284,6 +284,6 @@ def history_info(session_id: str, db: DBSession) -> dict[str, Any]:
     return {
         "session_id": session_id,
         "character_name": session.nickname if session else None,
-        "object_name": session.bubble_text if session else None,
+        "object_name": session.object_name if session else None,
         "bubble_text": session.bubble_text if session else None,
     }

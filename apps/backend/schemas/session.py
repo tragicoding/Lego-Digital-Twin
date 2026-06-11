@@ -10,7 +10,7 @@ class SessionCreateResponse(BaseModel):
 class ProfileUpdate(BaseModel):
     nickname: Optional[str] = None
     character_npc_name: Optional[str] = None  # → nickname
-    object_name: Optional[str] = None          # → bubble_text
+    object_name: Optional[str] = None
     phone: Optional[str] = None
     bubble_text: Optional[str] = None
     favorite_theme: Optional[str] = None
@@ -23,6 +23,7 @@ class SignatureMotionUpdate(BaseModel):
 class SessionResponse(BaseModel):
     session_id: str
     nickname: Optional[str]
+    object_name: Optional[str]
     bubble_text: Optional[str]
     status: str
     created_at: datetime

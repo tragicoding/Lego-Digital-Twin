@@ -18,10 +18,10 @@ LoadingPage
 import axios from "axios";
 
 function resolveBaseUrl() {
-  const configured = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
+  const configured = import.meta.env.VITE_API_URL;
 
   if (typeof window === "undefined") {
-    return configured;
+    return configured ?? "http://localhost:8000";
   }
 
   const { hostname, protocol } = window.location;
@@ -29,7 +29,7 @@ function resolveBaseUrl() {
     return `${protocol}//localhost:8000`;
   }
 
-  return configured;
+  return configured ?? `${protocol}//${hostname}:8000`;
 }
 
 //백엔드 서버 주소 정한다.

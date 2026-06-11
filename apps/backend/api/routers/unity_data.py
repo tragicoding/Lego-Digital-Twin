@@ -73,7 +73,7 @@ def _build_assets(session: Session) -> dict:
                 "asset_id": asset.id,
                 "model_url": asset.model_url,
                 "role": "static_object",
-                "object_name": session.bubble_text,
+                "object_name": session.object_name,
             }
     return assets_out
 
@@ -95,7 +95,7 @@ def get_unity_session(session_id: str, db: DBSession = Depends(get_db)):
     return UnitySessionResponse(
         session_id=session_id,
         character_npc_name=session.nickname,
-        object_name=session.bubble_text,
+        object_name=session.object_name,
         bubble_text=session.bubble_text,
         signature_motion=session.signature_motion,
         likes=session.likes or 0,
@@ -142,6 +142,7 @@ def get_plaza_sessions(db: DBSession = Depends(get_db)):
         result.append(PlazaSessionData(
             session_id=s.id,
             character_npc_name=s.nickname,
+            object_name=s.object_name,
             bubble_text=s.bubble_text,
             signature_motion=s.signature_motion,
             likes=s.likes or 0,

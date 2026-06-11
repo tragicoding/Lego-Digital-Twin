@@ -43,8 +43,9 @@ def update_profile(
         session.nickname = body.nickname
 
     if body.object_name:
-        session.bubble_text = body.object_name
-    elif body.bubble_text:
+        session.object_name = body.object_name
+
+    if body.bubble_text:
         session.bubble_text = body.bubble_text
 
     if body.phone:

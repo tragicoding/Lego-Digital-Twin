@@ -160,7 +160,8 @@ def _session_summary(session: Session, queue_position: int | None = None) -> dic
         "created_at": _iso(session.created_at),
         "updated_at": _iso(session.updated_at),
         "character_name": session.nickname,
-        "object_name": session.bubble_text,
+        "object_name": session.object_name,
+        "bubble_text": session.bubble_text,
         "signature_motion": session.signature_motion,
         "likes": session.likes or 0,
         "queue_position": queue_position,
@@ -378,7 +379,8 @@ def get_admin_dashboard(db: DBSession = Depends(get_db)):
         {
             "session_id": session.id,
             "character_name": session.nickname,
-            "object_name": session.bubble_text,
+            "object_name": session.object_name,
+            "bubble_text": session.bubble_text,
             "likes": session.likes or 0,
         }
         for session in db.query(Session).order_by(desc(Session.likes), desc(Session.created_at)).limit(20).all()

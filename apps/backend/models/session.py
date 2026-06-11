@@ -11,6 +11,7 @@ class Session(Base):
     id: Mapped[str] = mapped_column(String, primary_key=True)
     nickname: Mapped[str | None] = mapped_column(String(100))
     phone: Mapped[str | None] = mapped_column(String(20))
+    object_name: Mapped[str | None] = mapped_column(String(100))
     bubble_text: Mapped[str | None] = mapped_column(String(200))
     favorite_theme: Mapped[str | None] = mapped_column(String(50))
     signature_motion: Mapped[str | None] = mapped_column(String(50))

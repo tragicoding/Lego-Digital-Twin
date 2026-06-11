@@ -30,6 +30,7 @@ from .services.event_service import redis_subscriber
 async def lifespan(app: FastAPI):
     with engine.begin() as conn:
         conn.execute(text("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS is_true BOOLEAN DEFAULT TRUE"))
+        conn.execute(text("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS object_name VARCHAR(100)"))
     # Redis Pub/Sub → WebSocket 브로드캐스트 백그라운드 태스크
     task = asyncio.create_task(redis_subscriber(manager.broadcast))
     yield
