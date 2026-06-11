@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import String, DateTime, Integer, func
+from sqlalchemy import Boolean, String, DateTime, Integer, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from ..core.database import Base
 
@@ -16,6 +16,7 @@ class Session(Base):
     signature_motion: Mapped[str | None] = mapped_column(String(50))
     likes: Mapped[int] = mapped_column(Integer, default=0)
     status: Mapped[str] = mapped_column(String(20), default="active")
+    is_true: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 

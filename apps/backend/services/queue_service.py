@@ -19,3 +19,9 @@ def enqueue_asset(asset_id: str, asset_type: str):
     elif asset_type in ("object", "building"):
         from ..worker.tasks.object_task import process_object
         _queues["object"].enqueue(process_object, asset_id, job_timeout=900)
+
+
+def enqueue_object_session(session_id: str):
+    """심사용 플로우: DB Asset 없이 session_id 기준 오브제 작업을 등록한다."""
+    from ..worker.tasks.object_task import process_object_session
+    _queues["object"].enqueue(process_object_session, session_id, job_timeout=900)

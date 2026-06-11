@@ -139,7 +139,7 @@ Worker 2개가 병렬 실행됩니다:
 git checkout feature/backend
 git fetch origin && git merge origin/develop
 # ... 작업 ...
-git add <파일명>
+git add -A
 git commit -m "feat(backend): ..."
 git push origin feature/backend
 # GitHub에서 feature/backend → develop PR 생성

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using UnityEngine;
+using UnityEngine.Networking;
 using LegoTwin.Data;
 
 namespace LegoTwin.Character
@@ -222,6 +223,20 @@ namespace LegoTwin.Character
 
         private async void ApplyTextureFromUrl(string url)
         {
+            if (IsImageUrl(url))
+            {
+                var imageMaterial = await LoadImageMaterial(url);
+                if (imageMaterial == null)
+                {
+                    Debug.LogWarning($"[CharacterAnimationController] {npcName}: 이미지 텍스쳐 로드 실패: {url}");
+                    return;
+                }
+
+                foreach (var dstRenderer in GetComponentsInChildren<SkinnedMeshRenderer>(true))
+                    dstRenderer.sharedMaterial = imageMaterial;
+                return;
+            }
+
             Material[] sharedMaterials = await GetOrLoadSharedMaterials(url);
             if (sharedMaterials == null || sharedMaterials.Length == 0)
             {
@@ -238,6 +253,28 @@ namespace LegoTwin.Character
 
             foreach (var dstRenderer in dstRenderers)
                 dstRenderer.sharedMaterials = sharedMaterials;
+        }
+
+        private static bool IsImageUrl(string url)
+        {
+            string lower = url.ToLowerInvariant();
+            return lower.EndsWith(".jpg") || lower.EndsWith(".jpeg") || lower.EndsWith(".png");
+        }
+
+        private static async Task<Material> LoadImageMaterial(string url)
+        {
+            using var req = UnityWebRequestTexture.GetTexture(url);
+            var op = req.SendWebRequest();
+            while (!op.isDone)
+                await Task.Yield();
+
+            if (req.result != UnityWebRequest.Result.Success)
+                return null;
+
+            var texture = DownloadHandlerTexture.GetContent(req);
+            var material = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            material.mainTexture = texture;
+            return material;
         }
 
         private static Task<Material[]> GetOrLoadSharedMaterials(string url)

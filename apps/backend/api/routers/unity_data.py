@@ -14,6 +14,7 @@ from ...models.asset import Asset
 from ...models.asset_animation import AssetAnimation
 from ...models.plaza_object import PlazaObject
 from ...schemas.unity import UnitySessionResponse, PlazaResponse, PlazaSessionData
+from ...services import session_queue_service as sq
 
 router = APIRouter(prefix="/unity", tags=["unity"])
 
@@ -81,14 +82,15 @@ def _build_assets(session: Session) -> dict:
 def get_unity_session(session_id: str, db: DBSession = Depends(get_db)):
     """현재 관람객 세션 데이터. 가이드 모드 시작 시 Unity가 한 번 호출."""
     session = db.get(Session, session_id)
+    if not session and sq.get_session_data(session_id):
+        session = sq.ensure_db_session(session_id, db)
     if not session:
         raise HTTPException(404, "세션을 찾을 수 없습니다.")
     if session.status == "cancelled":
         raise HTTPException(410, "취소된 세션입니다.")
 
     assets_out = _build_assets(session)
-    all_completed = all(a.status == "completed" for a in session.assets) if session.assets else False
-    ready = all_completed and bool(session.nickname) and len(assets_out) > 0
+    ready = "character" in assets_out and "object" in assets_out
 
     return UnitySessionResponse(
         session_id=session_id,
@@ -111,14 +113,14 @@ def get_plaza_sessions(db: DBSession = Depends(get_db)):
     """
     # 완료된 에셋을 가진 세션만
     sessions = db.query(Session).filter(
-        Session.nickname.isnot(None),
         Session.status != "cancelled",
+        Session.is_true.is_(True),
     ).all()
 
     plaza_list = []
     for session in sessions:
         assets_out = _build_assets(session)
-        if not assets_out:
+        if "character" not in assets_out or "object" not in assets_out:
             continue
         plaza_list.append({
             "session": session,

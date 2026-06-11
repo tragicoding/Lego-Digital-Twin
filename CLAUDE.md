@@ -6,7 +6,7 @@
 
 ## 1. Claude 작업 기본 원칙
 
-- 작업 시작 전 `README.md`, `git.md`, `CLAUDE.md`를 먼저 읽는다.
+- 작업 시작 전 `README.md`, `CLAUDE.md`를 먼저 읽는다.
 - 현재 디렉토리 구조를 확인한 뒤 작업한다.
 - 사용자 요청 범위를 벗어난 대규모 리팩토링을 하지 않는다.
 - 기존 테스트 완료 흐름을 깨지 않는다.
@@ -16,8 +16,6 @@
 ---
 
 ## 2. Git 작업 원칙
-
-**모든 git 작업은 [git.md](git.md)의 규칙을 따른다.**
 
 - 작업 전 `git status` 확인
 - **commit 전 사용자에게 반드시 확인**
@@ -48,7 +46,6 @@ Lego-Digital-Twin/
 ├── docker-compose.yml
 ├── run_worker.py       # RQ Worker 시작 (lego-character + lego-object 병렬)
 ├── README.md
-├── git.md
 └── CLAUDE.md
 ```
 

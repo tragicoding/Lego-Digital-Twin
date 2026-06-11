@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # claude-git-guard.sh — Claude PreToolUse 훅
-# Claude가 Bash 도구로 git 명령을 실행하기 전에 git.md 규칙 위반을 차단한다.
+# Claude가 Bash 도구로 git 명령을 실행하기 전에 Git 규칙 위반을 차단한다.
 #
 # 동작: settings.json의 PreToolUse 훅에서 호출됨
 # 입력: $1 = Claude가 실행하려는 bash 명령 문자열
@@ -15,7 +15,7 @@ fi
 
 block() {
   echo "[git-guard] 차단: $1" >&2
-  echo "[git.md 규칙 위반] $2" >&2
+  echo "[Git 규칙 위반] $2" >&2
   exit 2
 }
 
@@ -39,9 +39,5 @@ if echo "$CMD" | grep -qE 'git\s+clean\s+.*-f'; then
   block "$CMD" "RULE-06: git clean -f는 파괴적 명령입니다. 사용자 확인 없이 실행할 수 없습니다."
 fi
 
-# RULE-03: git add . / git add -A 경고 (차단하지 않고 경고만)
-if echo "$CMD" | grep -qE 'git\s+add\s+(\.|--all|-A)\s*$'; then
-  echo "[git-guard 경고] RULE-03: 'git add .' 또는 'git add -A' 감지. 파일을 명시적으로 지정하는 것을 권장합니다." >&2
-fi
 
 exit 0

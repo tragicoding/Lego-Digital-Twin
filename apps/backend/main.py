@@ -13,8 +13,10 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy import text
 
 from .core.config import STORAGE_MODELS
+from .core.database import engine
 from .api.routers.sessions import router as sessions_router
 from .api.routers.assets import router as assets_router
 from .api.routers.admin import router as admin_router
@@ -26,6 +28,8 @@ from .services.event_service import redis_subscriber
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    with engine.begin() as conn:
+        conn.execute(text("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS is_true BOOLEAN DEFAULT TRUE"))
     # Redis Pub/Sub → WebSocket 브로드캐스트 백그라운드 태스크
     task = asyncio.create_task(redis_subscriber(manager.broadcast))
     yield

@@ -77,7 +77,7 @@ apps/frontend/src/
 git checkout feature/frontend
 git fetch origin && git merge origin/develop
 # ... 작업 ...
-git add <파일명>
+git add -A
 git commit -m "feat(frontend): ..."
 git push origin feature/frontend
 # GitHub에서 feature/frontend → develop PR 생성

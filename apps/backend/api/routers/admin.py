@@ -5,6 +5,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from redis import Redis
 from rq import Queue, Worker
 from rq.registry import (
@@ -31,8 +32,13 @@ from ...models.asset_animation import AssetAnimation
 from ...models.plaza_object import PlazaObject
 from ...models.session import Session
 from ...services.event_service import UNITY_QUEUE_KEY
+from ...services import session_queue_service as sq
 
 router = APIRouter(prefix="/admin", tags=["admin"])
+
+
+class CharacterRegisterRequest(BaseModel):
+    character_no: int
 
 ROOT_DIR = Path(__file__).resolve().parents[4]
 FRONTEND_ENV = ROOT_DIR / "apps" / "frontend" / ".env.local"
@@ -243,6 +249,7 @@ def _remove_session_everywhere(session_id: str, db: DBSession) -> None:
                 for job in registry.get_jobs():
                     if any(str(arg) in asset_ids for arg in job.args):
                         registry.remove(job.id, delete_job=True)
+        sq.delete_session_state(session_id)
     finally:
         redis_conn.close()
 
@@ -265,6 +272,63 @@ def _clear_queue(queue_name: str) -> dict:
         return {"status": "ok", "queue": resolved, "cleared_registry_jobs": cleared}
     finally:
         redis_conn.close()
+
+
+@router.get("/review")
+def get_review_dashboard():
+    """심사용 운영 화면: session_queue, unity_queue, history_queue만 반환한다."""
+    return sq.queue_snapshot()
+
+
+@router.post("/session-queue/{session_id}/character")
+def register_session_character(session_id: str, body: CharacterRegisterRequest):
+    try:
+        files = sq.register_character(session_id, body.character_no)
+    except FileNotFoundError as e:
+        raise HTTPException(404, str(e))
+    except KeyError:
+        raise HTTPException(404, "세션을 찾을 수 없습니다.")
+    return {"status": "ok", "session_id": session_id, "character_no": body.character_no, **files}
+
+
+@router.delete("/review/session-queue/{session_id}")
+def cancel_review_session(session_id: str, db: DBSession = Depends(get_db)):
+    session = db.get(Session, session_id)
+    if session:
+        _remove_session_everywhere(session_id, db)
+    else:
+        sq.delete_session_state(session_id)
+    return {"status": "ok", "removed": session_id}
+
+
+@router.delete("/review/unity-queue/{session_id}")
+def cancel_review_unity_session(session_id: str, db: DBSession = Depends(get_db)):
+    session = db.get(Session, session_id)
+    if session:
+        _remove_session_everywhere(session_id, db)
+    else:
+        sq.delete_session_state(session_id)
+    return {"status": "ok", "removed": session_id}
+
+
+@router.delete("/review/history-queue/{session_id}")
+def reject_history_session(session_id: str, db: DBSession = Depends(get_db)):
+    session = db.get(Session, session_id)
+    if session:
+        session.is_true = False
+        db.commit()
+    r = sq.redis_conn()
+    try:
+        r.lrem(sq.HISTORY_QUEUE_KEY, 0, session_id)
+        r.delete(sq.session_key(session_id))
+    finally:
+        r.close()
+    return {"status": "ok", "session_id": session_id, "is_true": False}
+
+
+@router.get("/review/history-queue/{session_id}/info")
+def get_history_session_info(session_id: str, db: DBSession = Depends(get_db)):
+    return sq.history_info(session_id, db)
 
 
 @router.get("/dashboard")
@@ -413,7 +477,16 @@ def reset_database(db: DBSession = Depends(get_db)):
 
     redis_conn = _redis()
     try:
-        redis_conn.delete(UNITY_QUEUE_KEY, "lego:active_session")
+        redis_conn.delete(
+            UNITY_QUEUE_KEY,
+            sq.SESSION_QUEUE_KEY,
+            sq.HISTORY_QUEUE_KEY,
+            sq.ACTIVE_SESSION_KEY,
+            sq.SESSION_SEQ_KEY,
+            sq.OBJECT_SEQ_KEY,
+        )
+        for key in redis_conn.scan_iter(f"{sq.SESSION_HASH_PREFIX}*"):
+            redis_conn.delete(key)
     finally:
         redis_conn.close()
 

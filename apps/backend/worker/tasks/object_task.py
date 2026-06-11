@@ -8,11 +8,12 @@ import asyncio
 import shutil
 from pathlib import Path
 
-from ...core.config import STORAGE_MODELS, BACKEND_HOST, UNITY_GENERATED_MODELS
+from ...core.config import STORAGE_IMAGES, STORAGE_MODELS, BACKEND_HOST, UNITY_GENERATED_MODELS
 from ...core.database import SessionLocal
 from ...models.asset import Asset
 from ...models.session import Session
 from ...services import tripo_service as tripo
+from ...services.session_queue_service import next_object_seq, update_session
 
 
 def _seq_num(db, asset: Asset) -> int:
@@ -38,6 +39,78 @@ def _mark_cancelled(db, asset: Asset):
 
 def process_object(asset_id: str):
     asyncio.run(_run(asset_id))
+
+
+def process_object_session(session_id: str):
+    asyncio.run(_run_session(session_id))
+
+
+async def _run_session(session_id: str):
+    try:
+        update_session(
+            session_id,
+            object_status="processing",
+            object_stage="generating",
+            object_progress=10,
+            object_error="",
+        )
+
+        img_dir = STORAGE_IMAGES / session_id
+        front_path = img_dir / "object_front.jpg"
+        left_path = img_dir / "object_left.jpg"
+        back_path = img_dir / "object_back.jpg"
+        right_path = img_dir / "object_right.jpg"
+
+        for _ in range(90):
+            if front_path.exists() and left_path.exists() and back_path.exists() and right_path.exists():
+                break
+            await asyncio.sleep(1.0)
+
+        missing = [
+            name
+            for name, path in {
+                "front": front_path,
+                "left": left_path,
+                "back": back_path,
+                "right": right_path,
+            }.items()
+            if not path.exists()
+        ]
+        if missing:
+            raise FileNotFoundError(f"missing object views: {', '.join(missing)}")
+
+        front_token = await tripo.upload_image(front_path)
+        left_token = await tripo.upload_image(left_path)
+        back_token = await tripo.upload_image(back_path)
+        right_token = await tripo.upload_image(right_path)
+
+        update_session(session_id, object_progress=40)
+        task_id = await tripo.create_multiview_task(front_token, back_token, left_token, right_token)
+        result = await tripo.poll_task(task_id)
+
+        update_session(session_id, object_stage="downloading", object_progress=80)
+
+        glb_path = STORAGE_MODELS / f"object_{next_object_seq()}.glb"
+        await tripo.download_glb(result, glb_path)
+
+        UNITY_GENERATED_MODELS.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(glb_path, UNITY_GENERATED_MODELS / glb_path.name)
+
+        update_session(
+            session_id,
+            object_status="completed",
+            object_stage="ready",
+            object_progress=100,
+            object_model_url=f"{BACKEND_HOST}/static/models/{glb_path.name}",
+        )
+    except Exception as e:
+        update_session(
+            session_id,
+            object_status="failed",
+            object_stage="failed",
+            object_progress=0,
+            object_error=str(e) or repr(e),
+        )
 
 
 async def _run(asset_id: str):
@@ -118,6 +191,7 @@ async def _run(asset_id: str):
         await tripo.download_glb(result, glb_path)
 
         # Unity StreamingAssets로 복사
+        UNITY_GENERATED_MODELS.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(glb_path, UNITY_GENERATED_MODELS / glb_path.name)
         print(f"[obj] Unity 복사 완료: {glb_path.name}", flush=True)
 
