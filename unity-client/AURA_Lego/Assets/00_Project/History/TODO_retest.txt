@@ -1,0 +1,114 @@
+TODO_retest - Unity developer handoff
+
+Purpose
+- This branch changes the exhibition flow for the review/demo version.
+- Character models are no longer generated through Tripo.
+- Objects are still generated through Tripo from four camera views.
+- The intended flow is:
+  app start -> session_queue -> unity_queue -> Unity runtime -> history_queue -> DB/plaza filtering
+
+Backend/API flow Unity should follow
+1. Game mode start button
+   - When the Unity game mode user presses "start", play the intro video first.
+   - Recommended video location:
+     Assets/StreamingAssets/Videos/intro.mp4
+   - Use StreamingAssets if the video file will be replaced later without code changes.
+
+2. Pop the next session from unity_queue
+   - Call:
+     GET /sessions/active
+   - Response:
+     { "session_id": "000" }
+   - Important:
+     The first item visible in unity_queue is only a waiting item.
+     It becomes the runtime session only after Unity calls /sessions/active.
+     This call pops it from unity_queue and marks it as the active runtime session.
+
+3. Load current runtime session data
+   - After receiving session_id, call:
+     GET /unity/sessions/{session_id}
+   - This endpoint creates the DB Session at runtime start if it does not exist yet.
+   - DB registration must not happen before Unity runtime starts.
+   - Expected response contains:
+     assets.character.model_url  -> prepared FBX, for example Character_1.fbx
+     assets.character.texture_url -> prepared Color texture image
+     assets.object.model_url     -> generated static object GLB
+     ready_for_unity             -> true only when both character and object are ready
+
+4. Stop intro video and start gameplay
+   - Keep the video playing while assets are not ready.
+   - Once the current session data is ready and loaded on the Unity scene, stop the video.
+   - Then enter the actual game mode.
+
+5. Guide mode input
+   - The app no longer has a Profile page.
+   - Character name, object name, and bubble text should be entered in Unity guide mode.
+   - Save them by calling:
+     PATCH /sessions/{session_id}/profile
+   - Body fields currently supported:
+     character_npc_name
+     object_name
+     bubble_text
+     nickname
+   - Prefer:
+     character_npc_name = character name
+     object_name = object name
+     bubble_text = displayed bubble text
+
+6. Signature motion
+   - If guide mode selects a signature motion, save it by calling:
+     PATCH /sessions/{session_id}/signature-motion
+   - Body:
+     { "signature_motion": "..." }
+
+7. Runtime finished
+   - When the current user finishes the Unity game, call:
+     POST /sessions/unity-queue/advance
+   - This moves the active runtime session to history_queue.
+   - Admin can later accept/keep it or reject it from history_queue.
+
+8. Plaza/free mode loading
+   - Call:
+     GET /unity/plaza/sessions
+   - This returns only sessions whose DB is_true is true.
+   - If admin rejects a history_queue item, backend sets is_true=false.
+   - Unity should not manually load rejected sessions.
+
+Character model notes
+- Prepared character files live in:
+  apps/backend/storage/models/Character_1
+  apps/backend/storage/models/Character_2
+  apps/backend/storage/models/Character_3
+  apps/backend/storage/models/Character_4
+  apps/backend/storage/models/Character_5
+- Admin page assigns the character number to the session_queue item.
+- Example:
+  Admin enters 1 -> backend sends Character_1/Character_1.fbx and Character_1_texture/Color.jpg
+- CharacterAnimationController now supports texture_url as an image file (.jpg/.jpeg/.png).
+
+Object model notes
+- Object is a static GLB.
+- Object generation still uses Tripo.
+- Backend receives four fixed views:
+  front, left, back, right
+- Unity only needs to load the final assets.object.model_url.
+
+Admin/queue notes
+- Admin page is served on port 3001.
+- Review dashboard shows only:
+  session_queue
+  unity_queue
+  history_queue
+- session_queue item:
+  register character number or cancel session.
+- unity_queue item:
+  cancel session.
+- history_queue item:
+  info or cancel/reject.
+- Rejecting history_queue item sets DB is_true=false.
+
+Do not rely on old flow
+- Do not expect character Tripo processing.
+- Do not expect app Profile page input.
+- Do not assume the first unity_queue item is already running.
+- Do not load sessions with is_true=false in plaza/free mode.
