@@ -236,15 +236,18 @@ Claude Code 작업 기록
 [커밋 내역 — 2026-06-13]
 ────────────────────────────────────────────────────────────────
 
-  40d1021 feat(unity): 전시 성능 최적화 — 그림자·스키닝·물리 단순화 (Mock·Server 공통)
-  b1fd2d4 chore(unity): 미사용 폴링 패키지 5개 제거 — 레지스트리 502 플레이 멈춤 해결
-  bc6e0db chore(unity): 배회 NPC 에셋 추가 및 Main 씬 배치
-  c1eaa43 chore(unity): ProjectSettings Standalone TRILIB define 제거
-  94fad2a chore: Unity 협업 인프라 정비 — gitignore·gitattributes·Logs/UserSettings 추적해제
-  7278440 docs: Unity 3인 협업 가이드 추가
-  fa26865 docs: ProjectSettings 공유 파일 조율 규칙 추가
-  a0239f2 docs: History 작업 기록 작성 규칙 추가
-  (이 문서 보강 + git diff 규칙·History 명명 규칙 커밋 예정)
+  시간     │ 해시    │ 타입  │ 메시지
+  ─────────┼─────────┼───────┼───────────────────────────────────────────────────────
+  10:06:03 │ 40d1021 │ feat  │ 전시 성능 최적화 — 그림자·스키닝·물리 단순화 (Mock·Server 공통)
+  10:06:19 │ b1fd2d4 │ chore │ 미사용 폴링 패키지 5개 제거 — 레지스트리 502 플레이 멈춤 해결
+  10:12:06 │ bc6e0db │ chore │ 배회 NPC 에셋(plankton·spongebob·squidward) 추가 및 Main 씬 배치
+  10:26:19 │ c1eaa43 │ chore │ ProjectSettings Standalone TRILIB define 제거 — 커밋본 TRILIB 비움
+  10:43:11 │ 94fad2a │ chore │ Unity 협업 인프라 정비 — gitignore·gitattributes·Logs/UserSettings 추적 해제
+  10:43:12 │ 7278440 │ docs  │ Unity 3인 협업 가이드 추가
+  10:54:40 │ fa26865 │ docs  │ ProjectSettings 공유 파일 조율 규칙 추가
+  11:07:17 │ a0239f2 │ docs  │ History 작업 기록 작성 규칙 추가
+  12:00:34 │ fab1a2d │ docs  │ 커밋전 git diff 규칙·History 명명 규칙 보강 + 0613 기록 마무리
+  (이후)   │ —       │ docs  │ 0613 커밋 내역 표 정리
 
 
 ────────────────────────────────────────────────────────────────
