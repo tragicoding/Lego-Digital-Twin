@@ -77,6 +77,15 @@ Unity 2인 협업의 최대 위험은 **`Assets/Scenes/Main.unity` 단일 씬 �
   → 이 때문에 설치 머신에서는 `ProjectSettings.asset`이 항상 `modified`로 보인다. **이 변경은 커밋하지 않는다**(커밋본은 `TRILIB` 비움 = 미설치 환경 컴파일 보장).
 - TriLib 설치 후 `Project Settings > TriLib > "Disable in editor glTF2 importing"` 체크(glTFast와 `.glb` 임포터 충돌 방지).
 
+### ProjectSettings · 공유 설정 파일 조율 (충돌 빈발 지점)
+
+`ProjectSettings/` 아래 단일 파일들(`TagManager`·`QualitySettings`·`GraphicsSettings`·`InputManager`·`DynamicsManager`·`URPProjectSettings` 등)은 **모두가 공유하는 하나의 파일**이라, 두 명이 동시에 바꾸면 충돌한다.
+
+- **태그/레이어 추가, 퀄리티·물리·그래픽·입력 설정 변경은 한 명이, 팀 공유 후** 진행한다.
+- 변경했으면 **즉시 단독 커밋**(다른 작업과 섞지 않음)하고 알린다 → 다른 사람이 바로 pull.
+- `ProjectSettings.asset`의 로컬 `TRILIB` define 변경은 절대 커밋하지 않는다(§6).
+- XR/빌드 타깃 전환(Standalone↔Android)도 공유 후 진행한다 — 빌드 설정이 바뀐다.
+
 ---
 
 ## 7. 신규 개발자 1회 세팅 — UnityYAMLMerge 등록
