@@ -35,13 +35,9 @@ namespace LegoTwin.Object
         public float spawnScale = 1f;
 
         [Header("물리 설정")]
-        [Tooltip("true면 스폰 후 Rigidbody를 추가해 중력 적용.\n" +
-                 "Collider가 없으면 bounds 기반 BoxCollider 프록시를 자동 추가.\n" +
-                 "Mock 모드: Prefab에 Collider가 있으면 그대로 사용.")]
+        [Tooltip("true면 스폰 후 낙하 없이 바닥에 즉시 안착시키고\n" +
+                 "bounds 기반 BoxCollider를 루트에 재계산한다.")]
         public bool applyGravity = true;
-
-        [Tooltip("Rigidbody Mass 값 (기본 1)")]
-        public float mass = 1f;
 
         private GameObject _spawnedObject;
 
@@ -95,7 +91,7 @@ namespace LegoTwin.Object
             _spawnedObject.transform.localScale = Vector3.one * spawnScale;
 
             if (applyGravity)
-                SetupPhysics(_spawnedObject);
+                SetupPhysics(_spawnedObject, pos.y);
 
             RuntimeOptimizer.Optimize(_spawnedObject);
         }
@@ -133,10 +129,13 @@ namespace LegoTwin.Object
             root.transform.localScale = Vector3.one * spawnScale;
 
             await gltf.InstantiateMainSceneAsync(root.transform);
+            // GLTFast 인스턴스화 직후 renderer.bounds가 미초기화 상태일 수 있으므로
+            // 1프레임 대기 후 안착·BoxCollider 계산
+            await Awaitable.NextFrameAsync();
             _spawnedObject = root;
 
             if (applyGravity)
-                SetupPhysics(_spawnedObject);
+                SetupPhysics(_spawnedObject, pos.y);
 
             RuntimeOptimizer.Optimize(_spawnedObject);
         }
@@ -145,14 +144,13 @@ namespace LegoTwin.Object
         // ════════════════════════════════════════════════════════════
 
         /// <summary>
-        /// 스폰된 오브젝트에 중력을 적용한다.
-        ///   - Rigidbody 없으면 자동 추가 (useGravity = true)
-        ///   - Collider 없으면 Renderer bounds 기반 BoxCollider 프록시 생성
-        ///     (전시용 고폴리 GLB에 convex MeshCollider 경고를 피하기 위함)
+        /// 스폰된 오브젝트를 낙하 없이 groundY 높이에 즉시 안착시킨다.
+        ///   - Renderer bounds 기반 BoxCollider를 루트에 재계산
+        ///   - 메시 바닥이 groundY에 닿도록 Y 위치 보정 (물리 낙하 없음)
         /// </summary>
-        private void SetupPhysics(GameObject go)
+        private void SetupPhysics(GameObject go, float groundY)
         {
-            RuntimePhysicsUtil.SetupSimplePhysics(go, mass);
+            RuntimePhysicsUtil.PlaceOnGround(go, groundY);
         }
     }
 }

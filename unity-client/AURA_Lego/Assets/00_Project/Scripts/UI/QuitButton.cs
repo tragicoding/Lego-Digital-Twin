@@ -60,11 +60,11 @@ namespace LegoTwin.UI
         {
             if (_confirmPanel != null) _confirmPanel.SetActive(false);
 
-            // 큐 전진 후 다음 세션 로드 — 다음 세션 없으면 앱 종료
+            // 현재 세션 마무리 → 씬 리로드 → 대기화면 복귀 (다음 관람객 대기)
             if (SessionManager.Instance != null)
-                SessionManager.Instance.AdvanceAndLoadNext(onNoNext: Quit);
+                SessionManager.Instance.EndCurrentSession();
             else
-                Quit();
+                Quit();   // SessionManager 없을 때만 앱 종료(폴백)
         }
 
         private void OnConfirmNo()

@@ -3,85 +3,87 @@ using UnityEngine;
 namespace LegoTwin.Object
 {
     /// <summary>
-    /// 런타임 생성 오브젝트에 전시용 단순 물리를 적용하는 유틸.
-    /// 모든 Renderer의 world bounds를 합산한 BoxCollider를 루트에 항상 재계산한다.
-    /// 프리팹에 기존 Collider가 있어도 루트 BoxCollider는 덮어쓴다.
-    /// (피벗이 메시 중앙에 있는 프리팹의 절반 파묻힘 버그 방지)
+    /// 런타임 생성 전시 오브제를 낙하 없이 바닥에 즉시 안착시키는 유틸.
+    /// 모든 Renderer의 world bounds를 합산해
+    ///   ① 아래로 Ground 레이어를 레이캐스트해 실제 바닥 Y를 찾고 (실패 시 fallback)
+    ///   ② 메시 바닥(bounds.min.y)이 그 바닥에 닿도록 수직 위치를 보정하고
+    ///   ③ 같은 bounds로 루트 BoxCollider를 재계산한다.
+    /// Rigidbody·중력을 쓰지 않으므로 낙하 중 바닥 관통이나 안착 도중 동결로
+    /// 인한 "땅 속 파묻힘"이 발생하지 않는다. (XZ·회전·스케일은 호출 전에 적용된 상태)
     /// </summary>
     public static class RuntimePhysicsUtil
     {
-        public static void SetupSimplePhysics(GameObject go, float mass = 1f)
+        // 바닥 탐지용 Ground 레이어 마스크. 레이어가 없으면 0 → 레이캐스트 생략.
+        private static readonly int GroundMask = LayerMask.GetMask("Ground");
+
+        /// <summary>
+        /// 오브제를 바닥에 즉시 안착시킨다. (물리 낙하 없음)
+        /// 오브제 footprint 중심에서 아래로 Ground 레이어를 레이캐스트해 실제 바닥 Y를 찾는다.
+        /// 바닥을 못 찾으면(레이어 없음·콜라이더 없음) fallbackGroundY를 사용한다.
+        /// → spawnPoint의 Y가 높게 설정돼 있어도 항상 바닥에 앉는다.
+        /// </summary>
+        public static void PlaceOnGround(GameObject go, float fallbackGroundY)
         {
             if (go == null) return;
 
-            var rb = go.GetComponent<Rigidbody>();
-            if (rb == null)
-                rb = go.AddComponent<Rigidbody>();
-
-            rb.mass = mass;
-            rb.useGravity = true;
-            // Continuous: 고속 낙하 중 바닥 콜라이더를 관통하는 tunneling 방지
-            rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
-            // FreezePositionXZ: 낙하 중 XZ 방향 미끄러짐 방지
-            rb.constraints = RigidbodyConstraints.FreezeRotation
-                           | RigidbodyConstraints.FreezePositionX
-                           | RigidbodyConstraints.FreezePositionZ;
-
-            // 기존 Collider 유무 관계없이 항상 실제 bounds로 루트 BoxCollider를 재계산
-            ApplyBoundsBoxCollider(go);
-
-            // 낙하 후 안착하면 kinematic으로 전환해 상시 물리 비용 제거 (전시용)
-            if (go.GetComponent<PhysicsSettler>() == null)
-                go.AddComponent<PhysicsSettler>();
-        }
-
-        private static void ApplyBoundsBoxCollider(GameObject go)
-        {
-            var renderers = go.GetComponentsInChildren<Renderer>(true);
-            if (renderers.Length == 0)
+            if (!TryComputeWorldBounds(go, out var bounds))
             {
-                Debug.LogWarning($"[RuntimePhysicsUtil] Renderer 없음 — Collider 생성 생략: {go.name}");
+                Debug.LogWarning($"[RuntimePhysicsUtil] 유효한 Renderer bounds 없음 — 안착 생략: {go.name}");
                 return;
             }
 
-            bool hasBounds = false;
-            Bounds worldBounds = default;
+            float groundY = ResolveGroundY(bounds, fallbackGroundY);
+
+            // 메시 바닥이 groundY에 닿도록 수직 보정 (낙하 없이 즉시 안착)
+            float delta = groundY - bounds.min.y;
+            go.transform.position += Vector3.up * delta;
+            bounds.center += Vector3.up * delta;
+
+            // 프리팹에 Rigidbody가 박혀 있어도 중력으로 떨어지지 않도록 kinematic 고정
+            var rb = go.GetComponent<Rigidbody>();
+            if (rb != null) rb.isKinematic = true;
+
+            ApplyBoundsBoxCollider(go, bounds);
+        }
+
+        // footprint 중심에서 위→아래로 Ground 레이어 레이캐스트. 못 맞히면 fallback 반환.
+        private static float ResolveGroundY(Bounds bounds, float fallbackGroundY)
+        {
+            if (GroundMask == 0) return fallbackGroundY;
+
+            var origin = new Vector3(bounds.center.x, bounds.center.y + 500f, bounds.center.z);
+            if (Physics.Raycast(origin, Vector3.down, out var hit, 2000f,
+                                GroundMask, QueryTriggerInteraction.Ignore))
+                return hit.point.y;
+
+            return fallbackGroundY;
+        }
+
+        private static bool TryComputeWorldBounds(GameObject go, out Bounds worldBounds)
+        {
+            worldBounds = default;
+            var renderers = go.GetComponentsInChildren<Renderer>(true);
+            bool has = false;
             foreach (var r in renderers)
             {
                 if (r == null) continue;
-                if (!hasBounds) { worldBounds = r.bounds; hasBounds = true; }
+                if (!has) { worldBounds = r.bounds; has = true; }
                 else worldBounds.Encapsulate(r.bounds);
             }
+            return has;
+        }
 
-            if (!hasBounds)
-            {
-                Debug.LogWarning($"[RuntimePhysicsUtil] 유효한 bounds 없음 — Collider 생성 생략: {go.name}");
-                return;
-            }
-
-            // 루트에 BoxCollider를 찾거나 새로 추가 (자식 Collider는 건드리지 않음)
+        // 루트에 BoxCollider를 찾거나 추가해 실제 world bounds로 (재)계산한다.
+        // (씬에서 콜라이더 크기가 메시와 정확히 일치함을 확인한 기존 방식 유지)
+        private static void ApplyBoundsBoxCollider(GameObject go, Bounds worldBounds)
+        {
             var col = go.GetComponent<BoxCollider>();
             if (col == null)
                 col = go.AddComponent<BoxCollider>();
 
             col.center = go.transform.InverseTransformPoint(worldBounds.center);
             var size   = go.transform.InverseTransformVector(worldBounds.size);
-            var absSize = new Vector3(Mathf.Abs(size.x), Mathf.Abs(size.y), Mathf.Abs(size.z));
-
-            // renderer.bounds 미초기화(GLB 비동기 로드 등)로 size ≈ 0이면 기본값 사용
-            // center=(0,0,0), size=(1,1,1)은 scale=12 기준 월드 12×12×12 → 피벗 중앙·바닥 모두 안전
-            if (absSize.y < 0.001f)
-            {
-                Debug.LogWarning($"[RuntimePhysicsUtil] bounds.y≈0 — 기본 BoxCollider(1,1,1) 사용: {go.name}");
-                col.center = Vector3.zero;
-                col.size   = Vector3.one;
-            }
-            else
-            {
-                col.size = absSize;
-            }
-
-            Debug.Log($"[RuntimePhysicsUtil] BoxCollider(재)계산: {go.name} center={col.center} size={col.size}");
+            col.size   = new Vector3(Mathf.Abs(size.x), Mathf.Abs(size.y), Mathf.Abs(size.z));
         }
     }
 }
