@@ -17,10 +17,12 @@ Thumbs.db
 unity-client/**/[Ll]ibrary/
 unity-client/**/[Tt]emp/
 unity-client/**/[Oo]bj/
-unity-client/**/[Build]/
+unity-client/**/[Bb]uild/
 unity-client/**/[Bb]uilds/
-unity-client/**/[Logs]/
-unity-client/**/[MemoryCaptures]/
+unity-client/**/[Ll]ogs/
+unity-client/**/[Mm]emoryCaptures/
+# UserSettings: 에디터 레이아웃·개인 설정 (사용자별로 달라 충돌만 유발)
+unity-client/**/UserSettings/
 
 # 에러가 났던 샘플 및 스타터 에셋 (필요 없다면 제외 권장)
 # unity-client/**/Assets/Samples/
