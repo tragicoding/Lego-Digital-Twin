@@ -48,10 +48,6 @@ namespace LegoTwin.Plaza
         public float objectBackOffset       = 3f;   // 오브제:  spawnPoint 뒤쪽
         public float viewHeightOffset       = 5f;   // 투표 UI: spawnPoint에서 위로 띄울 높이
 
-        [Header("오브제 낙하 설정")]
-        [Tooltip("오브제가 스폰되는 높이 (이 높이에서 중력으로 낙하)")]
-        public float objectDropHeight = 15f;
-
         [Header("PlazaSessionView 프리팹 (UI + 좋아요 포함)")]
         public PlazaSessionView sessionViewPrefab;
 
@@ -356,13 +352,11 @@ namespace LegoTwin.Plaza
                         Debug.LogWarning("[PlazaManager] mockObjectPrefabs 미연결 — Inspector에서 연결하세요.");
                     else
                     {
-                        var spawnPos = point.position
-                                       - point.forward * objectBackOffset
-                                       + Vector3.up * objectDropHeight;
+                        var spawnPos = point.position - point.forward * objectBackOffset;
                         var objGo = Instantiate(objPrefab, spawnPos, point.rotation);
                         objGo.name = $"PlazaObj_{session.session_id}";
                         objGo.transform.localScale = Vector3.one * objectSpawnScale;
-                        SetupObjectPhysics(objGo);
+                        SetupObjectPhysics(objGo, point.position.y);
                     }
                 }
             }
@@ -435,10 +429,10 @@ namespace LegoTwin.Plaza
             return avatar != null && avatar.isValid && avatar.isHuman ? avatar : null;
         }
 
-        // 오브제에 Rigidbody(중력) + Collider 자동 부착 + 전시용 렌더러 최적화
-        private static void SetupObjectPhysics(GameObject go)
+        // 오브제를 낙하 없이 groundY에 즉시 안착(Collider 재계산) + 전시용 렌더러 최적화
+        private static void SetupObjectPhysics(GameObject go, float groundY)
         {
-            RuntimePhysicsUtil.SetupSimplePhysics(go);
+            RuntimePhysicsUtil.PlaceOnGround(go, groundY);
             RuntimeOptimizer.Optimize(go);
         }
 
@@ -453,25 +447,23 @@ namespace LegoTwin.Plaza
                 var fallbackPrefab = PickMockPrefab(mockObjectPrefabs, sessionIndex);
                 if (fallbackPrefab != null)
                 {
-                    var fallbackPos = point.position
-                                      - point.forward * objectBackOffset
-                                      + Vector3.up * objectDropHeight;
+                    var fallbackPos = point.position - point.forward * objectBackOffset;
                     var fallback = Instantiate(fallbackPrefab, fallbackPos, point.rotation);
                     fallback.name = $"PlazaObj_{sessionId}";
                     fallback.transform.localScale = Vector3.one * objectSpawnScale;
-                    SetupObjectPhysics(fallback);
+                    SetupObjectPhysics(fallback, point.position.y);
                 }
                 return;
             }
-            var dropPos = point.position - point.forward * objectBackOffset + Vector3.up * objectDropHeight;
+            var spawnPos = point.position - point.forward * objectBackOffset;
             var root = new GameObject($"PlazaObj_{sessionId}");
-            root.transform.SetPositionAndRotation(dropPos, point.rotation);
+            root.transform.SetPositionAndRotation(spawnPos, point.rotation);
             root.transform.localScale = Vector3.one * objectSpawnScale;
             await gltf.InstantiateMainSceneAsync(root.transform);
             // GLTFast 인스턴스화 직후 renderer.bounds가 미초기화 상태일 수 있으므로
-            // 1프레임 대기 후 BoxCollider 계산 (크기 0으로 낙하 관통하는 버그 방지)
+            // 1프레임 대기 후 안착·BoxCollider 계산 (크기 0으로 잘못 안착하는 버그 방지)
             await Awaitable.NextFrameAsync();
-            SetupObjectPhysics(root);
+            SetupObjectPhysics(root, point.position.y);
         }
 
         // ════════════════════════════════════════════════════════════

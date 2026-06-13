@@ -263,3 +263,122 @@ Claude Code 작업 기록
   [ ] 전시 빌드 전: _enableGuideSkip · FreeCameraController 비활성화 + PerfHud GameObject 비활성화
 
 ================================================================
+
+
+================================================================
+[추가 작업] 광장/창작물 오브제 낙하 제거 → 레이캐스트 바닥 즉시 안착
+날짜: 2026-06-13
+브랜치: feature/unity
+================================================================
+
+주제: 일부 오브제가 땅 속에 파묻히고, 나의 창작물 obj는 공중에 뜨는 문제 해결.
+      "중력 낙하 후 안착" 방식을 "낙하 없이 바닥에 즉시 안착"으로 전면 교체.
+
+
+────────────────────────────────────────────────────────────────
+[세션 1] 원인 분석 — 콜라이더가 아닌 낙하·동결이 문제
+────────────────────────────────────────────────────────────────
+
+## 파묻힘 (이전 창작물 일부)
+  씬에서 BoxCollider 크기는 메시와 정확히 일치함을 확인 → 콜라이더 사이즈 문제 아님.
+  진짜 원인: objectDropHeight=15 + objectSpawnScale=12 큰 오브제가 ~17m/s로 착지 →
+  한 프레임에 깊게 관통 → 솔버가 밀어내는 도중 PhysicsSettler가 velocity<0.05·0.5초
+  조건으로 kinematic 동결 → 관통한 상태 그대로 굳어 파묻힘. (관통 깊이가 메시·자세별로
+  달라 "몇몇 개만" 묻힘)
+
+## 공중에 뜸 (나의 창작물)
+  GeneratedObjectSpawner는 ObjectSpawnPoint.position.y를 바닥으로 사용 →
+  spawnPoint Y가 높게 설정돼 있어 그 높이에 떠서 안착.
+
+
+────────────────────────────────────────────────────────────────
+[세션 2] 낙하 제거 — RuntimePhysicsUtil.PlaceOnGround 신설
+────────────────────────────────────────────────────────────────
+
+## 수정: Scripts/Object/RuntimePhysicsUtil.cs (전면 교체)
+  - SetupSimplePhysics(Rigidbody+중력+낙하) 제거 → PlaceOnGround(go, fallbackGroundY) 신설
+  - 동작:
+      ① footprint 중심에서 아래로 Ground 레이어(인덱스 6) 레이캐스트 → 실제 바닥 Y
+         (QueryTriggerInteraction.Ignore, 못 맞히면 fallbackGroundY 폴백)
+      ② 메시 바닥(bounds.min.y)이 바닥 Y에 닿도록 Y만 보정 (물리 낙하 없음)
+      ③ 기존 검증된 방식으로 루트 BoxCollider 재계산 (InverseTransform — 씬에서 일치 확인)
+  - 프리팹에 Rigidbody 있으면 isKinematic=true로 낙하 차단
+  → spawnPoint Y가 높아도 항상 바닥에 앉음. 회전·스케일 무관.
+
+## Ground 레이어 근거
+  TagManager: Ground = layer 6. Main.unity에서 124개 오브젝트가 Ground 레이어 사용
+  (바닥/환경) → 레이캐스트로 바닥 안정적으로 탐지. 못 맞히면 폴백이라 무회귀.
+
+
+────────────────────────────────────────────────────────────────
+[세션 3] 전 스폰 경로 단일 함수로 합류 (Mock·Server 동일)
+────────────────────────────────────────────────────────────────
+
+## 수정: Scripts/Plaza/PlazaManager.cs
+  - objectDropHeight 필드 + "오브제 낙하 설정" 헤더 제거
+  - 오브제 3경로(Mock / Server GLB / Server fallback) 모두 +Vector3.up*dropHeight 제거,
+    SetupObjectPhysics(go, point.position.y) 호출 (point.position.y = 폴백용)
+  - SetupObjectPhysics(go, groundY): RuntimePhysicsUtil.PlaceOnGround + RuntimeOptimizer
+
+## 수정: Scripts/Object/GeneratedObjectSpawner.cs (현재 관람객 본인 오브제)
+  - SetupPhysics(go, groundY) → PlaceOnGround, 낙하 제거
+  - Server GLB 경로에 Awaitable.NextFrameAsync() 추가 (renderer.bounds 초기화 보장)
+  - 미사용된 mass 필드 제거, applyGravity 툴팁 갱신
+
+## 안전성 검증 (나의 창작물 Y 의존 없음)
+  - PlazaManager.AttachViewToCurrentSession: 투표 UI는 오브제 XZ만 사용, Y는 절대값
+    viewHeightOffset → 오브제 Y 변경 무영향
+  - GameFlowManager: 오브제 GO 참조만 저장, 위치 Y 미사용
+  → 나의 창작물 obj를 바닥에 내려도 의존 로직 없음.
+
+## 적용 커버리지 (5경로 전부 PlaceOnGround 단일 합류)
+  | 대상            | 경로                                      | 모드        |
+  |----------------|-------------------------------------------|------------|
+  | 현재 오브제 Mock | GeneratedObjectSpawner.SpawnMock          | Mock        |
+  | 현재 오브제 GLB  | GeneratedObjectSpawner.SpawnFromServerAsync| Server     |
+  | 광장 오브제 Mock | PlazaManager (mock prefab)                | Mock        |
+  | 광장 오브제 GLB  | PlazaManager.SpawnObjectFromServerAsync   | Server      |
+  | 광장 오브제 폴백 | PlazaManager (GLB 실패 → mock fallback)    | Server      |
+  → Server GLB 두 경로는 InstantiateMainSceneAsync 후 NextFrameAsync 1프레임 대기.
+    GLB 루트는 Default 레이어라 Ground 레이캐스트 자기충돌 없음, Rigidbody 없어 낙하 없음.
+
+
+────────────────────────────────────────────────────────────────
+[세션 4] 데드코드 정리
+────────────────────────────────────────────────────────────────
+
+  - PhysicsSettler.cs (+ .meta) 삭제 — 낙하 후 kinematic 전환 전용, 호출부 소멸.
+    런타임 AddComponent로만 쓰던 컴포넌트라 씬/프리팹 직렬화 참조 0건 (missing script 없음).
+  - SetupSimplePhysics / objectDropHeight / mass 제거. 남은 참조 0건 확인.
+
+
+────────────────────────────────────────────────────────────────
+[검증]
+────────────────────────────────────────────────────────────────
+
+  - 사용자 확인: 이전 창작물·나의 창작물 obj 모두 바닥에 정상 생성 (파묻힘·뜸 해소).
+  - Server 모드: 두 GLB 경로가 Mock과 동일하게 PlaceOnGround로 합류 — 동작 동일 확인.
+
+
+────────────────────────────────────────────────────────────────
+[변경된 파일 목록]
+────────────────────────────────────────────────────────────────
+
+  수정:
+    Scripts/Object/RuntimePhysicsUtil.cs        PlaceOnGround(레이캐스트 바닥 안착)로 교체
+    Scripts/Plaza/PlazaManager.cs               objectDropHeight 제거, 3경로 즉시 안착
+    Scripts/Object/GeneratedObjectSpawner.cs    즉시 안착, NextFrameAsync, mass 제거
+
+  삭제:
+    Scripts/Object/PhysicsSettler.cs (+ .meta)  미사용(낙하 후 동결 전용)
+
+
+────────────────────────────────────────────────────────────────
+[미해결 / 추후 작업]
+────────────────────────────────────────────────────────────────
+
+  [ ] 바닥이 Ground 레이어가 아닌 구역에 spawnPoint가 있으면 폴백(spawnPoint.y)로 뜰 수
+      있음 — 필요 시 해당 바닥을 Ground 레이어로 지정
+  [ ] Server 모드 통합 테스트 — bubble_text PATCH·plaza 응답 라운드트립
+
+================================================================
