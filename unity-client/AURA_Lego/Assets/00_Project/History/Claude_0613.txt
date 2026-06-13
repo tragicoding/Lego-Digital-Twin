@@ -1,0 +1,265 @@
+================================================================
+Claude Code 작업 기록
+날짜: 2026-06-13
+브랜치: feature/unity
+================================================================
+
+주제: 서버 모드 렉 해결 — 런타임 성능 최적화 (Mock·Server 공통 적용)
+      + VR 빌드 환경 확인 + 효과확인 HUD + 플레이 멈춤(패키지 502) 해결
+
+※ 0608/0610 진단(고폴리 스키닝·그림자·상시 물리가 지배 비용)을 바탕으로
+  코드로 가능한 최적화를 Mock·Server 양쪽 모드에 동일하게 적용.
+  메시 decimation은 런타임 최적화로 대체(사용자 결정) — 메시 원본 유지.
+
+
+────────────────────────────────────────────────────────────────
+[세션 1] VR 빌드 환경 확인
+────────────────────────────────────────────────────────────────
+
+## 점검 파일
+  Assets/XR/XRGeneralSettingsPerBuildTarget.asset
+  Packages/manifest.json (XR 패키지 설치 현황)
+
+## 결과
+  | 빌드 타깃            | XR 로더        | InitOnStart | 상태                 |
+  |---------------------|---------------|-------------|----------------------|
+  | Standalone (PC)     | m_Loaders: [] | 0           | VR 비활성 (키보드+마우스) |
+  | Android             | Oculus 로더 1개 | 1           | VR(Quest) 활성        |
+
+  → PC 데스크톱 빌드는 현재 VR 아님(0610에서 OpenXR 해제 상태 유지).
+    FreeCameraController 키보드+마우스 동작. Android 타깃만 Quest VR 살아있음.
+  → 전시를 PC 모니터/키마로 한다면 현재 설정이 맞음.
+
+
+────────────────────────────────────────────────────────────────
+[세션 2] 런타임 성능 최적화 — 공통 유틸 신설
+────────────────────────────────────────────────────────────────
+
+## 방침 (사용자 결정)
+  메시 decimation 라이브러리 도입 대신, GTX1060급에서 실제 지배 비용인
+  "그림자 캐스팅"과 "스키닝 품질", "상시 물리 시뮬레이션"을 낮춰 FPS 확보.
+  메시(폴리곤)는 원본 유지. Mock(저폴리)·Server(고폴리) 동일 호출 —
+  저폴리엔 영향 미미, 고폴리에서 큰 이득.
+
+## 신규 파일 1: Scripts/Core/RuntimeOptimizer.cs (static)
+  Optimize(GameObject go): 하위 모든 Renderer/SkinnedMeshRenderer에 적용
+    - shadowCastingMode = Off          (그림자 캐스팅 제거 — GPU 핵심 절감)
+    - receiveShadows                    (옵션, 기본 유지)
+    - SkinnedMeshRenderer.quality = Bone2  (본 4→2, 스키닝 비용 절감)
+    - skinnedMotionVectors = false
+  전시 기본값은 static 필드로 한 곳에서 조정:
+    disableShadowCasting=true / disableShadowReceiving=false /
+    limitSkinQuality=true / skinQuality=Bone2 / disableSkinnedMotionVectors=true
+  여러 번 호출해도 안전(idempotent).
+
+## 신규 파일 2: Scripts/Object/PhysicsSettler.cs (MonoBehaviour)
+  낙하한 전시 오브제가 바닥에 안착하면 Rigidbody를 kinematic으로 전환해
+  상시 물리(Continuous 충돌검사 포함) 비용을 제거하고 스스로 컴포넌트 제거.
+    - settleTime=0.5s 동안 linearVelocity < 0.05 유지 → 안착 판정
+    - maxWaitTime=10s 안전망(무조건 안착)
+    - kinematic 전환 전 collisionDetectionMode=Discrete (Continuous+kinematic 경고 방지)
+  ※ Unity 6 API(linearVelocity) 사용.
+
+
+────────────────────────────────────────────────────────────────
+[세션 3] 전 스폰 경로에 최적화 연결 (Mock·Server 공통 합류점)
+────────────────────────────────────────────────────────────────
+
+## 캐릭터 (3곳 — Mock·Server 공통 합류)
+  Scripts/Character/GeneratedCharacterSpawner.cs
+    - using LegoTwin.Core 추가
+    - SetupAsGuide()  말미: RuntimeOptimizer.Optimize(go)
+    - SetupAsPlaced() 말미: RuntimeOptimizer.Optimize(go)
+  Scripts/Plaza/PlazaManager.cs
+    - SetupCharacterForPlaza() 말미: RuntimeOptimizer.Optimize(go)
+
+## 오브제 (Mock·Server·fallback 모두 RuntimePhysicsUtil 경유)
+  Scripts/Object/RuntimePhysicsUtil.cs
+    - SetupSimplePhysics(): PhysicsSettler 자동 부착 (없을 때만)
+  Scripts/Object/GeneratedObjectSpawner.cs
+    - using LegoTwin.Core 추가
+    - SpawnMock() / SpawnFromServerAsync() 말미: RuntimeOptimizer.Optimize(_spawnedObject)
+  Scripts/Plaza/PlazaManager.cs
+    - using LegoTwin.Core 추가
+    - SetupObjectPhysics(): RuntimeOptimizer.Optimize(go) 추가
+      (현재 오브제 + 광장 오브제 Mock/Server/fallback 3경로 전부 커버)
+
+## 적용 커버리지
+  | 대상              | 경로                                   | 모드        |
+  |------------------|----------------------------------------|------------|
+  | 가이드 NPC        | GeneratedCharacterSpawner.SetupAsGuide | Mock·Server |
+  | 배치 캐릭터        | GeneratedCharacterSpawner.SetupAsPlaced| Mock·Server |
+  | 광장 이전 캐릭터    | PlazaManager.SetupCharacterForPlaza    | Mock·Server |
+  | 현재 오브제        | GeneratedObjectSpawner (Mock/Server)   | Mock·Server |
+  | 광장 이전 오브제    | PlazaManager.SetupObjectPhysics        | Mock·Server |
+
+
+────────────────────────────────────────────────────────────────
+[세션 4] 효과 확인용 HUD 신설
+────────────────────────────────────────────────────────────────
+
+## 신규 파일: Scripts/Core/PerfHud.cs (디버그용, 전시 빌드에서 비활성)
+  빈 GameObject에 부착 후 Play. 좌상단에 FPS·프레임 ms 표시.
+  에디터에서는 Tris/Verts/SetPass/DrawCalls/Batches/ShadowCasters도 표시
+  (UnityEditor.UnityStats, #if UNITY_EDITOR 가드).
+    - F9 : 씬 전체 렌더러에 RuntimeOptimizer 최적화 즉시 ON/OFF (A/B 비교)
+           OFF=원본(ShadowCasting.On·SkinQuality.Auto), ON=최적화 적용
+    - F10: Time.timeScale 0↔1 (한 프레임 정밀 비교)
+  → Profiler 없이도 그림자 캐스터·드로우콜 변화를 즉석 비교 가능.
+
+## 효과 확인 결과 (사용자 검증 완료)
+  HUD로 F9 토글하며 최적화 ON/OFF 비교 → 성능 개선 효과 확인됨.
+
+
+────────────────────────────────────────────────────────────────
+[세션 5] (트러블슈팅) 플레이 ~3초 후 멈춤 — 패키지 레지스트리 502
+────────────────────────────────────────────────────────────────
+
+## 증상
+  Play 약 3초 후 에디터·플레이가 함께 얼어붙음. 동시에 콘솔에:
+    Unable to perform online search:
+    Request [GET https://packages.unity.com/-/api/search] failed with status code [502]
+    UnityEditor.EditorApplication:Internal_CallUpdateFunctions ()
+
+## 원인 (게임 코드 무관)
+  packages.unity.com/-/api/search 는 Editor 전용 Package Manager API.
+  레지스트리를 주기적으로 폴링하는 패키지들이 서버 502 응답에 메인 스레드를
+  동기 블로킹 → 에디터·플레이가 같이 멈춤. 런타임 스크립트는 이 요청을 못 보냄.
+
+## 해결 — 불필요 폴링 패키지 5개 제거 (Packages/manifest.json)
+  com.unity.ads (4.4.2)              광고
+  com.unity.analytics (3.8.1)        분석
+  com.unity.purchasing (4.12.2)      인앱결제
+  com.unity.learn.iet-framework (5.0.1)  인터랙티브 튜토리얼
+  com.unity.multiplayer.center (1.0.0)   멀티플레이 설정 허브
+
+## 서버 모드 영향 점검 (코드 검색으로 입증)
+  Assets/00_Project 전체에서 Advertisement/Purchasing/Analytics/Tutorials/
+  Multiplayer.Center 사용처 0건. 서버 통신은 아래로만 동작 → 전부 유지됨:
+    HTTP   : UnityEngine.Networking.UnityWebRequest (modules.unitywebrequest*)
+    WebSocket: NativeWebSocket (com.endel.nativewebsocket)
+    GLB    : GLTFast (com.unity.cloud.gltfast)
+  → Mock·Server 어느 모드에도 영향 없음. 제거 후 멈춤 사라짐(사용자 확인).
+
+
+────────────────────────────────────────────────────────────────
+[검증]
+────────────────────────────────────────────────────────────────
+
+  IDE 진단(OmniSharp): 신규·수정 7개 파일 오류·경고 0건.
+    RuntimeOptimizer.cs / PhysicsSettler.cs / PerfHud.cs / RuntimePhysicsUtil.cs /
+    GeneratedObjectSpawner.cs / GeneratedCharacterSpawner.cs / PlazaManager.cs
+  성능 효과: PerfHud F9 A/B 비교로 개선 확인(사용자).
+  플레이 멈춤: 패키지 제거 후 해소(사용자).
+
+
+────────────────────────────────────────────────────────────────
+[세션 6] TRILIB Standalone define 정리 (커밋 위생)
+────────────────────────────────────────────────────────────────
+
+## 배경
+  커밋본 ProjectSettings에 Standalone용 bare TRILIB define이 들어가 있었음
+  (과거 커밋에 혼입). 0606 의도는 "커밋본은 TRILIB 비움"(미설치 환경 컴파일 보장).
+
+## 처리
+  ProjectSettings.asset 의 Android·Standalone 모두 TRILIB_DISABLE_EDITOR_GLTF_IMPORT
+  만 남기고 bare TRILIB 제거 후 커밋. (라이선스 무관 — define은 문자열 플래그)
+  ※ 설치 머신은 TriLibDefineSetup이 로컬 재추가 → modified로 보이는 게 정상(커밋 금지).
+
+
+────────────────────────────────────────────────────────────────
+[세션 7] NPC 에셋 추가 + Main 씬 커밋
+────────────────────────────────────────────────────────────────
+
+  배회 NPC 3종(plankton/spongebob/squidward) fbx·머티리얼·텍스처·프리팹 추가,
+  Main.unity 배치 반영. TriLib 라이선스 점검: .gitignore로 제외·추적 0건 확인(EULA 준수).
+
+
+────────────────────────────────────────────────────────────────
+[세션 8] 협업 인프라 정비 (3인 협업 대비)
+────────────────────────────────────────────────────────────────
+
+## 발견·수정
+  - .gitignore 버그: [Logs]/[Build]/[MemoryCaptures]가 "문자 클래스"로 해석돼
+    폴더를 못 거름 → Logs/·UserSettings/가 추적되던 문제. 규칙 수정 + UserSettings 추가.
+  - Logs/·UserSettings/ git 추적 해제(git rm --cached, 디스크 보존) → 세션마다 충돌·노이즈 제거.
+  - .gitattributes 신설: 씬/프리팹/.asset merge=unityyamlmerge(Smart Merge),
+    fbx·png 등 binary 표기.
+
+
+────────────────────────────────────────────────────────────────
+[세션 9] 협업 가이드 문서 + 규칙 정리
+────────────────────────────────────────────────────────────────
+
+## 신규: UNITY_COLLABORATION.md (Assets/00_Project/History/, 백엔드1·Unity2 협업 가이드)
+  ※ 최초 docs/ 에 생성 후 History 폴더로 이동(.meta 동반).
+  환경 통일·브랜치 전략·매일 동기화·씬 잠금·.meta·TriLib/패키지·UnityYAMLMerge 등록·
+  충돌 대응 정리. 이후 규칙 보강:
+    - ProjectSettings 공유 파일 조율(태그/레이어/퀄리티 병렬편집 충돌 방지)
+    - History 작성 규칙: 기존 개발자 Claude_MMDD.txt 유지 / 신규 개발자는 _이름 suffix
+    - 커밋 전 git diff 필수 (무관한 에디터 자동변경 혼입 점검)
+
+## git.md
+  과거 jskim이 의도적으로 삭제(7b640c1, 2026-06-12) → 되살리지 않음.
+  git 규칙 단일 출처는 CLAUDE.md(§2·§5·§9) 유지.
+
+
+────────────────────────────────────────────────────────────────
+[변경된 파일 목록]
+────────────────────────────────────────────────────────────────
+
+  신규:
+    Scripts/Core/RuntimeOptimizer.cs        전시용 렌더러 최적화(그림자·스키닝)
+    Scripts/Object/PhysicsSettler.cs        오브제 안착 후 kinematic 전환
+    Scripts/Core/PerfHud.cs                 효과 확인용 FPS·통계 HUD(F9 A/B, F10 정지)
+    Assets/00_Project/History/UNITY_COLLABORATION.md  3인 협업 가이드 (History 폴더)
+    .gitattributes                          UnityYAMLMerge·binary 처리 (저장소 루트)
+    External Assets/NPC/plankton·spongebob·squidward  배회 NPC 에셋 3종
+
+  수정:
+    Scripts/Object/RuntimePhysicsUtil.cs    PhysicsSettler 자동 부착
+    Scripts/Object/GeneratedObjectSpawner.cs Optimize 호출(Mock/Server)
+    Scripts/Character/GeneratedCharacterSpawner.cs Optimize 호출(Guide/Placed)
+    Scripts/Plaza/PlazaManager.cs           Optimize 호출(캐릭터/오브제)
+    Packages/manifest.json                  불필요 폴링 패키지 5개 제거(502 멈춤 해결)
+    ProjectSettings/ProjectSettings.asset   Standalone TRILIB define 제거(커밋본)
+    Assets/Scenes/Main.unity                NPC 배치
+    .gitignore (루트)                        Logs/Build/MemoryCaptures 패턴 버그 수정 + UserSettings
+
+  추적 해제(git rm --cached, 디스크 보존):
+    Logs/, UserSettings/
+
+  신규(기록):
+    History/Claude_0613.txt
+
+
+────────────────────────────────────────────────────────────────
+[커밋 내역 — 2026-06-13]
+────────────────────────────────────────────────────────────────
+
+  시간     │ 해시    │ 타입  │ 메시지
+  ─────────┼─────────┼───────┼───────────────────────────────────────────────────────
+  10:06:03 │ 40d1021 │ feat  │ 전시 성능 최적화 — 그림자·스키닝·물리 단순화 (Mock·Server 공통)
+  10:06:19 │ b1fd2d4 │ chore │ 미사용 폴링 패키지 5개 제거 — 레지스트리 502 플레이 멈춤 해결
+  10:12:06 │ bc6e0db │ chore │ 배회 NPC 에셋(plankton·spongebob·squidward) 추가 및 Main 씬 배치
+  10:26:19 │ c1eaa43 │ chore │ ProjectSettings Standalone TRILIB define 제거 — 커밋본 TRILIB 비움
+  10:43:11 │ 94fad2a │ chore │ Unity 협업 인프라 정비 — gitignore·gitattributes·Logs/UserSettings 추적 해제
+  10:43:12 │ 7278440 │ docs  │ Unity 3인 협업 가이드 추가
+  10:54:40 │ fa26865 │ docs  │ ProjectSettings 공유 파일 조율 규칙 추가
+  11:07:17 │ a0239f2 │ docs  │ History 작업 기록 작성 규칙 추가
+  12:00:34 │ fab1a2d │ docs  │ 커밋전 git diff 규칙·History 명명 규칙 보강 + 0613 기록 마무리
+  (이후)   │ —       │ docs  │ 0613 커밋 내역 표 정리
+
+
+────────────────────────────────────────────────────────────────
+[미해결 / 추후 작업]
+────────────────────────────────────────────────────────────────
+
+  [x] 성능 효과 확인 (PerfHud F9 A/B) — 완료
+  [x] 플레이 멈춤(502) 해결 — 패키지 제거로 완료
+  [ ] 그림자가 시각적으로 필요하면 RuntimeOptimizer.disableShadowCasting=false 조정
+  [ ] (효과 부족 시) 백엔드 메시 decimation 검토 (근본 해결)
+  [ ] Server 모드 통합 테스트 — bubble_text PATCH·plaza 응답 라운드트립
+  [ ] 전시 빌드 전: _enableGuideSkip · FreeCameraController 비활성화 + PerfHud GameObject 비활성화
+
+================================================================

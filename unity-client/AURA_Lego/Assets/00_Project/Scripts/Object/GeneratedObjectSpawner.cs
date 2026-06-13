@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using LegoTwin.Core;
 using LegoTwin.Data;
 
 namespace LegoTwin.Object
@@ -95,6 +96,8 @@ namespace LegoTwin.Object
 
             if (applyGravity)
                 SetupPhysics(_spawnedObject);
+
+            RuntimeOptimizer.Optimize(_spawnedObject);
         }
 
         // ════════════════════════════════════════════════════════════
@@ -134,6 +137,8 @@ namespace LegoTwin.Object
 
             if (applyGravity)
                 SetupPhysics(_spawnedObject);
+
+            RuntimeOptimizer.Optimize(_spawnedObject);
         }
         // ════════════════════════════════════════════════════════════
         // 물리 설정

@@ -29,6 +29,10 @@ namespace LegoTwin.Object
 
             // 기존 Collider 유무 관계없이 항상 실제 bounds로 루트 BoxCollider를 재계산
             ApplyBoundsBoxCollider(go);
+
+            // 낙하 후 안착하면 kinematic으로 전환해 상시 물리 비용 제거 (전시용)
+            if (go.GetComponent<PhysicsSettler>() == null)
+                go.AddComponent<PhysicsSettler>();
         }
 
         private static void ApplyBoundsBoxCollider(GameObject go)

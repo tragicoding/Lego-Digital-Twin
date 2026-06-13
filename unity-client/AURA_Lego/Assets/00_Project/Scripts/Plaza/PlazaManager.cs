@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using LegoTwin.Character;
+using LegoTwin.Core;
 using LegoTwin.Data;
 using LegoTwin.Managers;
 using LegoTwin.Network;
@@ -395,6 +396,8 @@ namespace LegoTwin.Plaza
 
             placed.SetupForPlaza(motionLibrary, signatureClip);
             _lastSpawnedCharController = placed;
+
+            RuntimeOptimizer.Optimize(go);
         }
 
         // 배열에서 index % length 순환 선택. 배열이 없거나 비어 있으면 null 반환.
@@ -432,10 +435,11 @@ namespace LegoTwin.Plaza
             return avatar != null && avatar.isValid && avatar.isHuman ? avatar : null;
         }
 
-        // 오브제에 Rigidbody(중력) + Collider 자동 부착
+        // 오브제에 Rigidbody(중력) + Collider 자동 부착 + 전시용 렌더러 최적화
         private static void SetupObjectPhysics(GameObject go)
         {
             RuntimePhysicsUtil.SetupSimplePhysics(go);
+            RuntimeOptimizer.Optimize(go);
         }
 
         private async System.Threading.Tasks.Task SpawnObjectFromServerAsync(
