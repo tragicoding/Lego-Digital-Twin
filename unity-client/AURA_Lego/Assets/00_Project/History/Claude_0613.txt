@@ -154,6 +154,56 @@ Claude Code 작업 기록
 
 
 ────────────────────────────────────────────────────────────────
+[세션 6] TRILIB Standalone define 정리 (커밋 위생)
+────────────────────────────────────────────────────────────────
+
+## 배경
+  커밋본 ProjectSettings에 Standalone용 bare TRILIB define이 들어가 있었음
+  (과거 커밋에 혼입). 0606 의도는 "커밋본은 TRILIB 비움"(미설치 환경 컴파일 보장).
+
+## 처리
+  ProjectSettings.asset 의 Android·Standalone 모두 TRILIB_DISABLE_EDITOR_GLTF_IMPORT
+  만 남기고 bare TRILIB 제거 후 커밋. (라이선스 무관 — define은 문자열 플래그)
+  ※ 설치 머신은 TriLibDefineSetup이 로컬 재추가 → modified로 보이는 게 정상(커밋 금지).
+
+
+────────────────────────────────────────────────────────────────
+[세션 7] NPC 에셋 추가 + Main 씬 커밋
+────────────────────────────────────────────────────────────────
+
+  배회 NPC 3종(plankton/spongebob/squidward) fbx·머티리얼·텍스처·프리팹 추가,
+  Main.unity 배치 반영. TriLib 라이선스 점검: .gitignore로 제외·추적 0건 확인(EULA 준수).
+
+
+────────────────────────────────────────────────────────────────
+[세션 8] 협업 인프라 정비 (3인 협업 대비)
+────────────────────────────────────────────────────────────────
+
+## 발견·수정
+  - .gitignore 버그: [Logs]/[Build]/[MemoryCaptures]가 "문자 클래스"로 해석돼
+    폴더를 못 거름 → Logs/·UserSettings/가 추적되던 문제. 규칙 수정 + UserSettings 추가.
+  - Logs/·UserSettings/ git 추적 해제(git rm --cached, 디스크 보존) → 세션마다 충돌·노이즈 제거.
+  - .gitattributes 신설: 씬/프리팹/.asset merge=unityyamlmerge(Smart Merge),
+    fbx·png 등 binary 표기.
+
+
+────────────────────────────────────────────────────────────────
+[세션 9] 협업 가이드 문서 + 규칙 정리
+────────────────────────────────────────────────────────────────
+
+## 신규: docs/UNITY_COLLABORATION.md (백엔드1·Unity2 협업 가이드)
+  환경 통일·브랜치 전략·매일 동기화·씬 잠금·.meta·TriLib/패키지·UnityYAMLMerge 등록·
+  충돌 대응 정리. 이후 규칙 보강:
+    - ProjectSettings 공유 파일 조율(태그/레이어/퀄리티 병렬편집 충돌 방지)
+    - History 작성 규칙: 기존 개발자 Claude_MMDD.txt 유지 / 신규 개발자는 _이름 suffix
+    - 커밋 전 git diff 필수 (무관한 에디터 자동변경 혼입 점검)
+
+## git.md
+  과거 jskim이 의도적으로 삭제(7b640c1, 2026-06-12) → 되살리지 않음.
+  git 규칙 단일 출처는 CLAUDE.md(§2·§5·§9) 유지.
+
+
+────────────────────────────────────────────────────────────────
 [변경된 파일 목록]
 ────────────────────────────────────────────────────────────────
 
@@ -161,6 +211,9 @@ Claude Code 작업 기록
     Scripts/Core/RuntimeOptimizer.cs        전시용 렌더러 최적화(그림자·스키닝)
     Scripts/Object/PhysicsSettler.cs        오브제 안착 후 kinematic 전환
     Scripts/Core/PerfHud.cs                 효과 확인용 FPS·통계 HUD(F9 A/B, F10 정지)
+    docs/UNITY_COLLABORATION.md             3인 협업 가이드 (저장소 루트 docs/)
+    .gitattributes                          UnityYAMLMerge·binary 처리 (저장소 루트)
+    External Assets/NPC/plankton·spongebob·squidward  배회 NPC 에셋 3종
 
   수정:
     Scripts/Object/RuntimePhysicsUtil.cs    PhysicsSettler 자동 부착
@@ -168,9 +221,30 @@ Claude Code 작업 기록
     Scripts/Character/GeneratedCharacterSpawner.cs Optimize 호출(Guide/Placed)
     Scripts/Plaza/PlazaManager.cs           Optimize 호출(캐릭터/오브제)
     Packages/manifest.json                  불필요 폴링 패키지 5개 제거(502 멈춤 해결)
+    ProjectSettings/ProjectSettings.asset   Standalone TRILIB define 제거(커밋본)
+    Assets/Scenes/Main.unity                NPC 배치
+    .gitignore (루트)                        Logs/Build/MemoryCaptures 패턴 버그 수정 + UserSettings
+
+  추적 해제(git rm --cached, 디스크 보존):
+    Logs/, UserSettings/
 
   신규(기록):
     History/Claude_0613.txt
+
+
+────────────────────────────────────────────────────────────────
+[커밋 내역 — 2026-06-13]
+────────────────────────────────────────────────────────────────
+
+  40d1021 feat(unity): 전시 성능 최적화 — 그림자·스키닝·물리 단순화 (Mock·Server 공통)
+  b1fd2d4 chore(unity): 미사용 폴링 패키지 5개 제거 — 레지스트리 502 플레이 멈춤 해결
+  bc6e0db chore(unity): 배회 NPC 에셋 추가 및 Main 씬 배치
+  c1eaa43 chore(unity): ProjectSettings Standalone TRILIB define 제거
+  94fad2a chore: Unity 협업 인프라 정비 — gitignore·gitattributes·Logs/UserSettings 추적해제
+  7278440 docs: Unity 3인 협업 가이드 추가
+  fa26865 docs: ProjectSettings 공유 파일 조율 규칙 추가
+  a0239f2 docs: History 작업 기록 작성 규칙 추가
+  (이 문서 보강 + git diff 규칙·History 명명 규칙 커밋 예정)
 
 
 ────────────────────────────────────────────────────────────────

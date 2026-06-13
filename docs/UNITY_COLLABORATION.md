@@ -116,6 +116,7 @@ git config merge.unityyamlmerge.recursive binary
 ## 9. 커밋 / PR 규칙
 
 - 작은 단위로 자주 커밋. **씬 편집 / 스크립트 / 에셋은 논리 단위로 분리**한다.
+- **커밋 전 반드시 `git diff`(또는 `git status`)로 의도한 변경만 들어갔는지 확인**한다 — 특히 씬·프리팹·`ProjectSettings`에 무관한 에디터 자동 변경(오브젝트 흔들림·카메라·선택 상태 등)이 섞이지 않았는지 점검.
 - 커밋 메시지 prefix: `feat(unity):` / `fix(unity):` / `chore(unity):` / `docs(unity):`.
 - `main` 머지는 PR + 리뷰.
 - 작업 기록은 `unity-client/AURA_Lego/Assets/00_Project/History/Claude_MMDD.txt` 또는 `history/` 트러블슈팅 문서에 남긴다.
@@ -137,8 +138,9 @@ git config merge.unityyamlmerge.recursive binary
 작업 로그는 두 곳에 남긴다. 작성자가 늘면서 **파일명 충돌**이 나지 않도록 규칙을 정한다.
 
 ### Unity 작업 기록 — `Assets/00_Project/History/`
-- 형식: **`Claude_<MMDD>_<이름>.txt`** (예: `Claude_0614_yumin.txt`, `Claude_0614_minsu.txt`)
-  → 같은 날 두 명이 작성해도 파일명이 겹치지 않는다.
+- **기존 개발자(yumin)**: 기존 형식 **`Claude_<MMDD>.txt`** 그대로 사용한다 (예: `Claude_0614.txt`).
+- **신규 개발자**: 파일명 **끝에 본인 이름**을 붙인다 → **`Claude_<MMDD>_<이름>.txt`** (예: `Claude_0614_minsu.txt`).
+  → 한 사람만 무이름 형식을 쓰고 나머지는 이름을 붙이므로 같은 날 작성해도 파일명이 겹치지 않는다.
 - 파일 헤더에 **작성자**를 명시한다:
   ```
   ================================================================
@@ -156,6 +158,6 @@ git config merge.unityyamlmerge.recursive binary
 - 기존 파일은 덮어쓰지 않는다.
 
 ### 핵심 3줄
-1. Unity 로그 파일명에 **작성자**를 넣는다 (`Claude_MMDD_이름.txt`).
+1. 기존 개발자는 `Claude_MMDD.txt`, **신규 개발자는 `Claude_MMDD_이름.txt`** (끝에 이름).
 2. **자기 파일만** 쓰고 수정한다.
 3. 트러블슈팅 번호는 `git pull` 후 다음 번호로.
