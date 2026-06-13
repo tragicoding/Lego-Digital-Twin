@@ -676,7 +676,7 @@ PlayerSettings:
   webEnableSubmoduleStrippingCompatibility: 0
   scriptingDefineSymbols:
     Android: TRILIB_DISABLE_EDITOR_GLTF_IMPORT
-    Standalone: TRILIB;TRILIB_DISABLE_EDITOR_GLTF_IMPORT
+    Standalone: TRILIB_DISABLE_EDITOR_GLTF_IMPORT
   additionalCompilerArguments: {}
   platformArchitecture: {}
   scriptingBackend: {}
