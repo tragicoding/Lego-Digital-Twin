@@ -80,6 +80,19 @@ namespace LegoTwin.Plaza
         {
             if (Instance != null) { Destroy(gameObject); return; }
             Instance = this;
+
+            // 새 세션(씬 리로드)마다 이전 관람객의 좋아요 중복 방지 기록을 초기화.
+            // static은 씬 리로드로 자동 초기화되지 않으므로 명시적으로 비운다.
+            LikeSystem.ResetVotes();
+        }
+
+        private void OnDestroy()
+        {
+            // 씬 리로드(A안 종료 흐름)로 파괴될 때, DontDestroyOnLoad인 WebSocketManager의
+            // OnLikesUpdated에 죽은 핸들러가 남지 않도록 구독을 해제한다.
+            // (ExitPlaza는 정상 종료 시에만 호출되므로 여기서 한 번 더 보장. -=는 idempotent)
+            if (Instance == this && WebSocketManager.Instance != null)
+                WebSocketManager.Instance.OnLikesUpdated -= HandleLikesUpdated;
         }
 
         // ════════════════════════════════════════════════════════════

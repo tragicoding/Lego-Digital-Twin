@@ -329,5 +329,32 @@ namespace LegoTwin.Character
                 MaterialLoadTasks.Remove(url);
             }
         }
+
+        /// <summary>
+        /// 텍스처 머티리얼 캐시를 비운다. 새 세션 시작 시(GameFlowManager.Awake) 호출.
+        ///
+        /// MaterialCache는 static이라 씬 리로드로 자동 정리되지 않는다. 관람객마다 새 texture_url이
+        /// 쌓이면 클론 머티리얼·텍스처 참조가 끊기지 않아 UnloadUnusedAssets로도 회수되지 못한다.
+        /// 세션 경계에서 캐시의 머티리얼·메인 텍스처를 명시적으로 파괴해 누수를 막는다.
+        /// (이 시점엔 이전 세션 캐릭터가 이미 파괴돼 캐시 외 참조가 없으므로 안전.)
+        /// </summary>
+        /// <summary>(디버그/검증용) 현재 캐시된 텍스처 머티리얼 세트 수. 세션마다 누적되지 않아야 정상.</summary>
+        public static int CachedMaterialSetCount => MaterialCache.Count;
+
+        public static void ClearMaterialCache()
+        {
+            foreach (var mats in MaterialCache.Values)
+            {
+                if (mats == null) continue;
+                foreach (var m in mats)
+                {
+                    if (m == null) continue;
+                    if (m.mainTexture != null) UnityEngine.Object.Destroy(m.mainTexture);
+                    UnityEngine.Object.Destroy(m);
+                }
+            }
+            MaterialCache.Clear();
+            MaterialLoadTasks.Clear();
+        }
     }
 }

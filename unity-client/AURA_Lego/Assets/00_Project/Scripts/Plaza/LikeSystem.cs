@@ -35,9 +35,17 @@ namespace LegoTwin.Plaza
         [Tooltip("중복 안내 표시 시간 (초)")]
         public float alreadyLikedDisplayDuration = 2f;
 
-        // 이번 플레이 세션에서 좋아요를 누른 session_id 목록.
-        // static이므로 모든 LikeSystem 인스턴스가 공유 (앱 재시작 시 자동 초기화).
+        // 이번 관람객이 좋아요를 누른 session_id 목록.
+        // static이므로 모든 LikeSystem 인스턴스가 공유한다.
+        // 주의: static은 씬 리로드로 초기화되지 않으므로, 새 세션마다 PlazaManager.Awake가
+        //       ResetVotes()를 호출해 이전 관람객의 투표 기록을 비운다.
         private static readonly HashSet<string> _likedSessionIds = new();
+
+        /// <summary>새 세션 시작 시 호출 — 이전 관람객의 중복 투표 기록을 초기화한다.</summary>
+        public static void ResetVotes() => _likedSessionIds.Clear();
+
+        /// <summary>(디버그/검증용) 이번 세션에 좋아요 누른 창작물 수.</summary>
+        public static int VotedSessionCount => _likedSessionIds.Count;
 
         private string        _sessionId;
         private int           _likes;

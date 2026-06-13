@@ -61,6 +61,10 @@ namespace LegoTwin.Managers
         [Tooltip("종료 UI GameObject. 시작 시 자동 비활성화 → 자유 모드 진입 시 활성화")]
         [SerializeField] private GameObject _quitUI;
 
+        [Tooltip("대기화면 UI — WaitingScreenUI 컴포넌트. 세션 준비 완료 시 '입장' 버튼을 띄운다.\n" +
+                 "미연결 시 자동 검색하며, 그래도 없으면 게이트 없이 즉시 가이드를 시작한다.")]
+        [SerializeField] private WaitingScreenUI _waitingScreen;
+
         [Header("디버그")]
         [Tooltip("체크 시 지정 키로 가이드 모드를 즉시 스킵. 전시 빌드에서는 해제 권장.")]
         [SerializeField] private bool _enableGuideSkip = true;
@@ -83,6 +87,19 @@ namespace LegoTwin.Managers
         // ════════════════════════════════════════════════════════════
         // Unity 생명주기
         // ════════════════════════════════════════════════════════════
+
+        private void Awake()
+        {
+            // 새 세션마다 가이드 모드로 시작. static은 씬 리로드(A안 종료 흐름)로 자동
+            // 초기화되지 않으므로, 매 씬 로드 때 명시적으로 되돌린다. (Awake → 모든 Start보다 먼저)
+            IsGuideMode = true;
+
+            // 이전 세션 캐릭터의 텍스처 머티리얼 캐시를 비운다(누수 방지).
+            // 이 시점은 안전: 이전 세션 캐릭터는 씬 리로드로 이미 파괴됐고(캐시 외 참조 없음),
+            // 이번 세션 캐릭터는 아직 로드 전(OnSessionLoaded는 Start 이후)이라 살아있는 렌더러가
+            // 캐시 머티리얼을 참조하지 않는다. 광장 이전 창작물 캐릭터는 이 캐시를 쓰지 않는다.
+            CharacterAnimationController.ClearMaterialCache();
+        }
 
         private void Start()
         {
@@ -194,9 +211,32 @@ namespace LegoTwin.Managers
                 _currentNPC = npc;
                 SubscribeNPCEvents(npc);
 
-                // 시나리오 시작 ── GuideScenarioRoutine() 코루틴 실행
-                npc.StartGuideScenario();
+                // 세션·캐릭터 준비 완료 → 가이드 시작은 '입장' 버튼 클릭까지 보류.
+                // (대기화면 뒤에서 가이드 대사가 미리 진행되지 않도록 시작 시점을 게이트)
+                ReadyToEnter();
             });
+        }
+
+        /// <summary>
+        /// 가이드 NPC 스폰 완료 시점. 대기화면에 '입장' 버튼을 띄우고, 클릭 시 가이드를 시작한다.
+        /// 대기화면이 없으면(미연결) 기존처럼 즉시 시작한다 → 대기화면 도입 전 동작과 호환.
+        /// Mock·Server 동일: 이 콜백 자체가 "가이드 NPC가 실제로 준비된 시점"이라 모드 무관하게 옳다.
+        /// </summary>
+        private void ReadyToEnter()
+        {
+            if (_waitingScreen == null)
+                _waitingScreen = FindAnyObjectByType<WaitingScreenUI>();
+
+            if (_waitingScreen != null)
+                _waitingScreen.ShowEnterButton(BeginGuideScenario);
+            else
+                BeginGuideScenario();
+        }
+
+        // '입장' 클릭(또는 대기화면 부재 시 즉시) → 가이드 시나리오 코루틴 시작.
+        private void BeginGuideScenario()
+        {
+            _currentNPC?.StartGuideScenario();
         }
 
         // ════════════════════════════════════════════════════════════

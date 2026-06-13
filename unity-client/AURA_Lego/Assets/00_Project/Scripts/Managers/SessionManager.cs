@@ -53,7 +53,18 @@ namespace LegoTwin.Managers
 
         private void Start()
         {
-            // Server Mode이고 Inspector에 sessionId가 비어 있으면 큐에서 자동 감지
+            BeginSessionAcquisition();
+        }
+
+        /// <summary>
+        /// 세션 획득을 시작한다. 앱 첫 시작과 (A안) 종료 후 씬 리로드 재진입에서 공통 사용한다.
+        /// SessionManager는 DontDestroyOnLoad라 리로드해도 Start가 재실행되지 않으므로,
+        /// 리로드 후에는 이 메서드를 명시적으로 다시 호출해 다음 세션을 받는다.
+        ///   Server + sessionId 비어있음 → 대기 큐 자동 감지/폴링 (대기화면 유지)
+        ///   그 외(지정 sessionId·Mock)   → 즉시 로드
+        /// </summary>
+        private void BeginSessionAcquisition()
+        {
             if (dataSourceMode == DataSourceMode.Server && string.IsNullOrEmpty(sessionId))
                 StartCoroutine(AutoDetectAndLoad());
             else
@@ -193,44 +204,39 @@ namespace LegoTwin.Managers
         }
 
         // ════════════════════════════════════════════════════════════
-        // 종료 — 큐 전진 + 다음 세션 로드
+        // 종료(체험 완료) — 씬 리로드로 초기화 후 대기화면 복귀 (A안)
         // ════════════════════════════════════════════════════════════
 
         /// <summary>
-        /// 종료 버튼 호출 진입점.
-        /// Mock: plaza 저장 후 씬 리로드.
-        /// Server: 큐 전진 → 다음 세션 있으면 씬 리로드, 없으면 onNoNext 호출(앱 종료 등).
+        /// 종료 버튼 진입점. 현재 세션을 마무리하고 씬을 리로드해 대기화면으로 복귀한다.
+        /// 리로드가 이전 세션의 스폰물·상태를 전부 초기화하고, 이어서 BeginSessionAcquisition이
+        /// 다음 세션을 받는다(대기화면은 리로드된 새 씬에서 자동 표시).
+        ///
+        /// 모드별로 다른 부분은 "현재 세션 마무리" 한 단계뿐이며, 이후 흐름은 Mock·Server 동일하다:
+        ///   Mock  : 현재 세션을 mock_plaza에 저장 (다음 관람객에게 이전 창작물로 노출)
+        ///   Server: 대기 큐의 현재 세션을 history로 이동 (POST /unity-queue/advance)
         /// </summary>
-        public void AdvanceAndLoadNext(Action onNoNext = null)
+        public void EndCurrentSession()
         {
-            if (dataSourceMode == DataSourceMode.Mock)
-            {
-                LegoTwin.Plaza.PlazaManager.Instance?.SaveCurrentSessionToMockPlaza();
-                ReloadScene();
-                return;
-            }
-            StartCoroutine(AdvanceAndLoadNextCoroutine(onNoNext));
+            StartCoroutine(EndCurrentSessionRoutine());
         }
 
-        private IEnumerator AdvanceAndLoadNextCoroutine(Action onNoNext)
+        private IEnumerator EndCurrentSessionRoutine()
         {
-            if (_apiClient == null) { onNoNext?.Invoke(); yield break; }
+            // ── 모드별 마무리 (유일한 분기) ──
+            if (dataSourceMode == DataSourceMode.Mock)
+                LegoTwin.Plaza.PlazaManager.Instance?.SaveCurrentSessionToMockPlaza();
+            else if (_apiClient != null)
+                yield return _apiClient.AdvanceQueue(_ => { });
 
-            string nextSid = null;
-            yield return _apiClient.AdvanceQueue(s => nextSid = s);
+            // ── 이후 공통 (Mock·Server 동일) ──
+            // 다음 세션을 새로 받도록 상태 초기화. Server는 sessionId를 비워 큐 자동 감지로 진입한다.
+            sessionId      = null;
+            CurrentSession = null;
 
-            if (!string.IsNullOrEmpty(nextSid))
-            {
-                // 다음 사용자 세션으로 전환 — 씬 리로드로 오브젝트 초기화
-                sessionId      = nextSid;
-                CurrentSession = null;
-                LoadSession(nextSid, _ => ReloadScene());
-            }
-            else
-            {
-                // 대기 큐 비어있음 → 호출부가 앱 종료 등 처리
-                onNoNext?.Invoke();
-            }
+            ReloadScene();
+            yield return null;          // 리로드된 씬의 Awake/Start 완료 대기 (WaitingScreen 표시·구독)
+            BeginSessionAcquisition();  // 대기화면 상태에서 다음 세션 획득 시작
         }
 
         private static void ReloadScene() =>
