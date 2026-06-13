@@ -5,6 +5,44 @@ MINIVERSE / Lego Digital Twin 프로젝트의 협업 규칙. **충돌·파일 �
 
 ---
 
+## 🆕 신규 Unity 개발자 온보딩 체크리스트 (여기부터 시작)
+
+> 각 항목 자세한 설명은 아래 §0~§11 참고. **핵심 한 줄: "버전 통일 + UnityYAMLMerge 등록 + 씬은 한 명씩 + 나머진 프리팹으로".**
+
+### STEP 1 — 환경 준비 (최초 1회)
+- [ ] Unity Hub에서 **`6000.2.2f1` 정확히** 설치 (버전 다르면 씬·에셋 깨짐 — §0)
+- [ ] 저장소 clone → `feature/unity` 확인
+- [ ] 이 문서 정독
+
+### STEP 2 — Git 설정 (최초 1회 · ⚠️ 안 하면 씬 충돌)
+- [ ] **UnityYAMLMerge(Smart Merge) 등록** (본인 PC git에 1회 — §7):
+  ```bash
+  git config merge.unityyamlmerge.name "Unity SmartMerge"
+  git config merge.unityyamlmerge.driver '"C:/Program Files/Unity/Hub/Editor/6000.2.2f1/Editor/Data/Tools/UnityYAMLMerge.exe" merge -p %O %B %A %A'
+  git config merge.unityyamlmerge.recursive binary
+  ```
+
+### STEP 3 — TriLib (서버 모드 캐릭터용 · §6)
+- [ ] 본인 Asset Store 계정으로 **TriLib 2** 설치 (저장소엔 없음 — 유료)
+- [ ] `Project Settings > TriLib > "Disable in editor glTF2 importing"` 체크
+- [ ] *미설치여도 Mock 모드로 작동 → 급하지 않으면 나중에*
+
+### STEP 4 — 첫 실행 확인
+- [ ] `SessionManager`의 `Data Source Mode = Mock` 확인 (서버 없이 독립 개발)
+- [ ] Play → 정상 동작 확인 (Backspace로 가이드 스킵 가능)
+
+### STEP 5 — 작업 시작
+- [ ] 개인 브랜치 생성: **`feature/unity-<본인이름>`** → 자주 `feature/unity`로 PR 머지
+
+### 🔁 매일 루틴 / ✅ 커밋 규칙 (요약)
+- [ ] 작업 전 `git pull`, 끝나면 그날 push
+- [ ] **`Main.unity` 씬은 한 번에 한 명만**, 나머지는 프리팹/스크립트로 분리
+- [ ] **커밋 전 `git diff`로 점검**, 에셋과 `.meta`는 항상 같이 커밋
+- [ ] 파일 이동/삭제는 **Unity Editor 안에서**
+- [ ] 작업 기록: 신규 개발자는 **`Claude_<MMDD>_<이름>.txt`** (§11)
+
+---
+
 ## 0. 대전제 — 환경 통일
 
 - **Unity 버전 100% 동일: `6000.2.2f1`** (`ProjectSettings/ProjectVersion.txt` 기준).
