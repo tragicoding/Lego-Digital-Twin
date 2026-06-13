@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using LegoTwin.Core;
 using LegoTwin.Data;
 
 namespace LegoTwin.Character
@@ -128,6 +129,8 @@ namespace LegoTwin.Character
             if (playerTeleportPoint != null)
                 npc.playerTeleportPoint = playerTeleportPoint;
 
+            RuntimeOptimizer.Optimize(go);
+
             return npc;
         }
 
@@ -142,6 +145,8 @@ namespace LegoTwin.Character
                 placed.motionLibrary = motionLibrary;
 
             anim.Initialize(session.assets?.character, session.bubble_text);
+
+            RuntimeOptimizer.Optimize(go);
 
             return placed;
         }
