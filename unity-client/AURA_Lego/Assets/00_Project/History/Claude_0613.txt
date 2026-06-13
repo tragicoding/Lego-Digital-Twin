@@ -540,5 +540,42 @@ Claude Code 작업 기록
   [ ] Server 모드 실제 백엔드로 종료→대기→다음 큐 통합 테스트
   [ ] 디버그 스킵(Backspace)을 입장 전에 누르면 대기화면이 남는 엣지(디버그 한정) — 필요 시 가드
   [ ] GltfImport 인스턴스는 Dispose 안 함(인스턴스 에셋 공유) — 리로드 UnloadUnusedAssets에 의존
+  [ ] ExtraBold SDF 55MB — Dynamic 유지한 채 Clear Dynamic Data로 축소 가능(50MB 경고 회피)
+
+================================================================
+
+
+================================================================
+[2026-06-13 전체 커밋 내역]
+================================================================
+
+  시간  │ 해시     │ 타입  │ 메시지
+  ──────┼──────────┼───────┼──────────────────────────────────────────────────────────────
+  10:06 │ 40d1021  │ feat  │ 전시 성능 최적화 — 그림자·스키닝·물리 단순화 (Mock·Server 공통)
+  10:06 │ b1fd2d4  │ chore │ 미사용 폴링 패키지 5개 제거 — 레지스트리 502 플레이 멈춤 해결
+  10:12 │ bc6e0db  │ chore │ 배회 NPC 에셋(plankton·spongebob·squidward) 추가 및 Main 씬 배치
+  10:26 │ c1eaa43  │ chore │ ProjectSettings Standalone TRILIB define 제거 — 커밋본 TRILIB 비움
+  10:43 │ 94fad2a  │ chore │ Unity 협업 인프라 정비 — gitignore·gitattributes·Logs/UserSettings 추적 해제
+  10:43 │ 7278440  │ docs  │ Unity 3인 협업 가이드 추가 (docs/UNITY_COLLABORATION.md)
+  10:54 │ fa26865  │ docs  │ ProjectSettings 공유 파일 조율 규칙 추가
+  11:07 │ a0239f2  │ docs  │ History 작업 기록 작성 규칙 추가 — 작성자별 파일명으로 충돌 방지
+  12:00 │ fab1a2d  │ docs  │ 커밋전 git diff 규칙·History 명명 규칙 보강 + 0613 작업기록 마무리
+  12:06 │ 0555cf3  │ docs  │ 0613 작업기록 커밋 내역을 표 형식으로 정리
+  12:08 │ ff51e8d  │ chore │ UNITY_COLLABORATION.md를 History 폴더로 이동 (.meta 동반)
+  12:30 │ 4495d71  │ docs  │ 협업 가이드에 신규 개발자 온보딩 체크리스트 섹션 추가
+  13:32 │ 01fef2f  │ fix   │ 오브제 낙하 제거 → Ground 레이캐스트 바닥 즉시 안착
+  17:34 │ c34e9b7  │ feat  │ 대기화면(입장 버튼 게이트) + 종료→대기화면 복귀(A안) + 세션 리셋 정리
+  17:34 │ ad2a93c  │ docs  │ 0613 기록 보강 — 대기화면·종료 복귀(A안)·세션 리셋 정리·검증 HUD
+  17:40 │ 82afcdb  │ chore │ NPC 에셋 재구성(_yumin 폴더) 추가·이동, 대기화면 logo 추가, Main 씬 반영
+  17:42 │ 1de4f35  │ chore │ 대기화면 텍스트용 Pretendard SDF 폰트 글리프 atlas 갱신
+  18:31 │ c6b1b03  │ chore │ 미사용 Pretendard 폰트 5종 삭제 + ExtraBold Dynamic 전환
+
+  ※ 주제별:
+    ① 전시 성능·안정화      : 40d1021, b1fd2d4
+    ② 협업 인프라·문서      : bc6e0db, c1eaa43, 94fad2a, 7278440, fa26865, a0239f2,
+                              fab1a2d, 0555cf3, ff51e8d, 4495d71
+    ③ 오브제 배치 버그       : 01fef2f (땅 파묻힘/공중부양 → 바닥 즉시 안착)
+    ④ 대기화면·세션 루프(A안): c34e9b7, ad2a93c (이번 세션 핵심)
+    ⑤ 에셋·폰트 정리         : 82afcdb, 1de4f35, c6b1b03 (미사용 폰트 5종 ~190MB↓)
 
 ================================================================
