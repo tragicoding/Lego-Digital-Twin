@@ -604,6 +604,52 @@ Claude Code 작업 기록
 
 
 ================================================================
+[추가 작업] 대기화면 영상 + 텍스트/영상 페이드 + Mock 시뮬 대기시간
+날짜: 2026-06-13 (작업 연속, 일부 06-14 새벽)
+브랜치: feature/unity
+================================================================
+
+주제: 대기화면에 영상을 넣고, 세션 준비 전엔 영상, 준비되면 영상 끄고 입장 버튼만
+      나오도록 구성. Mock에서는 준비시간을 인스펙터로 시뮬레이션.
+
+────────────────────────────────────────────────────────────────
+[영상 게이트 구성 (WaitingScreenUI)]
+────────────────────────────────────────────────────────────────
+  - 영상 표시: VideoPlayer → RenderTexture(WaitingVideo_RT) → RawImage(VideoRoot).
+    Source=Video Clip(mp4), Render Mode=Render Texture, Play On Awake·Loop.
+  - 준비 전: 영상 + 대기 텍스트(_waitingText). 준비되면 영상 페이드 아웃 + 대기 텍스트 OFF,
+    준비 텍스트(_readyText) + 입장 버튼 ON.
+  - 대기/준비 텍스트를 별도 GameObject로 분리(내용·위치·스타일 독립).
+  - 페이드: 영상 페이드 아웃(_videoFadeDuration), 대기 텍스트 페이드 인(_waitingTextFadeDuration).
+    CanvasGroup 자동 추가, 공용 FadeCanvasGroup 재사용.
+
+────────────────────────────────────────────────────────────────
+[Mock 시뮬레이션 대기시간]
+────────────────────────────────────────────────────────────────
+  - _mockPrepSeconds(인스펙터): Mock은 세션이 즉시 준비되므로, 이 시간만큼 영상을 더 보여준 뒤
+    입장 노출 → 실제 전시(Server)의 "준비 대기" 체감을 테스트.
+  - Server는 무시(실제 ShowEnterButton 시점에 즉시 노출). SessionManager.dataSourceMode로 분기.
+
+────────────────────────────────────────────────────────────────
+[트러블슈팅]
+────────────────────────────────────────────────────────────────
+  - 영상 화질 깨짐 → RenderTexture Size를 영상 해상도(예 1920×1080)로, Video Clip Transcode OFF.
+  - 대기 텍스트 페이드가 안 보임 → 원인은 "씬 로드 직후 첫 프레임 unscaledDeltaTime이 수 초로
+    튀어 페이드가 1프레임에 완료". FadeCanvasGroup에서 프레임당 진행량을 MaxStep(0.05s)로
+    clamp해 해결(영상·Root 페이드에도 동일 적용). 디버그 로그로 원인 확인 후 로그 제거.
+  - 텍스트 가독성(영상 위) → TMP는 UI Shadow/Outline 컴포넌트 미적용. 머티리얼 프리셋의
+    Underlay(그림자)/Outline 또는 반투명 배경판 사용. ExtraBold SDF.mat 프리셋 추가.
+
+────────────────────────────────────────────────────────────────
+[변경 파일]
+────────────────────────────────────────────────────────────────
+  수정: Scripts/UI/WaitingScreenUI.cs (영상 게이트·페이드·Mock 시뮬·deltaTime clamp)
+  신규: Materials/UI/WaitingVideo.mp4·WaitingVideo2.mp4 (각 2.5MB), WaitingVideo_RT.renderTexture,
+        TextMesh Pro/Fonts/Pretendard-ExtraBold SDF.mat (대기 텍스트 가독성 프리셋)
+  반영: Scenes/Main.unity, 폰트 SDF 3종 글리프 갱신(2048·Dynamic 유지)
+
+
+================================================================
 [2026-06-13 전체 커밋 내역]
 ================================================================
 
@@ -630,16 +676,20 @@ Claude Code 작업 기록
   22:09 │ c039250  │ chore │ Pretendard 폰트 3종 atlas 4096→2048 축소 (Dynamic 유지)
   22:11 │ fbb34c8  │ docs  │ Claude_0613.txt에 0613 전체 커밋 내역 표 추가
   22:11 │ 99a73ba  │ chore │ Main 씬 구성 반영(대기화면·검증HUD·NPC 배치) + starwars3 NPC 에셋
+  +1일  │ 382453a  │ docs  │ 0613 폰트 정리 트러블슈팅 기록 + 커밋 내역 표 최신화
+  +1일  │ 024c265  │ feat  │ 대기화면 영상 게이트 + 텍스트/영상 페이드 + Mock 시뮬 대기시간
+  +1일  │ a2c9683  │ chore │ 대기화면 영상·RenderTexture·폰트 머티리얼 + 씬/폰트 글리프 반영
 
   ※ 주제별:
     ① 전시 성능·안정화      : 40d1021, b1fd2d4
     ② 협업 인프라·문서      : bc6e0db, c1eaa43, 94fad2a, 7278440, fa26865, a0239f2,
                               fab1a2d, 0555cf3, ff51e8d, 4495d71
     ③ 오브제 배치 버그       : 01fef2f (땅 파묻힘/공중부양 → 바닥 즉시 안착)
-    ④ 대기화면·세션 루프(A안): c34e9b7, ad2a93c, 99a73ba (이번 세션 핵심 + 씬 구성)
+    ④ 대기화면·세션 루프(A안): c34e9b7, ad2a93c, 99a73ba (A안 핵심 + 씬 구성)
     ⑤ 에셋·폰트 정리         : 82afcdb, 1de4f35, c6b1b03, c039250
                               (미사용 폰트 5종 삭제 ~190MB↓ + 사용 3종 atlas 2048 축소)
-    ⑥ 문서                  : ad2a93c, fbb34c8
+    ⑥ 대기화면 영상·페이드   : 024c265, a2c9683 (영상 게이트·Mock 시뮬·텍스트/영상 페이드)
+    ⑦ 문서                  : ad2a93c, fbb34c8, 382453a
 
   ※ ProjectSettings.asset 의 TRILIB define(로컬 설치 자동 토글)은 규칙상 커밋 제외.
 
