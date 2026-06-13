@@ -191,7 +191,8 @@ Claude Code 작업 기록
 [세션 9] 협업 가이드 문서 + 규칙 정리
 ────────────────────────────────────────────────────────────────
 
-## 신규: docs/UNITY_COLLABORATION.md (백엔드1·Unity2 협업 가이드)
+## 신규: UNITY_COLLABORATION.md (Assets/00_Project/History/, 백엔드1·Unity2 협업 가이드)
+  ※ 최초 docs/ 에 생성 후 History 폴더로 이동(.meta 동반).
   환경 통일·브랜치 전략·매일 동기화·씬 잠금·.meta·TriLib/패키지·UnityYAMLMerge 등록·
   충돌 대응 정리. 이후 규칙 보강:
     - ProjectSettings 공유 파일 조율(태그/레이어/퀄리티 병렬편집 충돌 방지)
@@ -211,7 +212,7 @@ Claude Code 작업 기록
     Scripts/Core/RuntimeOptimizer.cs        전시용 렌더러 최적화(그림자·스키닝)
     Scripts/Object/PhysicsSettler.cs        오브제 안착 후 kinematic 전환
     Scripts/Core/PerfHud.cs                 효과 확인용 FPS·통계 HUD(F9 A/B, F10 정지)
-    docs/UNITY_COLLABORATION.md             3인 협업 가이드 (저장소 루트 docs/)
+    Assets/00_Project/History/UNITY_COLLABORATION.md  3인 협업 가이드 (History 폴더)
     .gitattributes                          UnityYAMLMerge·binary 처리 (저장소 루트)
     External Assets/NPC/plankton·spongebob·squidward  배회 NPC 에셋 3종
 

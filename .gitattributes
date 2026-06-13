@@ -1,6 +1,6 @@
 # ====================================================================
 # Unity 협업용 Git 속성 — 씬/프리팹 충돌 자동 병합 + 바이너리 보호
-# (UnityYAMLMerge 등록 방법: docs/UNITY_COLLABORATION.md 참고)
+# (UnityYAMLMerge 등록 방법: unity-client/AURA_Lego/Assets/00_Project/History/UNITY_COLLABORATION.md 참고)
 # ====================================================================
 
 # Unity YAML 텍스트 에셋 → UnityYAMLMerge(Smart Merge)로 3-way 병합
