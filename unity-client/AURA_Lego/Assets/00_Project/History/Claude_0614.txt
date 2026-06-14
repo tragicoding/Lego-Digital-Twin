@@ -189,3 +189,134 @@ Claude Code 작업 기록
   [ ] 전시 빌드 전: _enableGuideSkip · FreeCameraController · PerfHud · SessionDebugHud 비활성화
 
 ================================================================
+
+
+================================================================
+[추가 작업] 광장 이전 창작물 캐릭터 NavMesh 배회 + 근접 시 멈춤·시그니처
+날짜: 2026-06-14
+브랜치: feature/unity
+================================================================
+
+주제: 광장 이전 창작물 구성 변경 —
+      오브제는 스폰 포인트에 그대로 두고, 캐릭터는 광장을 배회(건물·오브제·캐릭터 회피)하다가
+      플레이어가 다가오면 멈춰 서서 플레이어를 보고 시그니처 동작을 재생.
+      투표 등 기존 기능은 모두 유지. 저결합·중복 제거·Server 모드 동일동작 원칙.
+
+
+────────────────────────────────────────────────────────────────
+[세션 5] 설계 — 회피 주체/책임 분리
+────────────────────────────────────────────────────────────────
+
+## NavMesh 채택 근거
+  com.unity.ai.navigation 2.0.12 + modules.ai 설치 확인 → NavMeshAgent 기반 회피.
+  스티어링(레이캐스트)보다 건물·오브제 회피가 견고하고 확장성 좋음.
+
+## 회피 책임 (사용자 확인: "오브제도 피하게")
+  - 건물 등 정적 지형: 씬 NavMesh 베이크로 non-walkable → 자동 회피
+  - 이전 창작물 오브제(런타임 스폰): NavMeshObstacle(carve)로 표시 → 캐릭터가 우회
+    (오브제는 움직이지 않음 — "객체가 회피"가 아니라 "캐릭터가 객체를 회피")
+  - 캐릭터끼리: NavMeshAgent 자동 회피
+
+## 분리 설계 (기존 동작 보존 + 저결합)
+  - 시그니처-온-어프로치 트리거를 '투표 뷰(LikeSystem)'에서 '캐릭터'로 이관.
+    구현은 LikeSystem 무수정 — 이전 창작물은 view.SetCharacter 를 호출하지 않음
+    → 뷰 트리거의 PlaySignatureMotion 이 캐릭터 미연결로 자연 no-op(투표만 동작).
+    내 창작물(AttachViewToCurrentSession)은 SetCharacter 유지 → 기존 동작 그대로.
+
+
+────────────────────────────────────────────────────────────────
+[세션 6] 구현
+────────────────────────────────────────────────────────────────
+
+## 신규: Scripts/Character/PlazaWanderingCharacter.cs
+  - NavMeshAgent 로 wanderCenter 반경 내 무작위 배회(제자리 걷기 애니 + Agent 이동).
+  - applyRootMotion=false 로 루트모션 제거(Agent 이동과 충돌 방지).
+  - 플레이어가 approachRadius 안에 들어오면 Interacting:
+      Agent 정지(updatePosition/Rotation=false) → 플레이어 응시(부드러운 회전)
+      → PlacedCharacterController.RebaseAnchorToCurrent() → PlaySignatureMotion()
+  - 이탈(approach+hysteresis) 시 StopSignatureMotion → Agent 재개(Warp 재동기화) → 배회.
+  - NavMesh 없으면 배회만 비활성(경고 1회), 접근 시 시그니처는 동작(그레이스풀 폴백).
+  - Plaza 레이어 미참조(저결합). 재생/드리프트 로직은 PlacedCharacterController 재사용(중복 0).
+
+## 수정: Scripts/Character/PlacedCharacterController.cs
+  - RebaseAnchorToCurrent() 추가 — 드리프트 보정 앵커를 '현재(멈춰 선) 자세'로 재설정.
+    배회 후 그 자리에서 시그니처가 재생되도록(스폰 위치로 튕기지 않게).
+    정지 배치 캐릭터는 미호출 시 기존과 100% 동일(스폰 위치 유지).
+
+## 수정: Scripts/Plaza/PlazaManager.cs
+  - using UnityEngine.AI 추가.
+  - 배회 Inspector 필드: wanderCenter / wanderRadius / wanderMoveSpeed /
+    approachRadius / wanderWaitMin·Max.
+  - SetupCharacterForPlaza: 반환형 → PlacedCharacterController, _lastSpawnedCharController 제거.
+  - SpawnSessionAssets: 캐릭터 셋업 직후 SetupWanderingCharacter() 부착
+    (Mock·Server 공통 합류점 → 두 모드 동일동작).
+  - LoadAndSpawnPlaza: 이전 창작물 view.SetCharacter 제거(시그니처는 캐릭터가 담당).
+  - SetupObjectPhysics: AddNavMeshObstacle() — PlaceOnGround 가 만든 루트 BoxCollider
+    크기로 NavMeshObstacle(carve, carveOnlyStationary) 부착 → 캐릭터가 오브제 우회.
+
+## Server 모드 동일성
+  배회/인터랙션 컴포넌트가 SetupCharacterForPlaza(Mock·Server 공통) 직후 부착 →
+  데이터 출처와 무관하게 동일. 투표/내 창작물/LikeSystem/오브제 배치 모두 무변경.
+
+## 검증
+  IDE 진단(OmniSharp): PlazaWanderingCharacter / PlazaManager /
+  PlacedCharacterController 오류·경고 0건. 사용자 Play 테스트 확인 완료.
+
+## Unity Editor 작업 (코드 아님)
+  - 광장 바닥/환경에 NavMesh 베이크(NavMeshSurface). 건물 포함 베이크 → 회피.
+  - PlazaManager Inspector: 배회 파라미터 값 설정(wanderCenter 등).
+  - "Player" 태그(근접 감지) — 기존 LikeSystem 이 쓰던 태그라 보통 이미 설정됨.
+  - (튜닝) 캐릭터 6배 스케일 — NavMeshAgent.radius 0.5 하드코딩, 필요 시 조정.
+
+
+────────────────────────────────────────────────────────────────
+[세션 7] (조사) 백엔드 storage 모델 파일 위치 — 코드 변경 없음
+────────────────────────────────────────────────────────────────
+
+## 질문
+  "백엔드 dev가 backend/storage 에 오브제·캐릭터 파일을 넣었다는데 어디 있나?
+   브랜치 pull 로 받을 수 있나?"
+
+## 결론
+  pull 로는 못 받음. apps/backend/storage 는 git 추적 대상이 아님(.gitignore 제외).
+  - core/config.py: STORAGE_BASE(.env, 기본 /app/storage) → STORAGE_MODELS=models/.
+    실제 위치는 백엔드 dev .env 값에 따라 다름(Docker/WSL 절대경로 → Windows 탐색기 안 보임).
+  - 커밋 66b5096 (jskim, 2026-05-19) 가 .gitignore 에
+      apps/backend/storage/images/*/ · apps/backend/storage/models/ 추가하고
+      이미 커밋돼 있던 storage 이미지 2장을 추적 해제.
+    → 생성물(업로드 사진·Tripo 모델)은 의도적으로 git 제외(세션마다 생성되는 대용량 바이너리).
+  - develop·feature/backend·main 어디에도 storage 모델 파일 추적 0건 확인.
+
+## 받는 방법
+  1) Server 모드: 백엔드 서버 가동 + Unity BACKEND_HOST 설정 →
+     {BACKEND_HOST}/static/models/... URL 로 다운로드(파일 직접 복사 불필요).
+  2) 파일 직접 전달받아 StreamingAssets/GeneratedModels 에 배치(현재 폴더 없음).
+
+
+────────────────────────────────────────────────────────────────
+[변경된 파일 목록 — 배회 기능 커밋]
+────────────────────────────────────────────────────────────────
+
+  신규(스크립트):
+    Scripts/Character/PlazaWanderingCharacter.cs (+ .meta)
+  수정(스크립트):
+    Scripts/Character/PlacedCharacterController.cs   RebaseAnchorToCurrent
+    Scripts/Plaza/PlazaManager.cs                    배회 부착·NavMeshObstacle·뷰 분리
+  반영(씬/데이터):
+    Scenes/Main.unity                                NavMeshSurface 구성
+    Scenes/Main/NavMesh-*.asset                      광장 NavMesh 베이크 데이터
+
+
+────────────────────────────────────────────────────────────────
+[2026-06-14 커밋 내역]
+────────────────────────────────────────────────────────────────
+
+  bb4b567  feat(unity): Walk 모션 라이브러리 등록 + 가이드 등장 걷기 단일 소스화
+  63b8111  chore(unity): Main 씬 구성 반영 + Pretendard SDF 폰트 글리프 갱신
+  994d52b  feat(unity): 광장 이전 창작물 캐릭터 NavMesh 배회 + 근접 시 멈춤·시그니처
+  (이 커밋) chore(unity): Pretendard-ExtraBold SDF 글리프 갱신 + 미사용 npc_30 mock fbx 제거
+           + 0614 작업기록 보강(배회·storage 조사)
+
+  ※ ProjectSettings.asset(로컬 TRILIB define)은 0606/0613 규칙상 커밋 제외.
+
+================================================================
