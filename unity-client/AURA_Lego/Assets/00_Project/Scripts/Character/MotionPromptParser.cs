@@ -37,6 +37,14 @@ namespace LegoTwin.Character
             ("뛰기",   MotionType.Run),
             ("run",    MotionType.Run),
 
+            // ── 걷기 / 산책 ──────────────────────────────────────────
+            ("걸어",   MotionType.Walk),
+            ("걸음",   MotionType.Walk),
+            ("걷기",   MotionType.Walk),
+            ("걷자",   MotionType.Walk),
+            ("산책",   MotionType.Walk),
+            ("walk",   MotionType.Walk),
+
             // ── 점프 ─────────────────────────────────────────────────
             ("점프",   MotionType.Jump),
             ("뛰어올", MotionType.Jump),

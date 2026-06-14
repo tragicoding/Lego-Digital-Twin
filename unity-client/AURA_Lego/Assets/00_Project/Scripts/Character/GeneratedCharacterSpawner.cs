@@ -122,6 +122,10 @@ namespace LegoTwin.Character
             anim.Initialize(session.assets?.character, session.bubble_text);
             npc.Initialize(session);
 
+            // 가이드 등장 걷기 클립을 모션 라이브러리(MotionType.Walk)에서 가져와 적용.
+            // Animator 의 Walk .anim 직접 참조에 의존하지 않게 해 Walk 변경 시 누락을 방지한다.
+            anim.ApplyWalkFromLibrary(motionLibrary);
+
             if (guideArrivalPoint != null)
                 npc.guideArrivalPoint = guideArrivalPoint;
             if (myCreationWaypoint != null)
