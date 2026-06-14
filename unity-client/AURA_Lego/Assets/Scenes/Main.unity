@@ -13019,7 +13019,7 @@ MonoBehaviour:
   _readyText: {fileID: 0}
   _enterButton: {fileID: 1557484819}
   _enterButtonDelay: 1
-  _mockPrepSeconds: 19
+  _mockPrepSeconds: 1
 --- !u!114 &121814506
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -76797,7 +76797,10 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 05426f1e1d0e5e643a49a4276365b4a3, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 931215627}
   m_SourcePrefab: {fileID: 100100000, guid: 05426f1e1d0e5e643a49a4276365b4a3, type: 3}
 --- !u!4 &759536666 stripped
 Transform:
@@ -93366,6 +93369,33 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: a76d38f7a30f08d48902763765dfe496, type: 3}
+--- !u!1 &931215626 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 05426f1e1d0e5e643a49a4276365b4a3, type: 3}
+  m_PrefabInstance: {fileID: 759536665}
+  m_PrefabAsset: {fileID: 0}
+--- !u!64 &931215627
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 931215626}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 0}
 --- !u!1001 &931411584
 PrefabInstance:
   m_ObjectHideFlags: 0
