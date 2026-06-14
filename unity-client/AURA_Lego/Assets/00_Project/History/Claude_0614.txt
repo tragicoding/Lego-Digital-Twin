@@ -311,12 +311,19 @@ Claude Code 작업 기록
 [2026-06-14 커밋 내역]
 ────────────────────────────────────────────────────────────────
 
-  bb4b567  feat(unity): Walk 모션 라이브러리 등록 + 가이드 등장 걷기 단일 소스화
-  63b8111  chore(unity): Main 씬 구성 반영 + Pretendard SDF 폰트 글리프 갱신
-  994d52b  feat(unity): 광장 이전 창작물 캐릭터 NavMesh 배회 + 근접 시 멈춤·시그니처
-  (이 커밋) chore(unity): Pretendard-ExtraBold SDF 글리프 갱신 + 미사용 npc_30 mock fbx 제거
-           + 0614 작업기록 보강(배회·storage 조사)
+  시간   │ 해시     │ 타입  │ 메시지
+  ───────┼──────────┼───────┼──────────────────────────────────────────────────────────
+  22:44  │ bb4b567  │ feat  │ Walk 모션 라이브러리 등록 + 가이드 등장 걷기 단일 소스화
+  22:46  │ 63b8111  │ chore │ Main 씬 구성 반영 + Pretendard SDF 폰트 글리프 갱신
+  23:27  │ 994d52b  │ feat  │ 광장 이전 창작물 캐릭터 NavMesh 배회 + 근접 시 멈춤·시그니처
+  00:10  │ 0f99509  │ chore │ ExtraBold SDF 글리프 갱신 + 미사용 npc_30 mock fbx 제거 + 0614 기록 보강
 
-  ※ ProjectSettings.asset(로컬 TRILIB define)은 0606/0613 규칙상 커밋 제외.
+  ※ 주제별:
+    ① Walk 모션          : bb4b567 (Walk 등록·가이드 걷기 라이브러리 단일 소스화)
+    ② 광장 캐릭터 배회    : 994d52b (NavMesh 배회·근접 시그니처·오브제 NavMeshObstacle)
+    ③ 씬·에셋 정리        : 63b8111, 0f99509 (Main 씬, Pretendard SDF 폰트, npc_30 제거)
+    ④ 문서               : 0f99509 (0614 기록 보강 — 배회·storage 조사)
+
+  ※ ProjectSettings.asset(로컬 TRILIB define)은 0606/0613 규칙상 커밋 제외(머신별 자동 토글).
 
 ================================================================
