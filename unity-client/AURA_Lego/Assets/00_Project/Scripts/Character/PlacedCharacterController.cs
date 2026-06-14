@@ -187,6 +187,24 @@ namespace LegoTwin.Character
         /// <summary>플레이어 이탈 시 시그니처 동작을 중단하고 idle로 복귀한다.</summary>
         public void StopSignatureMotion() => _animation?.StopMotionLoop();
 
+        /// <summary>
+        /// 드리프트 보정 기준(앵커)을 현재 transform 자세로 다시 잡는다.
+        /// 배회 캐릭터처럼 스폰 위치에서 이동한 뒤 '멈춰 선 그 자리'에서 시그니처를 재생할 때,
+        /// PlaySignatureMotion 의 초기 자세 복원이 스폰 위치가 아니라 현재 위치를 기준으로
+        /// 동작하도록 한다. (호출 직후 PlaySignatureMotion 을 호출)
+        /// 정지 배치 캐릭터는 호출하지 않으면 기존과 100% 동일하게 스폰 위치를 유지한다.
+        /// </summary>
+        public void RebaseAnchorToCurrent()
+        {
+            _initialPos = transform.position;
+            _initialRot = transform.rotation;
+            if (_animator != null)
+            {
+                _animInitialLocalPos = _animator.transform.localPosition;
+                _animInitialLocalRot = _animator.transform.localRotation;
+            }
+        }
+
         // ════════════════════════════════════════════════════════════
         // 내부 유틸
         // ════════════════════════════════════════════════════════════
