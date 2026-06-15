@@ -90,6 +90,18 @@ namespace LegoTwin.Character
             ("화이팅",  MotionType.Victory),
             ("victory", MotionType.Victory),
 
+            // ── 물구나무 / 핸드스탠드 ────────────────────────────────
+            ("물구나무",   MotionType.Handstand),
+            ("핸드스탠드", MotionType.Handstand),
+            ("헤드스핀",   MotionType.Handstand),
+            ("handstand",  MotionType.Handstand),
+            ("headspin",   MotionType.Handstand),
+
+            // ── 힙합 / 비보잉 ────────────────────────────────────────
+            ("힙합",       MotionType.Hiphop),
+            ("비보잉",     MotionType.Hiphop),
+            ("hiphop",     MotionType.Hiphop),
+
             // ── 울음 / 슬픔 ──────────────────────────────────────────
             ("울어",   MotionType.Cry),
             ("울음",   MotionType.Cry),

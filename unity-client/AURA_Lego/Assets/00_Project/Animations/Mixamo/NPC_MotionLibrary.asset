@@ -16,9 +16,10 @@ MonoBehaviour:
   - motionType: 1
     clip: {fileID: 7400000, guid: 55a7484b3ec68d04382d2077aeaaf63e, type: 2}
     variations:
-    - {fileID: 7400000, guid: e4f865346dfddd6429ac164412a42ad8, type: 2}
-    - {fileID: 7400000, guid: e0194dd589943704798f80ae0cd07520, type: 2}
+    - {fileID: 7400000, guid: 3461202f75b549a41a952cb3c573aece, type: 2}
+    - {fileID: 7400000, guid: 1ddfd2a45d7488b47b605ad2d59a6cb6, type: 2}
     - {fileID: 7400000, guid: 94432aca68400454aa9a65eb50e413fe, type: 2}
+    - {fileID: 7400000, guid: e4f865346dfddd6429ac164412a42ad8, type: 2}
   - motionType: 2
     clip: {fileID: 7400000, guid: 38611fcec6a16174c8cf13f5ec1a326a, type: 2}
     variations: []
@@ -53,3 +54,9 @@ MonoBehaviour:
     clip: {fileID: 7400000, guid: e97d14b399413c24594e24be6d0e30b3, type: 2}
     variations:
     - {fileID: 7400000, guid: fd2b451e8ad64874ba94e409527b9736, type: 2}
+  - motionType: 13
+    clip: {fileID: 7400000, guid: adc7878b36115ea478a3903d92b7cb74, type: 2}
+    variations: []
+  - motionType: 14
+    clip: {fileID: 7400000, guid: 816fca7750e9a4b419b880e56d32e79d, type: 2}
+    variations: []

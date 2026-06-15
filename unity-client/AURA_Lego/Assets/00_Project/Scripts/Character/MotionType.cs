@@ -26,5 +26,7 @@ namespace LegoTwin.Character
         Victory,    // 승리, 파이팅
         Cry,        // 울어, 눈물, 슬퍼
         Walk,       // 걸어, 걷기, 산책
+        Handstand,  // 물구나무, 핸드스탠드, 헤드스핀
+        Hiphop,     // 힙합, 비보잉
     }
 }
