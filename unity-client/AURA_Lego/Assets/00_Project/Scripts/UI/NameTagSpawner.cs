@@ -32,8 +32,10 @@ namespace LegoTwin.UI
         [Header("배치")]
         [Tooltip("대상 머리(바운즈 상단)에서 위로 띄울 높이 (m)")]
         [SerializeField] private float _heightOffset = 0.5f;
-        [Tooltip("World Space 캔버스 스케일")]
+        [Tooltip("World Space 캔버스 스케일 (오브제 기준)")]
         [SerializeField] private float _worldScale = 0.02f;
+        [Tooltip("캐릭터 이름표 크기 배율 (오브제 대비). 1보다 작으면 더 작게.")]
+        [SerializeField] private float _characterScaleMultiplier = 0.6f;
         [Tooltip("이름표 캔버스 크기 (px)")]
         [SerializeField] private Vector2 _size = new Vector2(400f, 90f);
 
@@ -48,11 +50,18 @@ namespace LegoTwin.UI
             if (Instance == this) Instance = null;
         }
 
+        /// <summary>오브제용 이름표(기본 크기). 캐릭터는 AttachCharacter 사용.</summary>
+        public void Attach(GameObject target, string name) => Build(target, name, _worldScale);
+
+        /// <summary>캐릭터용 이름표 — 오브제보다 _characterScaleMultiplier 배만큼 작게.</summary>
+        public void AttachCharacter(GameObject target, string name)
+            => Build(target, name, _worldScale * _characterScaleMultiplier);
+
         /// <summary>
         /// 대상 위에 이름표를 생성한다. name 이 비어 있거나 target 이 null 이면 아무것도 안 한다.
         /// (이미 이름표가 있어도 중복 생성하므로, 같은 대상에 한 번만 호출할 것)
         /// </summary>
-        public void Attach(GameObject target, string name)
+        private void Build(GameObject target, string name, float worldScale)
         {
             if (target == null || string.IsNullOrWhiteSpace(name)) return;
 
@@ -60,7 +69,7 @@ namespace LegoTwin.UI
             var go = new GameObject($"NameTag_{name}", typeof(RectTransform), typeof(Canvas));
             var rt = go.GetComponent<RectTransform>();
             rt.sizeDelta   = _size;
-            rt.localScale  = Vector3.one * _worldScale;
+            rt.localScale  = Vector3.one * worldScale;
 
             var canvas = go.GetComponent<Canvas>();
             canvas.renderMode  = RenderMode.WorldSpace;

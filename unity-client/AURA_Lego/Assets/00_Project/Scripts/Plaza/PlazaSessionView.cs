@@ -2,6 +2,7 @@ using UnityEngine;
 using TMPro;
 using LegoTwin.Character;
 using LegoTwin.Data;
+using LegoTwin.UI;
 
 namespace LegoTwin.Plaza
 {
@@ -28,6 +29,9 @@ namespace LegoTwin.Plaza
 
         [Tooltip("좋아요 1위 별 표시 오브젝트")]
         public GameObject starObject;
+
+        [Tooltip("오브제 앞에 띄울 말풍선 패널(BubblePanel). 비우면 뷰 안에 그대로 둠.")]
+        public RectTransform bubblePanel;
 
         private LikeSystem                _likeSystem;
         private Camera                    _cam;
@@ -121,5 +125,37 @@ namespace LegoTwin.Plaza
 
         public void PlaySignatureMotion()  => _placedCharacter?.PlaySignatureMotion();
         public void StopSignatureMotion()  => _placedCharacter?.StopSignatureMotion();
+
+        // ════════════════════════════════════════════════════════════
+        // BubblePanel(말풍선) — 오브제 위에 분리 배치
+        // ════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// BubblePanel(말풍선)을 뷰에서 분리해 오브제 위에 떠 있도록 재배치한다.
+        /// 카메라를 향해 빌보드되며 오브제를 따라간다(오브제 파괴 시 자동 정리 — NameTag 재사용).
+        /// bubblePanel 또는 objectTransform 이 없으면 아무것도 하지 않고 뷰 안에 그대로 둔다.
+        /// </summary>
+        public void PlaceBubbleAtObject(Transform objectTransform, float heightOffset)
+        {
+            if (bubblePanel == null || objectTransform == null) return;
+
+            // 재부모 시 시각적 크기 보존을 위해 현재 월드 스케일 캡처
+            Vector3 panelWorldScale = bubblePanel.lossyScale;
+
+            // 오브제를 따라다닐 독립 World Space 캔버스 (뷰의 빌보드와 분리)
+            var anchor = new GameObject("BubbleAnchor", typeof(RectTransform), typeof(Canvas));
+            var canvas = anchor.GetComponent<Canvas>();
+            canvas.renderMode  = RenderMode.WorldSpace;
+            canvas.worldCamera = _cam != null ? _cam : Camera.main;
+            anchor.transform.localScale = panelWorldScale;
+
+            bubblePanel.SetParent(anchor.transform, worldPositionStays: false);
+            bubblePanel.localPosition = Vector3.zero;
+            bubblePanel.localRotation = Quaternion.identity;
+            bubblePanel.localScale    = Vector3.one;
+
+            // 오브제 머리 위 추적 + 카메라 빌보드 — NameTag 의 위치/빌보드 로직 재사용
+            anchor.AddComponent<NameTag>().Bind(objectTransform, heightOffset);
+        }
     }
 }

@@ -136,8 +136,7 @@ namespace LegoTwin.Character
 
             RuntimeOptimizer.Optimize(go);
 
-            // 캐릭터 머리 위 이름표(있을 때만) — Mock·Server 공통
-            NameTagSpawner.Instance?.Attach(go, session.character_npc_name);
+            // 가이드 NPC 는 이름표를 붙이지 않는다(사용자 요청).
 
             return npc;
         }
@@ -156,8 +155,8 @@ namespace LegoTwin.Character
 
             RuntimeOptimizer.Optimize(go);
 
-            // 캐릭터 머리 위 이름표(있을 때만) — Mock·Server 공통
-            NameTagSpawner.Instance?.Attach(go, session.character_npc_name);
+            // 캐릭터 머리 위 이름표(있을 때만, 캐릭터용 축소 크기) — Mock·Server 공통
+            NameTagSpawner.Instance?.AttachCharacter(go, session.character_npc_name);
 
             return placed;
         }
