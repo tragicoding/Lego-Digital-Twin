@@ -392,6 +392,7 @@ MonoBehaviour:
   likesCountText: {fileID: 1829557315722540104}
   bubbleText: {fileID: 8022362543822572240}
   starObject: {fileID: 2245320558844570357}
+  bubblePanel: {fileID: 6395431244197330300}
 --- !u!114 &489589678516008920
 MonoBehaviour:
   m_ObjectHideFlags: 0
