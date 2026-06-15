@@ -2,6 +2,7 @@ using System.Collections;
 using UnityEngine;
 using LegoTwin.Core;
 using LegoTwin.Data;
+using LegoTwin.UI;
 
 namespace LegoTwin.Object
 {
@@ -94,6 +95,7 @@ namespace LegoTwin.Object
                 SetupPhysics(_spawnedObject, pos.y);
 
             RuntimeOptimizer.Optimize(_spawnedObject);
+            NameTagSpawner.Instance?.Attach(_spawnedObject, data.object_name);   // 이름표 (있을 때만)
         }
 
         // ════════════════════════════════════════════════════════════
@@ -138,6 +140,7 @@ namespace LegoTwin.Object
                 SetupPhysics(_spawnedObject, pos.y);
 
             RuntimeOptimizer.Optimize(_spawnedObject);
+            NameTagSpawner.Instance?.Attach(_spawnedObject, data.object_name);   // 이름표 (있을 때만)
         }
         // ════════════════════════════════════════════════════════════
         // 물리 설정

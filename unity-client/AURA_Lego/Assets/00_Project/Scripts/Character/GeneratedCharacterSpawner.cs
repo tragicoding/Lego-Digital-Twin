@@ -2,6 +2,7 @@ using System;
 using UnityEngine;
 using LegoTwin.Core;
 using LegoTwin.Data;
+using LegoTwin.UI;
 
 namespace LegoTwin.Character
 {
@@ -122,6 +123,10 @@ namespace LegoTwin.Character
             anim.Initialize(session.assets?.character, session.bubble_text);
             npc.Initialize(session);
 
+            // 가이드 등장 걷기 클립을 모션 라이브러리(MotionType.Walk)에서 가져와 적용.
+            // Animator 의 Walk .anim 직접 참조에 의존하지 않게 해 Walk 변경 시 누락을 방지한다.
+            anim.ApplyWalkFromLibrary(motionLibrary);
+
             if (guideArrivalPoint != null)
                 npc.guideArrivalPoint = guideArrivalPoint;
             if (myCreationWaypoint != null)
@@ -130,6 +135,8 @@ namespace LegoTwin.Character
                 npc.playerTeleportPoint = playerTeleportPoint;
 
             RuntimeOptimizer.Optimize(go);
+
+            // 가이드 NPC 는 이름표를 붙이지 않는다(사용자 요청).
 
             return npc;
         }
@@ -147,6 +154,9 @@ namespace LegoTwin.Character
             anim.Initialize(session.assets?.character, session.bubble_text);
 
             RuntimeOptimizer.Optimize(go);
+
+            // 캐릭터 머리 위 이름표(있을 때만, 캐릭터용 축소 크기) — Mock·Server 공통
+            NameTagSpawner.Instance?.AttachCharacter(go, session.character_npc_name);
 
             return placed;
         }

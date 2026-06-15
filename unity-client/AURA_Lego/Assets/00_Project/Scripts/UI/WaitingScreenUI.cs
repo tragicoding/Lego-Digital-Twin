@@ -79,6 +79,9 @@ namespace LegoTwin.UI
         [Tooltip("세션 준비 완료 시 활성화될 입장 버튼. 대기 중에는 비활성으로 시작.")]
         [SerializeField] private Button _enterButton;
 
+        [Tooltip("준비 완료(영상 페이드 시작) 후 입장 버튼이 나타나기까지 지연 시간(초). 0이면 즉시.")]
+        [SerializeField] private float _enterButtonDelay = 1f;
+
         [Header("Mock 시뮬레이션")]
         [Tooltip("Mock 모드 전용: 세션이 즉시 준비돼도 이 시간(초)만큼 영상을 더 보여준 뒤\n" +
                  "영상을 끄고 입장 버튼을 노출한다. Server 모드에서는 무시(실제 준비 시점에 노출).")]
@@ -88,6 +91,7 @@ namespace LegoTwin.UI
         private Coroutine   _reveal;
         private Coroutine   _videoFade;
         private Coroutine   _waitingTextFade;
+        private Coroutine   _buttonDelay;
         private CanvasGroup _videoCg;
         private CanvasGroup _waitingTextCg;
         private float       _shownTime;
@@ -169,6 +173,7 @@ namespace LegoTwin.UI
             }
 
             if (_readyText   != null) _readyText.SetActive(false);   // 준비 텍스트 OFF
+            if (_buttonDelay != null) { StopCoroutine(_buttonDelay); _buttonDelay = null; }
             if (_enterButton != null) _enterButton.gameObject.SetActive(false);
             if (_root != null) _root.SetActive(true);
             BeginFade(1f, deactivateAtEnd: false);
@@ -191,24 +196,40 @@ namespace LegoTwin.UI
 
         // ── 내부 ─────────────────────────────────────────────────────
 
-        // 준비 완료 표시: 영상 페이드 아웃 + 대기 텍스트 끄고, 준비 텍스트·입장 버튼 노출.
+        // 준비 완료 표시: 영상 페이드 아웃 + 대기 텍스트 끄고, 준비 텍스트 ON.
+        // 입장 버튼은 _enterButtonDelay 만큼 늦게 노출(영상이 사라진 뒤 자연스럽게 등장).
         private void RevealReady()
         {
             FadeOutVideo();                                          // 영상 천천히 사라짐
 
             if (_waitingTextFade != null) { StopCoroutine(_waitingTextFade); _waitingTextFade = null; }
-            if (_waitingText != null) _waitingText.SetActive(false); // 대기 텍스트 OFF
-            if (_readyText   != null) _readyText.SetActive(true);    // 준비 텍스트 ON
+            if (_waitingText != null) _waitingText.SetActive(false); // 대기 텍스트 OFF (있으면)
+            if (_readyText   != null) _readyText.SetActive(true);    // 준비 텍스트 ON (있으면)
 
-            if (_enterButton != null)
+            if (_enterButton == null)
             {
-                _enterButton.gameObject.SetActive(true);
-                _enterButton.interactable = true;
+                OnEnterPressed();   // 버튼 없으면 즉시 진행(폴백)
+                return;
             }
+
+            if (_buttonDelay != null) StopCoroutine(_buttonDelay);
+            if (_enterButtonDelay > 0f)
+                _buttonDelay = StartCoroutine(ShowEnterButtonAfterDelay());
             else
-            {
-                OnEnterPressed();
-            }
+                ActivateEnterButton();
+        }
+
+        private IEnumerator ShowEnterButtonAfterDelay()
+        {
+            yield return new WaitForSecondsRealtime(_enterButtonDelay);
+            _buttonDelay = null;
+            ActivateEnterButton();
+        }
+
+        private void ActivateEnterButton()
+        {
+            _enterButton.gameObject.SetActive(true);
+            _enterButton.interactable = true;
         }
 
         private IEnumerator RevealAfterDelay(float delay)

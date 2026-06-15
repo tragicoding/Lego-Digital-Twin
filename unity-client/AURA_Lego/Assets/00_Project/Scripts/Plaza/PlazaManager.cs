@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.AI;
 using LegoTwin.Character;
 using LegoTwin.Core;
 using LegoTwin.Data;
@@ -47,6 +48,38 @@ namespace LegoTwin.Plaza
         public float characterForwardOffset = 3f;   // 캐릭터: spawnPoint 앞쪽
         public float objectBackOffset       = 3f;   // 오브제:  spawnPoint 뒤쪽
         public float viewHeightOffset       = 5f;   // 투표 UI: spawnPoint에서 위로 띄울 높이
+        [Tooltip("오브제 위 말풍선(BubblePanel) 높이 오프셋 (m, 오브제 바운즈 상단 기준)")]
+        public float bubbleObjectHeightOffset = 1f;  // 말풍선: 오브제 머리 위로 띄울 높이
+        [Tooltip("오브제 위 말풍선(패널) 크기 배율 (1=원본, 키우려면 1보다 크게)")]
+        public float bubbleObjectScale = 2f;         // 말풍선 패널 크기 배율
+        [Tooltip("말풍선 글씨 크기 배율 (패널 크기와 독립. 1=기본, 글씨만 키우거나 줄임)")]
+        public float bubbleTextScale = 1f;           // 말풍선 글씨 크기 배율(패널과 독립)
+        [Tooltip("말풍선 좌우 오프셋 (m, 카메라 기준. +면 화면 오른쪽으로)")]
+        public float bubbleObjectRightOffset = 0f;   // 말풍선 좌우 위치
+        [Tooltip("좋아요 패널 높이 오프셋 (m, 플레이어 눈높이 기준. 0=눈높이, +면 위로)")]
+        public float likeObjectHeightOffset = 0f;    // 좋아요 패널: 플레이어 눈높이에서 위로 띄울 높이
+        [Tooltip("좋아요 패널 크기 배율 (1=원본, 키우려면 1보다 크게)")]
+        public float likeObjectScale = 2f;           // 좋아요 패널 크기 배율
+        [Tooltip("좋아요 패널 좌우 오프셋 (m, 카메라 기준. +면 화면 오른쪽으로)")]
+        public float likeObjectRightOffset = 0f;     // 좋아요 패널 좌우 위치
+        [Tooltip("좋아요 패널을 오브제 앞으로 당길 추가 여유 (m, 크기 비례분에 더함). 0이면 앞면에 딱 붙음")]
+        public float likeObjectForwardOffset = 0.3f; // 좋아요 패널: 앞면에서 추가로 띄울 고정 여유
+        [Tooltip("오브제 크기 자동 조정: 오브제 반깊이 × 이 값만큼 앞으로. 1=앞면, <1이면 안쪽(큰 오브제일수록 가까이). 0이면 고정값만")]
+        public float likeObjectForwardSizeFactor = 0.65f; // 오브제 크기 비례 전진(낮출수록 큰 오브제가 가까이)
+
+        [Header("이전 창작물 캐릭터 배회 (NavMesh — 광장 바닥에 NavMesh 베이크 필요)")]
+        [Tooltip("배회 중심 Transform. 비우면(권장) 각 캐릭터가 '자기 스폰 자리'를 중심으로 배회해 " +
+                 "자연히 분산된다. 지정하면 모든 캐릭터가 그 한 점을 공유(전역 공용 중심).")]
+        public Transform wanderCenter;
+        [Tooltip("배회 반경 (미터) — 중심에서 이 반경 안의 NavMesh 위를 무작위로 돌아다님")]
+        public float wanderRadius   = 15f;
+        [Tooltip("배회 이동 속도 (m/s)")]
+        public float wanderMoveSpeed = 2.5f;
+        [Tooltip("플레이어가 이 거리 안에 들어오면 멈춰서 플레이어를 보고 시그니처 동작 (미터)")]
+        public float approachRadius  = 3.5f;
+        [Tooltip("목적지 도착 후 최소/최대 대기 시간 (초)")]
+        public float wanderWaitMin   = 1f;
+        public float wanderWaitMax   = 3f;
 
         [Header("PlazaSessionView 프리팹 (UI + 좋아요 포함)")]
         public PlazaSessionView sessionViewPrefab;
@@ -68,7 +101,7 @@ namespace LegoTwin.Plaza
         private readonly List<PlazaSessionView> _views = new();
         private readonly Dictionary<string, int> _likeCounts = new();
         private string _topSessionId;
-        private PlacedCharacterController _lastSpawnedCharController;
+        private GameObject _lastSpawnedObjectGO;   // 직전 세션에서 스폰된 오브제(말풍선 배치용)
 
         // 현재 관람객 창작물 (가이드 모드에서 스폰된 오브젝트)
         private SessionData _currentSession;
@@ -296,7 +329,19 @@ namespace LegoTwin.Plaza
                         new Vector3(point.position.x, viewHeightOffset, point.position.z),
                         point.rotation * Quaternion.Euler(0f, 180f, 0f));
                     view.Initialize(session, session.session_id == _topSessionId);
-                    view.SetCharacter(_lastSpawnedCharController);
+                    // 이전 창작물은 캐릭터가 광장을 배회하므로, 투표 뷰(스폰 포인트 고정)에
+                    // 캐릭터를 연결하지 않는다. 시그니처 재생은 PlazaWanderingCharacter 가 담당.
+                    // (view.PlaySignatureMotion 은 캐릭터 미연결이라 자연히 no-op → 투표만 동작)
+                    // 말풍선(BubblePanel)은 오브제 위로 분리 배치(카메라 빌보드)
+                    view.PlaceBubbleAtObject(
+                        _lastSpawnedObjectGO != null ? _lastSpawnedObjectGO.transform : null,
+                        bubbleObjectHeightOffset, bubbleObjectScale, bubbleTextScale, bubbleObjectRightOffset);
+                    // 좋아요 패널(LikePanel)은 오브제 '앞'(카메라 쪽)에 분리 배치(카메라 빌보드)
+                    // forwardSizeFactor 로 오브제 크기에 따라 앞면 거리 자동 조정
+                    view.PlaceLikePanelAtObject(
+                        _lastSpawnedObjectGO != null ? _lastSpawnedObjectGO.transform : null,
+                        likeObjectHeightOffset, likeObjectScale, likeObjectRightOffset,
+                        likeObjectForwardOffset, likeObjectForwardSizeFactor);
                     _views.Add(view);
                 }
                 else
@@ -343,13 +388,19 @@ namespace LegoTwin.Plaza
                 }
 
                 if (charGo != null)
-                    SetupCharacterForPlaza(charGo, session.signature_motion);
+                {
+                    SetupCharacterForPlaza(charGo, session.signature_motion, session.character_npc_name);
+                    // 이전 창작물 캐릭터는 광장을 배회하며 접근 시 멈춰 시그니처 동작.
+                    // (시그니처 트리거를 캐릭터 자신이 담당하므로 PlazaSessionView 와는 분리 — 투표는 그대로)
+                    SetupWanderingCharacter(charGo);
+                }
             }
 
             // ── 오브제 ──────────────────────────────────────────────────────────
             var objData = session.assets?.@object;
             if (objData != null)
             {
+                _lastSpawnedObjectGO = null;   // 이번 세션 오브제 추적 초기화(말풍선 배치용)
                 if (!string.IsNullOrEmpty(objData.model_url))
                 {
                     // Server Mode: glTFast GLB 비동기 로드
@@ -369,17 +420,17 @@ namespace LegoTwin.Plaza
                         var objGo = Instantiate(objPrefab, spawnPos, point.rotation);
                         objGo.name = $"PlazaObj_{session.session_id}";
                         objGo.transform.localScale = Vector3.one * objectSpawnScale;
-                        SetupObjectPhysics(objGo, point.position.y);
+                        SetupObjectPhysics(objGo, point.position.y, objData.object_name);
+                        _lastSpawnedObjectGO = objGo;
                     }
                 }
             }
         }
 
-        // 광장 캐릭터에 CharacterAnimationController + PlacedCharacterController 자동 주입
-        private void SetupCharacterForPlaza(GameObject go, string signatureMotionName)
+        // 광장 캐릭터에 CharacterAnimationController + PlacedCharacterController 자동 주입.
+        // 반환: 구성된 PlacedCharacterController (실패 시 null).
+        private PlacedCharacterController SetupCharacterForPlaza(GameObject go, string signatureMotionName, string npcName)
         {
-            _lastSpawnedCharController = null;
-
             // Animator Controller 설정 (없을 때만)
             if (characterAnimatorController != null)
             {
@@ -402,9 +453,28 @@ namespace LegoTwin.Plaza
                 : null;
 
             placed.SetupForPlaza(motionLibrary, signatureClip);
-            _lastSpawnedCharController = placed;
 
             RuntimeOptimizer.Optimize(go);
+
+            // 캐릭터 머리 위 이름표(있을 때만, 캐릭터용 축소 크기) — Mock·Server 공통
+            NameTagSpawner.Instance?.AttachCharacter(go, npcName);
+            return placed;
+        }
+
+        // 이전 창작물 캐릭터에 배회 + 근접 시그니처 인터랙션 컴포넌트를 부착한다.
+        // (Mock·Server 공통 — SetupCharacterForPlaza 직후 호출)
+        private void SetupWanderingCharacter(GameObject go)
+        {
+            var wander = go.GetComponent<PlazaWanderingCharacter>();
+            if (wander == null) wander = go.AddComponent<PlazaWanderingCharacter>();
+
+            // 기본: 각 캐릭터가 '자기 스폰 자리'를 중심으로 배회 → 스폰 지점이 흩어져 있어 자연 분산.
+            // wanderCenter(Transform)를 지정하면 모든 캐릭터가 그 한 점을 공유(전역 공용 중심).
+            bool useSpawnAsCenter = wanderCenter == null;
+            Vector3 center = useSpawnAsCenter ? go.transform.position : wanderCenter.position;
+
+            wander.Setup(center, wanderRadius, wanderMoveSpeed, approachRadius,
+                         wanderWaitMin, wanderWaitMax, useSpawnAsCenter);
         }
 
         // 배열에서 index % length 순환 선택. 배열이 없거나 비어 있으면 null 반환.
@@ -443,10 +513,36 @@ namespace LegoTwin.Plaza
         }
 
         // 오브제를 낙하 없이 groundY에 즉시 안착(Collider 재계산) + 전시용 렌더러 최적화
-        private static void SetupObjectPhysics(GameObject go, float groundY)
+        // + 배회 캐릭터가 통과하지 않도록 NavMesh 장애물로 표시(오브제는 움직이지 않음)
+        // + 오브제 머리 위 이름표(있을 때만). Mock/Server/fallback 3경로 공통 합류점.
+        private static void SetupObjectPhysics(GameObject go, float groundY, string objectName)
         {
             RuntimePhysicsUtil.PlaceOnGround(go, groundY);
             RuntimeOptimizer.Optimize(go);
+            AddNavMeshObstacle(go);
+            NameTagSpawner.Instance?.Attach(go, objectName);
+        }
+
+        // 배회 캐릭터의 NavMeshAgent가 오브제를 피해 돌아가도록 장애물로 표시한다.
+        // PlaceOnGround가 만든 루트 BoxCollider 크기를 그대로 사용(메시와 일치). 오브제는 정지 상태.
+        private static void AddNavMeshObstacle(GameObject go)
+        {
+            if (go.GetComponent<NavMeshObstacle>() != null) return;
+
+            var obs = go.AddComponent<NavMeshObstacle>();
+            obs.carving             = true;    // NavMesh를 깎아 에이전트가 경로를 우회
+            // 즉시 carve. true(정지 0.5초 대기 후 carve)이면 에이전트가 첫 경로를 잡은 뒤
+            // 뒤늦게 carve 가 들어와 경로가 무효화되며 몇 초간 제자리에 멈추는 문제가 있었음.
+            // 오브제는 스폰 즉시 고정(낙하 없음)이라 바로 carve 해도 추가 재계산이 없다.
+            obs.carveOnlyStationary = false;
+
+            var box = go.GetComponent<BoxCollider>();
+            if (box != null)
+            {
+                obs.shape  = NavMeshObstacleShape.Box;
+                obs.center = box.center;
+                obs.size   = box.size;
+            }
         }
 
         private async System.Threading.Tasks.Task SpawnObjectFromServerAsync(
@@ -464,7 +560,8 @@ namespace LegoTwin.Plaza
                     var fallback = Instantiate(fallbackPrefab, fallbackPos, point.rotation);
                     fallback.name = $"PlazaObj_{sessionId}";
                     fallback.transform.localScale = Vector3.one * objectSpawnScale;
-                    SetupObjectPhysics(fallback, point.position.y);
+                    SetupObjectPhysics(fallback, point.position.y, data.object_name);
+                    _lastSpawnedObjectGO = fallback;
                 }
                 return;
             }
@@ -476,7 +573,8 @@ namespace LegoTwin.Plaza
             // GLTFast 인스턴스화 직후 renderer.bounds가 미초기화 상태일 수 있으므로
             // 1프레임 대기 후 안착·BoxCollider 계산 (크기 0으로 잘못 안착하는 버그 방지)
             await Awaitable.NextFrameAsync();
-            SetupObjectPhysics(root, point.position.y);
+            SetupObjectPhysics(root, point.position.y, data.object_name);
+            _lastSpawnedObjectGO = root;
         }
 
         // ════════════════════════════════════════════════════════════
@@ -543,6 +641,9 @@ namespace LegoTwin.Plaza
 
             // 동작 프롬프트 · 시그니처 설정 인터랙터 추가
             SetupOwnCreationInteractor(view.gameObject, placedChar);
+
+            // 말풍선(BubblePanel)은 내 오브제 위로 분리 배치(카메라 빌보드)
+            view.PlaceBubbleAtObject(_currentObjectGO.transform, bubbleObjectHeightOffset, bubbleObjectScale, bubbleTextScale, bubbleObjectRightOffset);
 
             _currentViewAttached = true;
         }

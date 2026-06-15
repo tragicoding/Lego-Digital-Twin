@@ -57,6 +57,10 @@ namespace LegoTwin.Character
             new MotionEntry { motionType = MotionType.Cheer },
             new MotionEntry { motionType = MotionType.Clap  },
             new MotionEntry { motionType = MotionType.Cry   },
+            new MotionEntry { motionType = MotionType.Walk  },
+            new MotionEntry { motionType = MotionType.Handstand },
+            new MotionEntry { motionType = MotionType.Hiphop },
+            new MotionEntry { motionType = MotionType.Lie },
         };
 
         // 런타임 룩업 캐시: MotionType → 클립 풀(기본 clip + variations, 중복/null 제거)

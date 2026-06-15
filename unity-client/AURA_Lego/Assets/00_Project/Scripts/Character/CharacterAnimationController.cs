@@ -123,6 +123,48 @@ namespace LegoTwin.Character
         }
 
         /// <summary>
+        /// 가이드 등장 걷기 등 Animator 'Walk' 상태의 클립을 모션 라이브러리의 Walk 클립으로 교체한다.
+        ///
+        /// 가이드 걷기는 원래 Animator Controller 의 Walk 상태가 .anim 파일을 직접 참조한다.
+        /// 그 파일을 바꾸거나 지우면 등장 걷기가 누락되므로, 모션 라이브러리(MotionType.Walk)를
+        /// 단일 소스로 삼아 런타임에 Walk 슬롯을 덮어쓴다.
+        ///   → 라이브러리의 Walk 클립만 바꾸면 가이드 걷기도 함께 바뀌고,
+        ///     특정 Walk 클립 파일이 사라져도 라이브러리에 Walk 가 있으면 누락되지 않는다.
+        ///
+        /// 동작: AnimatorOverrideController 에서 이름이 "Walk" 로 시작하는 슬롯(예: Walk2)을
+        ///       찾아 라이브러리 Walk 클립으로 덮어쓴다. 라이브러리에 Walk 가 없으면 아무것도
+        ///       하지 않아 Animator 의 기본 Walk 클립이 폴백으로 그대로 사용된다.
+        /// </summary>
+        public void ApplyWalkFromLibrary(MixamoMotionLibrary library)
+        {
+            if (library == null) return;
+            if (_overrideController == null) InitOverrideController();
+            if (_overrideController == null) return;
+
+            // 라이브러리에 Walk 가 없으면 base 클립(폴백)을 그대로 둔다.
+            if (!library.HasClip(MotionType.Walk)) return;
+            var walkClip = library.GetClip(MotionType.Walk);
+            if (walkClip == null) return;
+
+            var overrides = new List<KeyValuePair<AnimationClip, AnimationClip>>();
+            _overrideController.GetOverrides(overrides);
+
+            bool changed = false;
+            for (int i = 0; i < overrides.Count; i++)
+            {
+                var baseClip = overrides[i].Key;
+                if (baseClip != null &&
+                    baseClip.name.StartsWith("Walk", System.StringComparison.OrdinalIgnoreCase))
+                {
+                    overrides[i] = new KeyValuePair<AnimationClip, AnimationClip>(baseClip, walkClip);
+                    changed = true;
+                }
+            }
+
+            if (changed) _overrideController.ApplyOverrides(overrides);
+        }
+
+        /// <summary>
         /// Mixamo AnimationClip을 런타임에 교체하여 재생한다.
         /// AnimatorOverrideController의 "Motion" 슬롯을 교체한 뒤
         /// "motion" Trigger를 발생시킨다.

@@ -37,6 +37,14 @@ namespace LegoTwin.Character
             ("뛰기",   MotionType.Run),
             ("run",    MotionType.Run),
 
+            // ── 걷기 / 산책 ──────────────────────────────────────────
+            ("걸어",   MotionType.Walk),
+            ("걸음",   MotionType.Walk),
+            ("걷기",   MotionType.Walk),
+            ("걷자",   MotionType.Walk),
+            ("산책",   MotionType.Walk),
+            ("walk",   MotionType.Walk),
+
             // ── 점프 ─────────────────────────────────────────────────
             ("점프",   MotionType.Jump),
             ("뛰어올", MotionType.Jump),
@@ -46,7 +54,6 @@ namespace LegoTwin.Character
             ("손흔",   MotionType.Wave),
             ("인사",   MotionType.Wave),
             ("하이",   MotionType.Wave),
-            ("hi",   MotionType.Wave),
             ("안녕",   MotionType.Wave),
             ("wave",   MotionType.Wave),
 
@@ -73,6 +80,7 @@ namespace LegoTwin.Character
 
             // ── 박수 ─────────────────────────────────────────────────
             ("박수",   MotionType.Clap),
+            ("손뼉",   MotionType.Clap),
             ("clap",   MotionType.Clap),
 
             // ── 승리 ─────────────────────────────────────────────────
@@ -80,6 +88,23 @@ namespace LegoTwin.Character
             ("파이팅",  MotionType.Victory),
             ("화이팅",  MotionType.Victory),
             ("victory", MotionType.Victory),
+
+            // ── 물구나무 / 핸드스탠드 ────────────────────────────────
+            ("물구나무",   MotionType.Handstand),
+            ("핸드스탠드", MotionType.Handstand),
+            ("헤드스핀",   MotionType.Handstand),
+            ("handstand",  MotionType.Handstand),
+            ("headspin",   MotionType.Handstand),
+
+            // ── 힙합 / 비보잉 ────────────────────────────────────────
+            ("힙합",       MotionType.Hiphop),
+            ("비보잉",     MotionType.Hiphop),
+            ("hiphop",     MotionType.Hiphop),
+
+            // ── 눕기 ─────────────────────────────────────────────────
+            ("누워",       MotionType.Lie),
+            ("눕",         MotionType.Lie),
+            ("lie",        MotionType.Lie),
 
             // ── 울음 / 슬픔 ──────────────────────────────────────────
             ("울어",   MotionType.Cry),
@@ -90,6 +115,10 @@ namespace LegoTwin.Character
             ("슬프",   MotionType.Cry),
             ("cry",    MotionType.Cry),
             ("sad",    MotionType.Cry),
+
+            // ── 짧은 키워드(부분 문자열 주의) — 맨 아래에 두어 최저 우선순위 ──
+            // "hi"는 "hiphop" 등 다른 키워드에 포함되므로, 다른 매칭이 모두 실패한 뒤에만 Wave로.
+            ("hi",     MotionType.Wave),
         };
 
         /// <summary>
