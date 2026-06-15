@@ -28,5 +28,6 @@ namespace LegoTwin.Character
         Walk,       // 걸어, 걷기, 산책
         Handstand,  // 물구나무, 핸드스탠드, 헤드스핀
         Hiphop,     // 힙합, 비보잉
+        Lie,        // 누워, 눕기
     }
 }

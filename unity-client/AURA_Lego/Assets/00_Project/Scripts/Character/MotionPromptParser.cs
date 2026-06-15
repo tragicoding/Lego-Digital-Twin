@@ -101,6 +101,11 @@ namespace LegoTwin.Character
             ("비보잉",     MotionType.Hiphop),
             ("hiphop",     MotionType.Hiphop),
 
+            // ── 눕기 ─────────────────────────────────────────────────
+            ("누워",       MotionType.Lie),
+            ("눕",         MotionType.Lie),
+            ("lie",        MotionType.Lie),
+
             // ── 울음 / 슬픔 ──────────────────────────────────────────
             ("울어",   MotionType.Cry),
             ("울음",   MotionType.Cry),
