@@ -54,7 +54,6 @@ namespace LegoTwin.Character
             ("손흔",   MotionType.Wave),
             ("인사",   MotionType.Wave),
             ("하이",   MotionType.Wave),
-            ("hi",   MotionType.Wave),
             ("안녕",   MotionType.Wave),
             ("wave",   MotionType.Wave),
 
@@ -111,6 +110,10 @@ namespace LegoTwin.Character
             ("슬프",   MotionType.Cry),
             ("cry",    MotionType.Cry),
             ("sad",    MotionType.Cry),
+
+            // ── 짧은 키워드(부분 문자열 주의) — 맨 아래에 두어 최저 우선순위 ──
+            // "hi"는 "hiphop" 등 다른 키워드에 포함되므로, 다른 매칭이 모두 실패한 뒤에만 Wave로.
+            ("hi",     MotionType.Wave),
         };
 
         /// <summary>
