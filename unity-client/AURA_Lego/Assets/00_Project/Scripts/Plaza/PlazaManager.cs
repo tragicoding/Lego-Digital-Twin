@@ -50,9 +50,10 @@ namespace LegoTwin.Plaza
         public float viewHeightOffset       = 5f;   // 투표 UI: spawnPoint에서 위로 띄울 높이
 
         [Header("이전 창작물 캐릭터 배회 (NavMesh — 광장 바닥에 NavMesh 베이크 필요)")]
-        [Tooltip("배회 중심 Transform. 비우면 첫 spawnPoint(없으면 원점)를 사용.")]
+        [Tooltip("배회 중심 Transform. 비우면(권장) 각 캐릭터가 '자기 스폰 자리'를 중심으로 배회해 " +
+                 "자연히 분산된다. 지정하면 모든 캐릭터가 그 한 점을 공유(전역 공용 중심).")]
         public Transform wanderCenter;
-        [Tooltip("배회 반경 (미터) — 이 반경 안의 NavMesh 위를 무작위로 돌아다님")]
+        [Tooltip("배회 반경 (미터) — 중심에서 이 반경 안의 NavMesh 위를 무작위로 돌아다님")]
         public float wanderRadius   = 15f;
         [Tooltip("배회 이동 속도 (m/s)")]
         public float wanderMoveSpeed = 2.5f;
@@ -433,11 +434,13 @@ namespace LegoTwin.Plaza
             var wander = go.GetComponent<PlazaWanderingCharacter>();
             if (wander == null) wander = go.AddComponent<PlazaWanderingCharacter>();
 
-            Vector3 center = wanderCenter != null
-                ? wanderCenter.position
-                : (spawnPoints != null && spawnPoints.Length > 0 ? spawnPoints[0].position : Vector3.zero);
+            // 기본: 각 캐릭터가 '자기 스폰 자리'를 중심으로 배회 → 스폰 지점이 흩어져 있어 자연 분산.
+            // wanderCenter(Transform)를 지정하면 모든 캐릭터가 그 한 점을 공유(전역 공용 중심).
+            bool useSpawnAsCenter = wanderCenter == null;
+            Vector3 center = useSpawnAsCenter ? go.transform.position : wanderCenter.position;
 
-            wander.Setup(center, wanderRadius, wanderMoveSpeed, approachRadius, wanderWaitMin, wanderWaitMax);
+            wander.Setup(center, wanderRadius, wanderMoveSpeed, approachRadius,
+                         wanderWaitMin, wanderWaitMax, useSpawnAsCenter);
         }
 
         // 배열에서 index % length 순환 선택. 배열이 없거나 비어 있으면 null 반환.
@@ -491,8 +494,11 @@ namespace LegoTwin.Plaza
             if (go.GetComponent<NavMeshObstacle>() != null) return;
 
             var obs = go.AddComponent<NavMeshObstacle>();
-            obs.carving             = true;   // NavMesh를 깎아 에이전트가 경로를 우회
-            obs.carveOnlyStationary = true;   // 정지 오브제라 1회만 carve (런타임 재계산 비용 최소)
+            obs.carving             = true;    // NavMesh를 깎아 에이전트가 경로를 우회
+            // 즉시 carve. true(정지 0.5초 대기 후 carve)이면 에이전트가 첫 경로를 잡은 뒤
+            // 뒤늦게 carve 가 들어와 경로가 무효화되며 몇 초간 제자리에 멈추는 문제가 있었음.
+            // 오브제는 스폰 즉시 고정(낙하 없음)이라 바로 carve 해도 추가 재계산이 없다.
+            obs.carveOnlyStationary = false;
 
             var box = go.GetComponent<BoxCollider>();
             if (box != null)

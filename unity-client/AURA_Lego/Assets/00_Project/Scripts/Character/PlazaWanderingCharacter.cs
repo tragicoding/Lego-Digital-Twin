@@ -31,6 +31,7 @@ namespace LegoTwin.Character
         private float   _approachRadius = 3.5f;   // 플레이어가 이 거리 안에 들어오면 멈춤·시그니처
         private float   _waitMin        = 1f;
         private float   _waitMax        = 3f;
+        private bool    _centerFromSpawn;          // true면 자기 스폰(NavMesh 안착) 위치를 배회 중심으로
 
         private const float ArrivalThreshold   = 0.4f;
         private const float ApproachHysteresis = 1.2f;  // 이탈은 approach+hysteresis (떨림 방지)
@@ -45,21 +46,28 @@ namespace LegoTwin.Character
         private enum State { Wandering, Interacting }
         private State     _state = State.Wandering;
         private Coroutine _interactRoutine;
+        private bool      _walking;   // 현재 걷기 애니 상태 — 실제 이동 속도로만 토글
 
         // ════════════════════════════════════════════════════════════
         // 주입 / 초기화
         // ════════════════════════════════════════════════════════════
 
-        /// <summary>PlazaManager 가 스폰 직후 호출해 배회/인터랙션 파라미터를 주입한다.</summary>
+        /// <summary>
+        /// PlazaManager 가 스폰 직후 호출해 배회/인터랙션 파라미터를 주입한다.
+        /// centerFromSpawn=true 면 전달된 wanderCenter 대신 '자기 스폰(NavMesh 안착) 위치'를
+        /// 배회 중심으로 사용한다 → 캐릭터마다 자기 자리 주변을 돌아 자연히 분산된다.
+        /// </summary>
         public void Setup(Vector3 wanderCenter, float wanderRadius, float moveSpeed,
-                          float approachRadius, float waitMin, float waitMax)
+                          float approachRadius, float waitMin, float waitMax,
+                          bool centerFromSpawn = false)
         {
-            _wanderCenter   = wanderCenter;
-            _wanderRadius   = wanderRadius;
-            _moveSpeed      = moveSpeed;
-            _approachRadius = approachRadius;
-            _waitMin        = waitMin;
-            _waitMax        = waitMax;
+            _wanderCenter    = wanderCenter;
+            _wanderRadius    = wanderRadius;
+            _moveSpeed       = moveSpeed;
+            _approachRadius  = approachRadius;
+            _waitMin         = waitMin;
+            _waitMax         = waitMax;
+            _centerFromSpawn = centerFromSpawn;
         }
 
         private void Start()
@@ -100,6 +108,9 @@ namespace LegoTwin.Character
             _agent.height           = 2f;
             _agent.autoBraking      = true;
             _agent.Warp(hit.position);
+
+            // 자기 스폰 자리 기준 배회: NavMesh 에 안착한 실제 위치를 배회 중심으로 확정.
+            if (_centerFromSpawn) _wanderCenter = transform.position;
         }
 
         // ════════════════════════════════════════════════════════════
@@ -138,17 +149,26 @@ namespace LegoTwin.Character
 
                 _agent.isStopped = false;
                 _agent.SetDestination(PickNavPoint());
-                _anim?.animation_walk();
 
-                // 도착 또는 인터랙션 진입까지 이동
+                // 도착 또는 인터랙션 진입까지 이동.
+                // - 걷기/정지 애니는 '실제 이동 속도'로 동기화 → 경로 계산·내비메시 갱신으로
+                //   잠깐 멈춰도 제자리 걷기가 아니라 idle 로 보이게 한다.
+                // - 오브제 carve 등으로 경로가 무효화되면 즉시 재탐색 → 곧바로 다시 이동.
                 while (_state == State.Wandering && AgentReady() &&
                        (_agent.pathPending || _agent.remainingDistance > ArrivalThreshold))
+                {
+                    if (!_agent.pathPending &&
+                        (!_agent.hasPath || _agent.pathStatus == NavMeshPathStatus.PathInvalid))
+                        _agent.SetDestination(PickNavPoint());
+
+                    SyncWalkAnim();
                     yield return null;
+                }
 
                 if (_state != State.Wandering) continue;
 
                 // 도착 → 잠시 대기
-                _anim?.animation_idle();
+                SetWalking(false);
                 if (AgentReady()) _agent.isStopped = true;
                 yield return new WaitForSeconds(Random.Range(_waitMin, _waitMax));
             }
@@ -156,14 +176,29 @@ namespace LegoTwin.Character
 
         private Vector3 PickNavPoint()
         {
+            // 1차: 배회 중심(보통 자기 스폰 자리) 반경 내 NavMesh 지점
+            if (TrySampleAround(_wanderCenter, _wanderRadius, out var p)) return p;
+
+            // 2차 폴백: 중심/반경이 NavMesh와 어긋나도 최소한 '현재 위치 주변'에서 움직이게.
+            if (TrySampleAround(transform.position, Mathf.Min(_wanderRadius, 5f), out p)) return p;
+
+            return transform.position;
+        }
+
+        private static bool TrySampleAround(Vector3 center, float radius, out Vector3 result)
+        {
             for (int i = 0; i < 8; i++)
             {
-                Vector2 r = Random.insideUnitCircle * _wanderRadius;
-                var candidate = new Vector3(_wanderCenter.x + r.x, _wanderCenter.y, _wanderCenter.z + r.y);
+                Vector2 r = Random.insideUnitCircle * radius;
+                var candidate = new Vector3(center.x + r.x, center.y, center.z + r.y);
                 if (NavMesh.SamplePosition(candidate, out var hit, 4f, NavMesh.AllAreas))
-                    return hit.position;
+                {
+                    result = hit.position;
+                    return true;
+                }
             }
-            return transform.position;
+            result = center;
+            return false;
         }
 
         // ════════════════════════════════════════════════════════════
@@ -182,7 +217,7 @@ namespace LegoTwin.Character
                 _agent.updatePosition = false;  // 시그니처 동안 transform 은 애니/리베이스가 제어
             }
 
-            _anim?.animation_idle();
+            SetWalking(false);
 
             if (_interactRoutine != null) StopCoroutine(_interactRoutine);
             _interactRoutine = StartCoroutine(FaceThenSignature());
@@ -254,6 +289,21 @@ namespace LegoTwin.Character
         // ════════════════════════════════════════════════════════════
 
         private bool AgentReady() => _agent != null && _agent.enabled && _agent.isOnNavMesh;
+
+        // 실제 Agent 이동 속도로 walk/idle 토글 — 경로 대기/무효로 멈춰 있으면 제자리 걷기 대신 idle.
+        private void SyncWalkAnim()
+        {
+            bool moving = _agent != null && _agent.velocity.sqrMagnitude > 0.04f;  // ≈0.2 m/s
+            SetWalking(moving);
+        }
+
+        private void SetWalking(bool walk)
+        {
+            if (walk == _walking) return;
+            _walking = walk;
+            if (walk) _anim?.animation_walk();
+            else      _anim?.animation_idle();
+        }
 
         private void ResolvePlayer()
         {
