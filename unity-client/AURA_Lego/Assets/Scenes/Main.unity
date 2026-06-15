@@ -13406,11 +13406,6 @@ MonoBehaviour:
   - {fileID: 175100715}
   mockCharacterPrefabs:
   - {fileID: 919132149155446097, guid: ded4cc42a7859534594a58074241a4b0, type: 3}
-  - {fileID: 919132149155446097, guid: b00159175f46d7e4d86dc5e3bb2c0326, type: 3}
-  - {fileID: 919132149155446097, guid: 5e61edc731e6ac345a590e26a0cc0326, type: 3}
-  - {fileID: 919132149155446097, guid: d10334c014e691e48a281c0e51e157fc, type: 3}
-  - {fileID: 919132149155446097, guid: cbdff4f17b1935e47a275bebbae91ff0, type: 3}
-  - {fileID: 919132149155446097, guid: 7c254dc88e12ba944b901450a048aa9d, type: 3}
   mockObjectPrefabs:
   - {fileID: -7066584691146494887, guid: c301e3372fb287f4e842e5fa65bbb9f6, type: 3}
   - {fileID: 6138414524991049635, guid: 73f7ae351fafbd94f88d9a267ef9528b, type: 3}
