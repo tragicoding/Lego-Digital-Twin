@@ -17,14 +17,17 @@ namespace LegoTwin.UI
         private Transform  _target;
         private Renderer[] _renderers;
         private float      _heightOffset;
+        private float      _rightOffset;   // 카메라 기준 좌우 오프셋(+면 화면 오른쪽)
         private Camera     _cam;
 
         /// <summary>추적 대상과 머리 위 오프셋을 주입한다. NameTagSpawner 가 생성 직후 호출.</summary>
-        public void Bind(Transform target, float heightOffset)
+        /// <param name="rightOffset">카메라 기준 좌우 이동(m). +면 화면 오른쪽. 0이면 중앙.</param>
+        public void Bind(Transform target, float heightOffset, float rightOffset = 0f)
         {
             _target       = target;
             _renderers    = target != null ? target.GetComponentsInChildren<Renderer>() : null;
             _heightOffset = heightOffset;
+            _rightOffset  = rightOffset;
             _cam          = Camera.main;
         }
 
@@ -32,11 +35,15 @@ namespace LegoTwin.UI
         {
             if (_target == null) { Destroy(gameObject); return; }  // 대상 파괴 시 함께 정리
 
+            if (_cam == null) _cam = Camera.main;
+
             // 대상 바운즈 상단 + 오프셋 위치로 따라가기 (XZ 는 대상 중심)
-            transform.position = new Vector3(_target.position.x, TopY() + _heightOffset, _target.position.z);
+            Vector3 pos = new Vector3(_target.position.x, TopY() + _heightOffset, _target.position.z);
+            // 카메라 기준 좌우 이동(빌보드라 화면상 좌우와 일치)
+            if (_cam != null && _rightOffset != 0f) pos += _cam.transform.right * _rightOffset;
+            transform.position = pos;
 
             // 빌보드 — 항상 카메라와 같은 방향 (World Space Canvas 표준)
-            if (_cam == null) _cam = Camera.main;
             if (_cam != null) transform.forward = _cam.transform.forward;
         }
 

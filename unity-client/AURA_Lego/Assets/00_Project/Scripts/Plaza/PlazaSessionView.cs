@@ -135,27 +135,49 @@ namespace LegoTwin.Plaza
         /// 카메라를 향해 빌보드되며 오브제를 따라간다(오브제 파괴 시 자동 정리 — NameTag 재사용).
         /// bubblePanel 또는 objectTransform 이 없으면 아무것도 하지 않고 뷰 안에 그대로 둔다.
         /// </summary>
-        public void PlaceBubbleAtObject(Transform objectTransform, float heightOffset)
+        public void PlaceBubbleAtObject(Transform objectTransform, float heightOffset,
+                                        float scaleMultiplier = 1f, float textScale = 1f,
+                                        float rightOffset = 0f)
         {
             if (bubblePanel == null || objectTransform == null) return;
 
-            // 재부모 시 시각적 크기 보존을 위해 현재 월드 스케일 캡처
+            // BubblePanel 은 stretch 앵커(부모 캔버스 크기에 맞춤)라, 재부모 시 크기 기준이 깨지면
+            // 패널·텍스트가 어긋난다. 원래 패널 크기·월드 스케일을 캡처해 그대로 복원한다.
+            Canvas.ForceUpdateCanvases();                  // rect 계산 보장
+            Vector2 panelSize = bubblePanel.rect.size;
+            if (panelSize.x < 1f || panelSize.y < 1f) panelSize = new Vector2(800f, 800f); // 폴백
             Vector3 panelWorldScale = bubblePanel.lossyScale;
+            float s = Mathf.Max(0.01f, scaleMultiplier);
 
             // 오브제를 따라다닐 독립 World Space 캔버스 (뷰의 빌보드와 분리)
             var anchor = new GameObject("BubbleAnchor", typeof(RectTransform), typeof(Canvas));
             var canvas = anchor.GetComponent<Canvas>();
             canvas.renderMode  = RenderMode.WorldSpace;
             canvas.worldCamera = _cam != null ? _cam : Camera.main;
-            anchor.transform.localScale = panelWorldScale;
+            var art = (RectTransform)anchor.transform;
+            art.sizeDelta  = panelSize;            // 패널 원래 크기로 캔버스 크기 지정(stretch 기준 복원)
+            art.localScale = panelWorldScale * s;  // 원래 월드 스케일 × 배율
 
+            // 패널을 캔버스에 꽉 채워 중앙 정렬 → 프리팹의 offset(400,400)/z(300) quirk 제거.
+            // BubbleText 는 패널의 stretch 자식이라 패널이 제자리면 자동으로 중앙에 온다.
             bubblePanel.SetParent(anchor.transform, worldPositionStays: false);
-            bubblePanel.localPosition = Vector3.zero;
-            bubblePanel.localRotation = Quaternion.identity;
-            bubblePanel.localScale    = Vector3.one;
+            bubblePanel.anchorMin = Vector2.zero;
+            bubblePanel.anchorMax = Vector2.one;
+            bubblePanel.offsetMin = Vector2.zero;
+            bubblePanel.offsetMax = Vector2.zero;
+            bubblePanel.localScale = Vector3.one;
+            var lp = bubblePanel.localPosition; lp.z = 0f; bubblePanel.localPosition = lp;
+
+            // 글씨 크기만 독립 조정(위치는 패널 중앙 유지) — fontSize 로, 패널 배율 상쇄.
+            if (bubbleText != null)
+            {
+                bubbleText.transform.localScale = Vector3.one;
+                bubbleText.enableAutoSizing = false;
+                bubbleText.fontSize *= textScale / s;
+            }
 
             // 오브제 머리 위 추적 + 카메라 빌보드 — NameTag 의 위치/빌보드 로직 재사용
-            anchor.AddComponent<NameTag>().Bind(objectTransform, heightOffset);
+            anchor.AddComponent<NameTag>().Bind(objectTransform, heightOffset, rightOffset);
         }
     }
 }

@@ -50,6 +50,12 @@ namespace LegoTwin.Plaza
         public float viewHeightOffset       = 5f;   // 투표 UI: spawnPoint에서 위로 띄울 높이
         [Tooltip("오브제 위 말풍선(BubblePanel) 높이 오프셋 (m, 오브제 바운즈 상단 기준)")]
         public float bubbleObjectHeightOffset = 1f;  // 말풍선: 오브제 머리 위로 띄울 높이
+        [Tooltip("오브제 위 말풍선(패널) 크기 배율 (1=원본, 키우려면 1보다 크게)")]
+        public float bubbleObjectScale = 2f;         // 말풍선 패널 크기 배율
+        [Tooltip("말풍선 글씨 크기 배율 (패널 크기와 독립. 1=기본, 글씨만 키우거나 줄임)")]
+        public float bubbleTextScale = 1f;           // 말풍선 글씨 크기 배율(패널과 독립)
+        [Tooltip("말풍선 좌우 오프셋 (m, 카메라 기준. +면 화면 오른쪽으로)")]
+        public float bubbleObjectRightOffset = 0f;   // 말풍선 좌우 위치
 
         [Header("이전 창작물 캐릭터 배회 (NavMesh — 광장 바닥에 NavMesh 베이크 필요)")]
         [Tooltip("배회 중심 Transform. 비우면(권장) 각 캐릭터가 '자기 스폰 자리'를 중심으로 배회해 " +
@@ -319,7 +325,7 @@ namespace LegoTwin.Plaza
                     // 말풍선(BubblePanel)은 오브제 위로 분리 배치(카메라 빌보드)
                     view.PlaceBubbleAtObject(
                         _lastSpawnedObjectGO != null ? _lastSpawnedObjectGO.transform : null,
-                        bubbleObjectHeightOffset);
+                        bubbleObjectHeightOffset, bubbleObjectScale, bubbleTextScale, bubbleObjectRightOffset);
                     _views.Add(view);
                 }
                 else
@@ -621,7 +627,7 @@ namespace LegoTwin.Plaza
             SetupOwnCreationInteractor(view.gameObject, placedChar);
 
             // 말풍선(BubblePanel)은 내 오브제 위로 분리 배치(카메라 빌보드)
-            view.PlaceBubbleAtObject(_currentObjectGO.transform, bubbleObjectHeightOffset);
+            view.PlaceBubbleAtObject(_currentObjectGO.transform, bubbleObjectHeightOffset, bubbleObjectScale, bubbleTextScale, bubbleObjectRightOffset);
 
             _currentViewAttached = true;
         }

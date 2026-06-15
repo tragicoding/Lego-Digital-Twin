@@ -13420,7 +13420,10 @@ MonoBehaviour:
   characterForwardOffset: 20
   objectBackOffset: 0
   viewHeightOffset: 0
-  bubbleObjectHeightOffset: 1
+  bubbleObjectHeightOffset: 1.5
+  bubbleObjectScale: 1.5
+  bubbleTextScale: 1.5
+  bubbleObjectRightOffset: 6
   wanderCenter: {fileID: 0}
   wanderRadius: 250
   wanderMoveSpeed: 2.5
@@ -103670,6 +103673,7 @@ MonoBehaviour:
   _background: 1
   _backgroundColor: {r: 0, g: 0, b: 0, a: 0.5}
   _heightOffset: 0.5
+  _objectHeightOffset: 1.5
   _worldScale: 0.02
   _characterScaleMultiplier: 0.6
   _size: {x: 400, y: 90}
@@ -121912,6 +121916,42 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4741271103934322846, guid: d73dc82c17b96954ba8dc5a5df0b90ed, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6395431244197330300, guid: d73dc82c17b96954ba8dc5a5df0b90ed, type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 6395431244197330300, guid: d73dc82c17b96954ba8dc5a5df0b90ed, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 6395431244197330300, guid: d73dc82c17b96954ba8dc5a5df0b90ed, type: 3}
+      propertyPath: m_AnchorMin.x
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 6395431244197330300, guid: d73dc82c17b96954ba8dc5a5df0b90ed, type: 3}
+      propertyPath: m_AnchorMin.y
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 6395431244197330300, guid: d73dc82c17b96954ba8dc5a5df0b90ed, type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 500
+      objectReference: {fileID: 0}
+    - target: {fileID: 6395431244197330300, guid: d73dc82c17b96954ba8dc5a5df0b90ed, type: 3}
+      propertyPath: m_SizeDelta.y
+      value: 300
+      objectReference: {fileID: 0}
+    - target: {fileID: 6395431244197330300, guid: d73dc82c17b96954ba8dc5a5df0b90ed, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 299.9999
+      objectReference: {fileID: 0}
+    - target: {fileID: 6395431244197330300, guid: d73dc82c17b96954ba8dc5a5df0b90ed, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6395431244197330300, guid: d73dc82c17b96954ba8dc5a5df0b90ed, type: 3}
+      propertyPath: m_AnchoredPosition.y
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7240108916611563763, guid: d73dc82c17b96954ba8dc5a5df0b90ed, type: 3}
