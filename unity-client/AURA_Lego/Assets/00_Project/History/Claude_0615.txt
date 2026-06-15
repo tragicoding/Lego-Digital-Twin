@@ -162,3 +162,65 @@ Claude Code 작업 기록
   [ ] Server 모드 통합 테스트 — 이름표·배회·시그니처 라운드트립
 
 ================================================================
+
+
+================================================================
+[추가 작업 — 이름표 크기·말풍선 배치·Lie 모션·FBX 임포트 수정]
+날짜: 2026-06-15 (연속)
+브랜치: feature/unity
+================================================================
+
+────────────────────────────────────────────────────────────────
+[세션 6] 이름표 크기 분리 + 가이드 NPC 제외
+────────────────────────────────────────────────────────────────
+  - NameTagSpawner: _characterScaleMultiplier 추가(기본 0.6) + AttachCharacter() —
+    캐릭터 이름표를 오브제보다 작게. 공통 빌더 Build(target,name,worldScale)로 정리(DRY).
+  - 오브제는 Attach(기본 크기), 캐릭터(배치/광장)는 AttachCharacter(축소).
+  - 가이드 NPC(SetupAsGuide)는 이름표 미부착(사용자 요청).
+
+────────────────────────────────────────────────────────────────
+[세션 7] BubblePanel을 오브제 위에 분리 배치 (카메라 빌보드)
+────────────────────────────────────────────────────────────────
+  - PlazaSessionView.bubblePanel(RectTransform) 필드 + PlaceBubbleAtObject(objTr, h):
+    말풍선만 뷰에서 분리 → 독립 World Space 캔버스로 재부모 → 오브제 위에 떠서 카메라 향함.
+    위치/빌보드/추적은 NameTag 재사용(DRY). 재부모 시 월드 스케일 보존(크기 유지).
+    좋아요·별·버튼은 기존대로 스폰 포인트 위 유지.
+  - PlazaManager: _lastSpawnedObjectGO 추적(Mock/GLB/fallback 3경로) + bubbleObjectHeightOffset
+    + 이전/내 창작물 뷰에 PlaceBubbleAtObject 호출. Mock·Server 공통.
+  - Editor 작업: PlazaSessionView 프리팹 BubblePanel 슬롯 연결(미연결 시 뷰 안에 그대로=폴백).
+    프리팹을 Prefabs/Object → Prefabs/UI 로 이동.
+
+────────────────────────────────────────────────────────────────
+[세션 8] Lie 모션 추가
+────────────────────────────────────────────────────────────────
+  - MotionType.Lie(15) + 파서(누워/눕/lie) + MixamoMotionLibrary 기본 _entries +
+    NPC_MotionLibrary.asset(motionType 15 = Lie.anim) + Lie.anim 클립.
+
+────────────────────────────────────────────────────────────────
+[세션 9] (버그) 새 mock 캐릭터 FBX Animator 없음 → CharacterRigImporter 확장
+────────────────────────────────────────────────────────────────
+  ## 증상
+    [CharacterAnimationController] Animator 없음: PlazaChar_/Character_Guide/Character_Placed
+  ## 원인
+    새 mock 캐릭터가 서버 포맷 Character_N/Character_N.fbx 인데, 자동 임포터가
+    "_rigged.fbx"로 끝나는 파일만 Humanoid 처리 → Character_N.fbx 누락 → Animator 없음.
+  ## 수정 (Editor/CharacterRigImporter.cs)
+    IsTarget 을 "GeneratedCharacters/.../character/ 아래 모든 .fbx (.fbm 폴더 제외)"로 확장.
+    npc_X_rigged.fbx 와 Character_N.fbx 둘 다 자동 Humanoid + Animator Controller 연결.
+  ## 적용
+    이미 임포트된 파일은 1회 재처리 필요 — Tools > MINIVERSE > Set Characters Humanoid
+    → Connect Character Animator (또는 폴더 Reimport). 이후 신규 파일은 자동.
+    사용자 확인: 경고 사라짐.
+
+────────────────────────────────────────────────────────────────
+[추가 에셋]
+────────────────────────────────────────────────────────────────
+  - mock 캐릭터 Character_1~5(서버 포맷 FBX), mock 오브제 object_1/2/4/5/org.glb 추가.
+  - 미사용 sndnj.anim 제거.
+
+────────────────────────────────────────────────────────────────
+[운영 메모]
+────────────────────────────────────────────────────────────────
+  - 자유 모드 디버그 스킵 키 = F8 (GameFlowManager._skipGuideKey, 사용자 설정).
+
+================================================================
