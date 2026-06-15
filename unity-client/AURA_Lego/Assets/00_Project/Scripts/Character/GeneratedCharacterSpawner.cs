@@ -2,6 +2,7 @@ using System;
 using UnityEngine;
 using LegoTwin.Core;
 using LegoTwin.Data;
+using LegoTwin.UI;
 
 namespace LegoTwin.Character
 {
@@ -135,6 +136,9 @@ namespace LegoTwin.Character
 
             RuntimeOptimizer.Optimize(go);
 
+            // 캐릭터 머리 위 이름표(있을 때만) — Mock·Server 공통
+            NameTagSpawner.Instance?.Attach(go, session.character_npc_name);
+
             return npc;
         }
 
@@ -151,6 +155,9 @@ namespace LegoTwin.Character
             anim.Initialize(session.assets?.character, session.bubble_text);
 
             RuntimeOptimizer.Optimize(go);
+
+            // 캐릭터 머리 위 이름표(있을 때만) — Mock·Server 공통
+            NameTagSpawner.Instance?.Attach(go, session.character_npc_name);
 
             return placed;
         }

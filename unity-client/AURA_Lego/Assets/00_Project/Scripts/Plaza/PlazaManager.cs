@@ -360,7 +360,7 @@ namespace LegoTwin.Plaza
 
                 if (charGo != null)
                 {
-                    SetupCharacterForPlaza(charGo, session.signature_motion);
+                    SetupCharacterForPlaza(charGo, session.signature_motion, session.character_npc_name);
                     // 이전 창작물 캐릭터는 광장을 배회하며 접근 시 멈춰 시그니처 동작.
                     // (시그니처 트리거를 캐릭터 자신이 담당하므로 PlazaSessionView 와는 분리 — 투표는 그대로)
                     SetupWanderingCharacter(charGo);
@@ -390,7 +390,7 @@ namespace LegoTwin.Plaza
                         var objGo = Instantiate(objPrefab, spawnPos, point.rotation);
                         objGo.name = $"PlazaObj_{session.session_id}";
                         objGo.transform.localScale = Vector3.one * objectSpawnScale;
-                        SetupObjectPhysics(objGo, point.position.y);
+                        SetupObjectPhysics(objGo, point.position.y, objData.object_name);
                     }
                 }
             }
@@ -398,7 +398,7 @@ namespace LegoTwin.Plaza
 
         // 광장 캐릭터에 CharacterAnimationController + PlacedCharacterController 자동 주입.
         // 반환: 구성된 PlacedCharacterController (실패 시 null).
-        private PlacedCharacterController SetupCharacterForPlaza(GameObject go, string signatureMotionName)
+        private PlacedCharacterController SetupCharacterForPlaza(GameObject go, string signatureMotionName, string npcName)
         {
             // Animator Controller 설정 (없을 때만)
             if (characterAnimatorController != null)
@@ -424,6 +424,9 @@ namespace LegoTwin.Plaza
             placed.SetupForPlaza(motionLibrary, signatureClip);
 
             RuntimeOptimizer.Optimize(go);
+
+            // 캐릭터 머리 위 이름표(있을 때만) — Mock·Server 공통
+            NameTagSpawner.Instance?.Attach(go, npcName);
             return placed;
         }
 
@@ -480,11 +483,13 @@ namespace LegoTwin.Plaza
 
         // 오브제를 낙하 없이 groundY에 즉시 안착(Collider 재계산) + 전시용 렌더러 최적화
         // + 배회 캐릭터가 통과하지 않도록 NavMesh 장애물로 표시(오브제는 움직이지 않음)
-        private static void SetupObjectPhysics(GameObject go, float groundY)
+        // + 오브제 머리 위 이름표(있을 때만). Mock/Server/fallback 3경로 공통 합류점.
+        private static void SetupObjectPhysics(GameObject go, float groundY, string objectName)
         {
             RuntimePhysicsUtil.PlaceOnGround(go, groundY);
             RuntimeOptimizer.Optimize(go);
             AddNavMeshObstacle(go);
+            NameTagSpawner.Instance?.Attach(go, objectName);
         }
 
         // 배회 캐릭터의 NavMeshAgent가 오브제를 피해 돌아가도록 장애물로 표시한다.
@@ -524,7 +529,7 @@ namespace LegoTwin.Plaza
                     var fallback = Instantiate(fallbackPrefab, fallbackPos, point.rotation);
                     fallback.name = $"PlazaObj_{sessionId}";
                     fallback.transform.localScale = Vector3.one * objectSpawnScale;
-                    SetupObjectPhysics(fallback, point.position.y);
+                    SetupObjectPhysics(fallback, point.position.y, data.object_name);
                 }
                 return;
             }
@@ -536,7 +541,7 @@ namespace LegoTwin.Plaza
             // GLTFast 인스턴스화 직후 renderer.bounds가 미초기화 상태일 수 있으므로
             // 1프레임 대기 후 안착·BoxCollider 계산 (크기 0으로 잘못 안착하는 버그 방지)
             await Awaitable.NextFrameAsync();
-            SetupObjectPhysics(root, point.position.y);
+            SetupObjectPhysics(root, point.position.y, data.object_name);
         }
 
         // ════════════════════════════════════════════════════════════
