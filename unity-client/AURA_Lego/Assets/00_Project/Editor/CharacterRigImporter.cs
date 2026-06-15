@@ -4,10 +4,13 @@ using UnityEngine;
 namespace LegoTwin.EditorTools
 {
     /// <summary>
-    /// GeneratedCharacters/**/character/ 폴더의 *_rigged.fbx 임포트 시 자동 처리:
+    /// GeneratedCharacters/**/character/ 폴더의 캐릭터 .fbx 임포트 시 자동 처리:
     ///   1. Animation Type → Humanoid
     ///   2. Animator Controller 자동 연결
     ///      (Assets/00_Project/Animations/Character/NPC_AnimatorController.controller)
+    ///
+    /// 대상 명명: npc_X_rigged.fbx(기존) 와 Character_N/Character_N.fbx(서버 포맷) 둘 다 포함.
+    ///           (.fbm 임베디드 텍스처 폴더 안의 파일은 제외)
     ///
     /// ── 수동 일괄 적용 ─────────────────────────────────────────────
     ///  Tools > MINIVERSE > Set Characters Humanoid
@@ -16,7 +19,7 @@ namespace LegoTwin.EditorTools
     public class CharacterRigImporter : AssetPostprocessor
     {
         private const string CHAR_FOLDER      = "GeneratedCharacters";
-        private const string FBX_SUFFIX       = "_rigged.fbx";
+        private const string FBX_SUFFIX       = ".fbx";
         private const string CONTROLLER_PATH  =
             "Assets/00_Project/Animations/Character/NPC_AnimatorController.controller";
 
@@ -126,6 +129,7 @@ namespace LegoTwin.EditorTools
         private static bool IsTarget(string path) =>
             path.Contains(CHAR_FOLDER) &&
             path.Contains("/character/") &&
+            !path.Contains(".fbm/") &&   // .fbm = 임베디드 텍스처 폴더 — 모델 아님, 제외
             path.EndsWith(FBX_SUFFIX, System.StringComparison.OrdinalIgnoreCase);
 
         private static int ProcessAll(System.Func<string, ModelImporter, bool> action)
