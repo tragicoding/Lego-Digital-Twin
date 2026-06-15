@@ -81,6 +81,7 @@ namespace LegoTwin.Character
 
             // ── 박수 ─────────────────────────────────────────────────
             ("박수",   MotionType.Clap),
+            ("손뼉",   MotionType.Clap),
             ("clap",   MotionType.Clap),
 
             // ── 승리 ─────────────────────────────────────────────────
