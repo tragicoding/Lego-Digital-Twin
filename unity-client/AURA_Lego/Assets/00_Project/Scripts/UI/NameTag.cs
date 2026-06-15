@@ -17,18 +17,29 @@ namespace LegoTwin.UI
         private Transform  _target;
         private Renderer[] _renderers;
         private float      _heightOffset;
-        private float      _rightOffset;   // 카메라 기준 좌우 오프셋(+면 화면 오른쪽)
+        private float      _rightOffset;       // 카메라 기준 좌우 오프셋(+면 화면 오른쪽)
+        private float      _forwardOffset;     // 카메라 기준 전후 여유(margin, m). +면 카메라 쪽=앞으로
+        private float      _forwardSizeFactor; // 오브제 반(半)깊이 비례 전진 배율(크기 자동 조정). 0이면 고정.
+        private bool       _eyeLevel;          // true=플레이어(카메라) 눈높이 기준(오브제 높이 무시)
         private Camera     _cam;
 
-        /// <summary>추적 대상과 머리 위 오프셋을 주입한다. NameTagSpawner 가 생성 직후 호출.</summary>
+        /// <summary>추적 대상과 오프셋을 주입한다. NameTagSpawner 가 생성 직후 호출.</summary>
         /// <param name="rightOffset">카메라 기준 좌우 이동(m). +면 화면 오른쪽. 0이면 중앙.</param>
-        public void Bind(Transform target, float heightOffset, float rightOffset = 0f)
+        /// <param name="forwardOffset">카메라 기준 전후 여유(m). +면 카메라 쪽(앞). 크기 비례분에 더해지는 고정 margin.</param>
+        /// <param name="forwardSizeFactor">오브제 반깊이(카메라 방향) × 이 값만큼 추가로 앞으로. 1=앞면 바로 앞.
+        ///   크기에 따라 자동 조정됨. 0이면 forwardOffset 고정값만 사용.</param>
+        /// <param name="eyeLevel">true 면 높이를 플레이어(카메라) 눈높이에 맞춤(오브제 높이 무시). heightOffset 은 눈높이 기준 오프셋.</param>
+        public void Bind(Transform target, float heightOffset, float rightOffset = 0f,
+                         float forwardOffset = 0f, float forwardSizeFactor = 0f, bool eyeLevel = false)
         {
-            _target       = target;
-            _renderers    = target != null ? target.GetComponentsInChildren<Renderer>() : null;
-            _heightOffset = heightOffset;
-            _rightOffset  = rightOffset;
-            _cam          = Camera.main;
+            _target            = target;
+            _renderers         = target != null ? target.GetComponentsInChildren<Renderer>() : null;
+            _heightOffset      = heightOffset;
+            _rightOffset       = rightOffset;
+            _forwardOffset     = forwardOffset;
+            _forwardSizeFactor = forwardSizeFactor;
+            _eyeLevel          = eyeLevel;
+            _cam               = Camera.main;
         }
 
         private void LateUpdate()
@@ -37,26 +48,55 @@ namespace LegoTwin.UI
 
             if (_cam == null) _cam = Camera.main;
 
-            // 대상 바운즈 상단 + 오프셋 위치로 따라가기 (XZ 는 대상 중심)
-            Vector3 pos = new Vector3(_target.position.x, TopY() + _heightOffset, _target.position.z);
-            // 카메라 기준 좌우 이동(빌보드라 화면상 좌우와 일치)
-            if (_cam != null && _rightOffset != 0f) pos += _cam.transform.right * _rightOffset;
+            bool hasBounds = TryGetBounds(out Bounds b);
+
+            // 기준 높이: 눈높이(플레이어) 또는 상단(머리 위) + 오프셋. XZ 는 대상 중심.
+            float baseY;
+            if (_eyeLevel && _cam != null)  baseY = _cam.transform.position.y;  // 플레이어 눈높이
+            else if (hasBounds)             baseY = b.max.y;                    // 머리 위(상단)
+            else                            baseY = _target.position.y;
+            Vector3 pos = new Vector3(_target.position.x, baseY + _heightOffset, _target.position.z);
+
+            // 카메라 기준 좌우/전후 이동(빌보드라 화면상 좌우와 일치)
+            if (_cam != null)
+            {
+                if (_rightOffset != 0f) pos += _cam.transform.right * _rightOffset;
+
+                // 전진 거리 = 오브제 반깊이(카메라 방향) × 배율 + 고정 여유 → 크기에 따라 자동 조정
+                float fwd = _forwardOffset;
+                if (_forwardSizeFactor != 0f && hasBounds)
+                    fwd += HalfDepthAlongCamera(b) * _forwardSizeFactor;
+                if (fwd != 0f) pos -= _cam.transform.forward * fwd; // 카메라 쪽=앞
+            }
             transform.position = pos;
 
             // 빌보드 — 항상 카메라와 같은 방향 (World Space Canvas 표준)
             if (_cam != null) transform.forward = _cam.transform.forward;
         }
 
-        // 모든 Renderer 바운즈의 최대 Y(머리 높이). Renderer 가 없으면 대상 위치 Y 폴백.
-        private float TopY()
+        // 모든 Renderer 를 합친 월드 바운즈. Renderer 가 없으면 false.
+        private bool TryGetBounds(out Bounds bounds)
         {
-            float top = float.NegativeInfinity;
+            bounds = default;
+            bool any = false;
             if (_renderers != null)
             {
                 foreach (var r in _renderers)
-                    if (r != null) top = Mathf.Max(top, r.bounds.max.y);
+                {
+                    if (r == null) continue;
+                    if (!any) { bounds = r.bounds; any = true; }
+                    else bounds.Encapsulate(r.bounds);
+                }
             }
-            return float.IsNegativeInfinity(top) ? _target.position.y : top;
+            return any;
+        }
+
+        // 카메라 forward 방향으로 본 AABB 반(半)깊이 — 중심에서 앞면까지 거리.
+        private float HalfDepthAlongCamera(Bounds b)
+        {
+            Vector3 e = b.extents;
+            Vector3 f = _cam.transform.forward;
+            return Mathf.Abs(e.x * f.x) + Mathf.Abs(e.y * f.y) + Mathf.Abs(e.z * f.z);
         }
     }
 }

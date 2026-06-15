@@ -56,6 +56,16 @@ namespace LegoTwin.Plaza
         public float bubbleTextScale = 1f;           // 말풍선 글씨 크기 배율(패널과 독립)
         [Tooltip("말풍선 좌우 오프셋 (m, 카메라 기준. +면 화면 오른쪽으로)")]
         public float bubbleObjectRightOffset = 0f;   // 말풍선 좌우 위치
+        [Tooltip("좋아요 패널 높이 오프셋 (m, 플레이어 눈높이 기준. 0=눈높이, +면 위로)")]
+        public float likeObjectHeightOffset = 0f;    // 좋아요 패널: 플레이어 눈높이에서 위로 띄울 높이
+        [Tooltip("좋아요 패널 크기 배율 (1=원본, 키우려면 1보다 크게)")]
+        public float likeObjectScale = 2f;           // 좋아요 패널 크기 배율
+        [Tooltip("좋아요 패널 좌우 오프셋 (m, 카메라 기준. +면 화면 오른쪽으로)")]
+        public float likeObjectRightOffset = 0f;     // 좋아요 패널 좌우 위치
+        [Tooltip("좋아요 패널을 오브제 앞으로 당길 추가 여유 (m, 크기 비례분에 더함). 0이면 앞면에 딱 붙음")]
+        public float likeObjectForwardOffset = 0.3f; // 좋아요 패널: 앞면에서 추가로 띄울 고정 여유
+        [Tooltip("오브제 크기 자동 조정: 오브제 반깊이 × 이 값만큼 앞으로. 1=앞면, <1이면 안쪽(큰 오브제일수록 가까이). 0이면 고정값만")]
+        public float likeObjectForwardSizeFactor = 0.65f; // 오브제 크기 비례 전진(낮출수록 큰 오브제가 가까이)
 
         [Header("이전 창작물 캐릭터 배회 (NavMesh — 광장 바닥에 NavMesh 베이크 필요)")]
         [Tooltip("배회 중심 Transform. 비우면(권장) 각 캐릭터가 '자기 스폰 자리'를 중심으로 배회해 " +
@@ -326,6 +336,12 @@ namespace LegoTwin.Plaza
                     view.PlaceBubbleAtObject(
                         _lastSpawnedObjectGO != null ? _lastSpawnedObjectGO.transform : null,
                         bubbleObjectHeightOffset, bubbleObjectScale, bubbleTextScale, bubbleObjectRightOffset);
+                    // 좋아요 패널(LikePanel)은 오브제 '앞'(카메라 쪽)에 분리 배치(카메라 빌보드)
+                    // forwardSizeFactor 로 오브제 크기에 따라 앞면 거리 자동 조정
+                    view.PlaceLikePanelAtObject(
+                        _lastSpawnedObjectGO != null ? _lastSpawnedObjectGO.transform : null,
+                        likeObjectHeightOffset, likeObjectScale, likeObjectRightOffset,
+                        likeObjectForwardOffset, likeObjectForwardSizeFactor);
                     _views.Add(view);
                 }
                 else
