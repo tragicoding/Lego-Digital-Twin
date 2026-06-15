@@ -217,15 +217,27 @@ namespace LegoTwin.Character
                 _agent.updatePosition = false;  // 시그니처 동안 transform 은 애니/리베이스가 제어
             }
 
-            SetWalking(false);
+            if (_interactRoutine != null) { StopCoroutine(_interactRoutine); _interactRoutine = null; }
 
-            if (_interactRoutine != null) StopCoroutine(_interactRoutine);
-            _interactRoutine = StartCoroutine(FaceThenSignature());
+            if (_placed != null && _placed.HasSignature)
+            {
+                // 시그니처 있음 → idle 없이 즉시: 플레이어를 바로 바라보고 시그니처 재생.
+                // (현재 자리·바라본 회전을 앵커로 잡아 '멈춰 선 이 자리'에서 동작)
+                SnapFacePlayer();
+                _placed.RebaseAnchorToCurrent();
+                _placed.PlaySignatureMotion();
+            }
+            else
+            {
+                // 시그니처 없음 → idle 애니메이션 재생, 부드럽게 플레이어 응시만.
+                SetWalking(false);
+                _interactRoutine = StartCoroutine(FaceSmooth());
+            }
         }
 
-        private IEnumerator FaceThenSignature()
+        // 플레이어를 향해 부드럽게 회전(시그니처 없는 idle 캐릭터용). 회전 외 동작 없음.
+        private IEnumerator FaceSmooth()
         {
-            // 플레이어를 향해 부드럽게 회전
             float t = 0f;
             while (t < FaceDuration)
             {
@@ -234,11 +246,6 @@ namespace LegoTwin.Character
                 yield return null;
             }
             SnapFacePlayer();
-
-            // 현재 자리·바라보는 회전을 기준으로 드리프트 앵커를 다시 잡고 시그니처 재생.
-            // (스폰 위치가 아니라 '멈춰 선 이 자리'에서 동작하도록)
-            _placed?.RebaseAnchorToCurrent();
-            _placed?.PlaySignatureMotion();
             _interactRoutine = null;
         }
 
@@ -247,6 +254,7 @@ namespace LegoTwin.Character
             if (_interactRoutine != null) { StopCoroutine(_interactRoutine); _interactRoutine = null; }
 
             _placed?.StopSignatureMotion();
+            _walking = false;   // 배회 재개 시 SyncWalkAnim 이 walk 를 다시 켜도록 캐시 리셋
 
             if (_agent != null && _agent.enabled)
             {

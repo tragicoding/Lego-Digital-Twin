@@ -170,6 +170,9 @@ namespace LegoTwin.Character
             if (_animator != null) _animator.speed = 1f;
         }
 
+        /// <summary>시그니처 클립이 설정돼 있는지 여부(접근 시 시그니처를 재생할 캐릭터인지).</summary>
+        public bool HasSignature => _signatureClip != null;
+
         /// <summary>
         /// 플레이어 접근 시 시그니처 동작을 루프 재생한다.
         /// 관람객이 저장한 그 클립을 항상 동일하게 재생한다(접근할 때마다 같은 동작).
