@@ -5,7 +5,11 @@ import { finalizeSession } from "../api/client";
 import { useSessionStore } from "../store/sessionStore";
 import PrimaryButton from "../components/PrimaryButton";
 
-export default function LoadingPage() {
+interface LoadingPageProps {
+  testMode?: boolean;
+}
+
+export default function LoadingPage({ testMode = false }: LoadingPageProps) {
   const { sessionId, reset } = useSessionStore();
   const navigate = useNavigate();
   const [showButton, setShowButton] = useState(false);
@@ -21,12 +25,19 @@ export default function LoadingPage() {
     if (!sessionId || moving) return;
     setMoving(true);
     setError(null);
+
+    if (testMode) {
+      reset();
+      navigate("/test/start");
+      return;
+    }
+
     try {
       await finalizeSession(sessionId);
       reset();
       navigate("/start");
     } catch {
-      setError("세션 이동에 실패했습니다. 관리자에게 문의해주세요.");
+      setError("세션 이동에 실패했습니다. 관리자에게 문의해 주세요.");
       setMoving(false);
     }
   };
@@ -39,7 +50,7 @@ export default function LoadingPage() {
         className="space-y-8"
       >
         <p className="text-3xl font-black leading-snug text-gray-900 whitespace-pre-line">
-          {"이제 MINIVERSE로 이동할게요!\n옆의 부스로 이동하세요!"}
+          {"MINIVERSE로 이동할게요\n앞의 부스로 이동하세요"}
         </p>
 
         {showButton && (

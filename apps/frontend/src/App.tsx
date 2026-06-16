@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import AppLayout from "./components/AppLayout";
 import StartPage from "./pages/StartPage";
 import CapturePage from "./pages/CapturePage";
@@ -13,6 +13,11 @@ export default function App() {
           <Route path="/start" element={<StartPage />} />
           <Route path="/capture" element={<CapturePage />} />
           <Route path="/loading" element={<LoadingPage />} />
+
+          <Route path="/test" element={<Navigate to="/test/start" replace />} />
+          <Route path="/test/start" element={<StartPage testMode />} />
+          <Route path="/test/capture" element={<CapturePage testMode />} />
+          <Route path="/test/loading" element={<LoadingPage testMode />} />
         </Routes>
       </AppLayout>
     </BrowserRouter>
