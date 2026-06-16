@@ -9834,7 +9834,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: df34435ccdf0476408b42bdd7e6ece5c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LegoTwin.Object.GeneratedObjectSpawner
-  objectPrefab: {fileID: -7066584691146494887, guid: c301e3372fb287f4e842e5fa65bbb9f6, type: 3}
+  objectPrefab: {fileID: 8244701860994787913, guid: fb3fbef2a2e16d446ba9281cedca3ee4, type: 3}
   spawnPoint: {fileID: 1031361245}
   spawnScale: 12
   applyGravity: 1
@@ -13720,7 +13720,7 @@ MonoBehaviour:
   _enterVideoFadeDuration: 0.6
   _enterButton: {fileID: 1557484819}
   _enterButtonDelay: 1
-  _mockPrepSeconds: 19
+  _mockPrepSeconds: 29
 --- !u!114 &121814506
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -14109,7 +14109,6 @@ MonoBehaviour:
   - {fileID: 919132149155446097, guid: ded4cc42a7859534594a58074241a4b0, type: 3}
   - {fileID: 919132149155446097, guid: ed7a179738204f347bc71620f37d88d9, type: 3}
   - {fileID: 919132149155446097, guid: cbdff4f17b1935e47a275bebbae91ff0, type: 3}
-  - {fileID: 919132149155446097, guid: cae46399a39c6e84eb2e36ef24afc917, type: 3}
   - {fileID: 919132149155446097, guid: 713ef89cc06444a4f9d4fe4f6b4508e8, type: 3}
   mockObjectPrefabs:
   - {fileID: -7066584691146494887, guid: c301e3372fb287f4e842e5fa65bbb9f6, type: 3}
@@ -223143,7 +223142,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FastSkyDayNight
   timeOfDay: 7
-  timeMultiplier: 0.1
+  timeMultiplier: 0.05
   sun: {fileID: 1921761965}
 --- !u!4 &1969333971
 Transform:
