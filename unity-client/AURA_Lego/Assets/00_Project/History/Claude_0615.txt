@@ -219,6 +219,48 @@ Claude Code 작업 기록
   - 미사용 sndnj.anim 제거.
 
 ────────────────────────────────────────────────────────────────
+[세션 10] 말풍선·이름표 배치 세부 옵션 (커밋 dfdca951)
+────────────────────────────────────────────────────────────────
+  세션 6~7의 이름표/말풍선 기본 배치 이후, 크기·위치를 인스펙터에서 따로 조정 가능하게 보강.
+
+  ## 이름표 크기 (NameTagSpawner)
+    - 캐릭터 이름표 길이 추가 축소(사용자 요청 "조금만 더 줄여").
+  ## BubblePanel 크기·글씨·위치 (PlazaSessionView.PlaceBubbleAtObject + PlazaManager)
+    - bubbleObjectScale     : 말풍선 패널 크기 배율(독립).
+    - bubbleTextScale       : 글씨 크기 배율 — 패널 크기와 독립. localScale 아닌 fontSize 로
+                              조정(위치가 패널 중앙에서 안 벗어나게).
+    - bubbleObjectRightOffset : 말풍선 좌우(카메라 기준) 오프셋.
+    - 글씨가 패널 위로 떠오르던 문제: BubblePanel 이 stretch 앵커라 재부모 시 기준이 깨진 것이
+      원인 → 앵커 캔버스를 패널 원래 rect 크기로 잡고, 패널을 캔버스에 꽉 채워(anchor 0~1,
+      offset 0) 중앙 정렬 + Canvas.ForceUpdateCanvases() 로 해결.
+  ## 오브제 이름표 높이 분리 (NameTagSpawner)
+    - _objectHeightOffset 추가 — 오브제 이름표 높이를 캐릭터(_heightOffset)와 별도로 조절.
+  ## NameTag 좌우 오프셋 (NameTag.Bind rightOffset)
+    - 카메라 기준 right 축으로 좌우 이동(빌보드라 화면 좌우와 일치).
+
+────────────────────────────────────────────────────────────────
+[세션 11] (조사·결정) 새 mock 캐릭터 FBX 리깅 꼬임 → mock 제외·백엔드 대기 (커밋 a92eac7d)
+────────────────────────────────────────────────────────────────
+  ## 증상
+    새로 들어온 mock FBX 캐릭터(Character_N)들의 팔/다리 관절이 꼬인 채로 import 됨.
+    Configure Avatar 에서 본 매핑은 전부 초록(정상)인데도 포즈가 뒤틀림.
+  ## 조사 (모두 되돌림 — 효과 없거나 악화)
+    - 자동 Humanoid          : 상체 정상, 하체 일부 꼬임.
+    - Enforce T-Pose         : 하체 꼬임 안 풀림.
+    - humanDescription 전체 복사(npc_3 기준) : 팔 정상, 다리 꼬임.
+    - 본 매핑(human)만 복사   : 팔·다리 모두 꼬임(더 나빠짐).
+    - 런타임 아바타 교체(npc_3) : 팔·다리 꼬임 — TripoFbxLoader 의 기존 방식과 동일,
+                                 서버 모드도 같은 문제.
+  ## 원인 결론
+    원본 FBX 의 다리 bind pose/축이 비표준 → Unity 측 리타게팅으로 교정 불가.
+    Character_1 은 더 심각: Hip(Hips) 본 자체가 없어 Humanoid 구성 불가
+    ("Required human bone 'Hips' not found").
+  ## 결정
+    - 꼬임 FBX 5개를 Main 씬 mock 캐릭터 목록에서 제외(전시 화면에 안 나오게).
+    - 근본 해결은 백엔드의 T-pose 표준 리그 재익스포트 대기(요청 문서 준비됨).
+    - Unity 측 임포터 실험 변경은 전부 직전 커밋으로 되돌림(재적용 금지).
+
+────────────────────────────────────────────────────────────────
 [운영 메모]
 ────────────────────────────────────────────────────────────────
   - 자유 모드 디버그 스킵 키 = F8 (GameFlowManager._skipGuideKey, 사용자 설정).

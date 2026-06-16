@@ -22,8 +22,9 @@ MonoBehaviour:
     clip: {fileID: 7400000, guid: 38611fcec6a16174c8cf13f5ec1a326a, type: 2}
     variations: []
   - motionType: 3
-    clip: {fileID: 7400000, guid: 1cdcc8a97d196144186a9126f49f7a33, type: 2}
-    variations: []
+    clip: {fileID: 7400000, guid: 7a094d982d646884db3c29bf0ea1d425, type: 2}
+    variations:
+    - {fileID: 7400000, guid: 1cdcc8a97d196144186a9126f49f7a33, type: 2}
   - motionType: 4
     clip: {fileID: 7400000, guid: 1a93a417dc4fa044f80608aacfd93b66, type: 2}
     variations: []

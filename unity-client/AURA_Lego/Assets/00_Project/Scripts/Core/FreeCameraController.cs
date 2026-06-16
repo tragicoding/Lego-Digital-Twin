@@ -73,6 +73,13 @@ namespace LegoTwin.Core
 
         private void Start()
         {
+            SyncLookFromTransforms();   // 초기 _yaw/_pitch 를 현재 회전에서 잡는다
+        }
+
+        // 현재 리그(yaw)·카메라(pitch) 회전에서 _yaw/_pitch 를 다시 읽어온다.
+        // Start 초기화 + 드래그 시작 시 재동기화(텔레포트 등 외부 회전 변경 흡수)에 공통 사용.
+        private void SyncLookFromTransforms()
+        {
             _yaw   = _rig.eulerAngles.y;
             _pitch = transform.localEulerAngles.x;
             if (_pitch > 180f) _pitch -= 360f;   // 0~360 → -180~180 보정
@@ -104,6 +111,11 @@ namespace LegoTwin.Core
         // ── 시선 회전 (오른쪽 버튼 드래그) ─────────────────────────
         private void HandleLook()
         {
+            // 드래그 시작 프레임: 현재 실제 회전으로 _yaw/_pitch 재동기화.
+            // 텔레포트 등 외부에서 리그를 돌렸어도 그 방향을 이어받아, 시선 시작 시 스냅(튐)을 방지한다.
+            if (Input.GetMouseButtonDown(1))
+                SyncLookFromTransforms();
+
             if (Input.GetMouseButton(1))
             {
                 _yaw   += Input.GetAxis("Mouse X") * mouseSensitivity;

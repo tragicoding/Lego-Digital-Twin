@@ -96,6 +96,13 @@ namespace LegoTwin.Data
         public string signature_motion;
     }
 
+    [Serializable]
+    public class NamesRequest
+    {
+        public string character_npc_name;
+        public string object_name;
+    }
+
     // ════════════════════════════════════════════════════════════════
     // WebSocket 이벤트
     // ════════════════════════════════════════════════════════════════

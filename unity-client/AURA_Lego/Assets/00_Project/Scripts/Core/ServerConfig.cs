@@ -35,6 +35,7 @@ namespace LegoTwin.Core
         public static string LikeUrl(string sid)            => $"{BaseUrl}/sessions/{sid}/like";
         public static string BubbleTextUrl(string sid)    => $"{BaseUrl}/sessions/{sid}/profile";
         public static string SignatureMotionUrl(string sid)=> $"{BaseUrl}/sessions/{sid}/signature-motion";
+        public static string NamesUrl(string sid)          => $"{BaseUrl}/sessions/{sid}/names";
 
         // ── 광장 ──────────────────────────────────────────────────────
         public static string PlazaSessionsUrl()           => $"{BaseUrl}/unity/plaza/sessions";

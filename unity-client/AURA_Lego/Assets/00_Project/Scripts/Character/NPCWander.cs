@@ -27,6 +27,10 @@ namespace LegoTwin.Character
         [Tooltip("회전 속도")]
         [SerializeField] private float rotationSpeed = 5f;
 
+        [Tooltip("모델 정면 보정 (도). 모델의 얼굴이 로컬 +Z가 아니면 옆/뒤로 걷는다.\n" +
+                 "옆으로 걸으면 90 또는 -90, 뒤로 걸으면 180 입력. (정면이 +Z면 0)")]
+        [SerializeField] private float modelYawOffset = 0f;
+
         [Tooltip("목적지 도착 판정 거리")]
         [SerializeField] private float arrivalThreshold = 0.3f;
 
@@ -84,12 +88,12 @@ namespace LegoTwin.Character
             transform.position = Vector3.MoveTowards(
                 transform.position, target, moveSpeed * Time.deltaTime);
 
-            // 방향 회전 (Y축만)
+            // 방향 회전 (Y축만). modelYawOffset 으로 모델 정면 축(+Z 아님)을 보정한다.
             var dir = new Vector3(target.x - transform.position.x, 0f, target.z - transform.position.z);
             if (dir != Vector3.zero)
                 transform.rotation = Quaternion.Slerp(
                     transform.rotation,
-                    Quaternion.LookRotation(dir),
+                    Quaternion.LookRotation(dir) * Quaternion.Euler(0f, modelYawOffset, 0f),
                     rotationSpeed * Time.deltaTime);
         }
 

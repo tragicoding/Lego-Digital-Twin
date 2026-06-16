@@ -98,6 +98,19 @@ namespace LegoTwin.Plaza
         [Tooltip("내 창작물 접근 시 표시할 인터랙션 패널 프리팹 ('동작 입력하기' 버튼 포함)")]
         public GameObject ownCreationInteractPanelPrefab;
 
+        [Header("동작 입력 패널 위치 (좋아요 패널과 독립)")]
+        [Tooltip("눈높이 기준 높이 오프셋 (m). 음수면 눈높이보다 '아래'로 내려간다(이 패널은 눈높이를 낮추는 용도). " +
+                 "효과가 약하면 더 큰 음수로(캐릭터가 크게 스케일된 광장에선 -1~-3 정도 필요할 수 있음).")]
+        public float interactPanelHeightOffset = -0.5f;
+        [Tooltip("좌우 오프셋 (m, 카메라 기준. +면 화면 오른쪽으로)")]
+        public float interactPanelRightOffset = 0f;
+        [Tooltip("캐릭터 앞으로 당길 추가 여유 (m, 크기 비례분에 더함). 0이면 앞면에 딱 붙음")]
+        public float interactPanelForwardOffset = 0.3f;
+        [Tooltip("크기 자동 조정: 캐릭터 반깊이 × 이 값만큼 앞으로. 1=앞면, <1이면 안쪽(큰 대상일수록 가까이). 0이면 고정값만")]
+        public float interactPanelForwardSizeFactor = 0.65f;
+        [Tooltip("패널 크기 배율 (1=프리팹 원본 크기. 키우려면 1보다 크게)")]
+        public float interactPanelScale = 1f;
+
         private readonly List<PlazaSessionView> _views = new();
         private readonly Dictionary<string, int> _likeCounts = new();
         private string _topSessionId;
@@ -621,10 +634,14 @@ namespace LegoTwin.Plaza
 
             _likeCounts[_currentSession.session_id] = _currentSession.likes;
 
-            // 이전 관람객 뷰와 동일한 절대 Y 기준 사용 (object Y 무시)
-            var objPos = _currentObjectGO.transform.position;
-            var pos = new Vector3(objPos.x, viewHeightOffset, objPos.z);
-            var rot = _currentObjectGO.transform.rotation * Quaternion.Euler(0f, 180f, 0f);
+            // 내 창작물의 동작 프롬프트 인터랙션(OwnCreationInteractor 트리거 + 패널)은 '캐릭터'
+            // 근처에서 뜨도록, 뷰를 캐릭터 위치에 생성한다. 캐릭터를 오브제와 떨어뜨려 배치해도
+            // 캐릭터에 다가가면 UI가 뜬다. (말풍선은 PlaceBubbleAtObject 로 오브제 위에 별도 배치.)
+            // 캐릭터가 없으면(드문 경우) 오브제 위치로 폴백.
+            var anchorGo  = _currentCharacterGO != null ? _currentCharacterGO : _currentObjectGO;
+            var anchorPos = anchorGo.transform.position;
+            var pos = new Vector3(anchorPos.x, viewHeightOffset, anchorPos.z);
+            var rot = anchorGo.transform.rotation * Quaternion.Euler(0f, 180f, 0f);
             var view = Instantiate(sessionViewPrefab, pos, rot);
             view.Initialize(sessionData, sessionData.is_top_liked);
             _views.Add(view);
@@ -662,7 +679,24 @@ namespace LegoTwin.Plaza
 
             GameObject panel = null;
             if (ownCreationInteractPanelPrefab != null)
-                panel = Instantiate(ownCreationInteractPanelPrefab, viewGo.transform);
+            {
+                // 패널은 자체 World Space Canvas + GraphicRaycaster(버튼 클릭)라 reparent-stretch 하면
+                // 안 됨. 좋아요 패널과 동일하게 '캐릭터 앞·눈높이'로 따라가도록 독립 생성 후 NameTag 부착.
+                // (뷰의 빌보드와 충돌 방지 위해 뷰의 자식으로 두지 않음. NameTag 가 위치/빌보드 담당.)
+                panel = Instantiate(ownCreationInteractPanelPrefab);
+                panel.transform.localScale *= interactPanelScale;   // 1=프리팹 원본(기본), 그 외 배율 적용
+
+                var cam = Camera.main;
+                foreach (var c in panel.GetComponentsInChildren<Canvas>(true))
+                    if (c.renderMode == RenderMode.WorldSpace) c.worldCamera = cam;
+
+                var target = placedChar != null ? placedChar.transform : viewGo.transform;
+                // 동작 입력 패널 전용 오프셋으로 캐릭터 앞·눈높이에 배치(좋아요 패널과 독립 조정).
+                // 높이는 눈높이 기준이며, interactPanelHeightOffset(음수)으로 눈높이보다 낮춘다.
+                panel.AddComponent<NameTag>().Bind(target,
+                    interactPanelHeightOffset, interactPanelRightOffset,
+                    interactPanelForwardOffset, interactPanelForwardSizeFactor, eyeLevel: true);
+            }
 
             interactor.Setup(placedChar, panel, promptUI, confirmUI);
         }
