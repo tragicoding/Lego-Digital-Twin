@@ -84,6 +84,13 @@ namespace LegoTwin.Managers
         private GameObject _spawnedCharacterGO;
         private GameObject _spawnedObjectGO;
 
+        // ── 스폰 게이트 (세션 로드 + 대기화면 이름 입력이 모두 끝나야 스폰) ──
+        private SessionData _pendingSession;   // 로드된 세션 (이름 입력 대기 중 보관)
+        private bool        _namesReady;       // 대기화면 이름 입력 완료(또는 대기화면 없음)
+        private bool        _spawned;          // 중복 스폰 방지
+        private string      _enteredCharName;  // 대기화면에서 입력한 캐릭터 이름
+        private string      _enteredObjName;   // 대기화면에서 입력한 오브제 이름
+
         // ════════════════════════════════════════════════════════════
         // Unity 생명주기
         // ════════════════════════════════════════════════════════════
@@ -115,15 +122,21 @@ namespace LegoTwin.Managers
                 return;
             }
 
-            // 씬 재진입 등으로 이미 로드된 세션이 있으면 즉시 처리
-            if (SessionManager.Instance.CurrentSession != null)
-            {
-                OnSessionLoaded(SessionManager.Instance.CurrentSession);
-                return;
-            }
+            // 대기화면에서 캐릭터/오브제 이름을 입력받은 뒤 스폰한다(이름이 처음부터 창작물·가이드에 반영되도록).
+            // 대기화면이 없으면 이름 게이트 없이 세션 로드만으로 스폰한다(이 기능 도입 전 동작과 호환).
+            if (_waitingScreen == null)
+                _waitingScreen = FindAnyObjectByType<WaitingScreenUI>();
+            if (_waitingScreen != null)
+                _waitingScreen.BeginNameEntry(OnNamesEntered);
+            else
+                _namesReady = true;
 
-            // 세션 로드 완료 이벤트 구독 → SessionManager.Start() 에서 자동 로드됨
-            SessionManager.Instance.OnSessionLoaded += OnSessionLoaded;
+            // 씬 재진입 등으로 이미 로드된 세션이 있으면 즉시 처리(스폰은 이름 입력까지 게이트됨)
+            if (SessionManager.Instance.CurrentSession != null)
+                OnSessionLoaded(SessionManager.Instance.CurrentSession);
+            else
+                // 세션 로드 완료 이벤트 구독 → SessionManager.Start() 에서 자동 로드됨
+                SessionManager.Instance.OnSessionLoaded += OnSessionLoaded;
         }
 
         private void OnDestroy()
@@ -165,9 +178,39 @@ namespace LegoTwin.Managers
         // 세션 로드 완료 → 스폰 + 시나리오 시작
         // ════════════════════════════════════════════════════════════
 
-        // 스폰은 콜백 기반(Mock=동기, Server=TriLib 비동기). 어느 모드든 동일하게 동작한다.
+        // 세션 데이터 로드 완료 → 스폰 게이트에 보관. 실제 스폰은 이름 입력까지 기다린다.
         private void OnSessionLoaded(SessionData session)
         {
+            _pendingSession = session;
+            TrySpawn();
+        }
+
+        // 대기화면 이름 입력(②까지) 완료 → 입력값 보관 후 스폰 게이트 시도.
+        private void OnNamesEntered(string characterName, string objectName)
+        {
+            _enteredCharName = characterName;
+            _enteredObjName  = objectName;
+            _namesReady = true;
+            TrySpawn();
+        }
+
+        // 세션 데이터와 이름 입력이 모두 준비되면 한 번만 스폰한다.
+        // 두 신호는 모드/속도에 따라 어느 쪽이 먼저 와도 되며(Mock=세션 즉시, Server=세션 지연 가능),
+        // 마지막에 도착한 쪽이 스폰을 트리거한다.
+        private void TrySpawn()
+        {
+            if (_spawned || !_namesReady || _pendingSession == null) return;
+            _spawned = true;
+            SpawnSession(_pendingSession);
+        }
+
+        // 스폰은 콜백 기반(Mock=동기, Server=TriLib 비동기). 어느 모드든 동일하게 동작한다.
+        private void SpawnSession(SessionData session)
+        {
+            // 대기화면에서 입력받은 이름을 스폰 '이전'에 적용한다(빈 값이면 기존 이름 유지).
+            // 이름은 Unity가 단일 출처 → 가이드 NPC 대사·배치 캐릭터/오브제 이름표에 처음부터 반영된다.
+            SessionManager.Instance.SetNames(_enteredCharName, _enteredObjName);
+
             _currentNpcName = session.character_npc_name;
 
             if (_characterSpawner == null)

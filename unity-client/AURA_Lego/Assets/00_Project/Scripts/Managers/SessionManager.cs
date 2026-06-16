@@ -184,6 +184,50 @@ namespace LegoTwin.Managers
         }
 
         /// <summary>
+        /// 현재 세션의 캐릭터/오브제 이름을 설정한다(대기화면 이름 입력).
+        /// 이름 입력은 백엔드가 아니라 Unity(대기화면)에서 받는다 — 입력의 단일 출처는 Unity다.
+        /// 빈 값은 무시(기존 이름 유지)하므로, 입력을 건너뛰어도 안전하다.
+        /// 스폰 '이전'에 호출되므로 가이드 NPC 대사·배치 캐릭터/오브제 이름표에 처음부터 반영된다(사후 갱신 불필요).
+        ///
+        /// object_name 은 오브제 '이름표'용 필드(assets.object.object_name)만 갱신하고,
+        /// 한마디(bubble_text)와 공유되는 최상위 object_name 은 건드리지 않는다(이름 ≠ 한마디).
+        ///
+        /// 영구 저장(광장에서 '이전 창작물 이름'을 표시하기 위함):
+        ///   Mock  : 메모리 반영 → 세션 완료 시 PlazaManager가 mock_plaza.json에 저장(assets 포함).
+        ///   Server: 메모리 반영 + PATCH /sessions/{id}/names → 백엔드가 보관 → plaza API가 다음 관람객에게 반환.
+        /// caller(GameFlowManager)는 분기 없이 이 한 경로만 호출한다(SetBubbleText와 동일 패턴).
+        /// </summary>
+        public void SetNames(string characterName, string objectName)
+        {
+            if (CurrentSession == null)
+            {
+                Debug.LogWarning("[SessionManager] 이름 저장 실패 — 현재 세션 없음");
+                return;
+            }
+
+            bool hasChar = !string.IsNullOrWhiteSpace(characterName);
+            bool hasObj  = !string.IsNullOrWhiteSpace(objectName);
+            if (!hasChar && !hasObj) return;   // 입력 없음 → 변경·전송 없음(기존 이름 유지)
+
+            if (hasChar)
+            {
+                string name = characterName.Trim();
+                CurrentSession.character_npc_name = name;                 // 가이드 대사·배치 캐릭터 이름표
+                if (CurrentSession.assets?.character != null)
+                    CurrentSession.assets.character.npc_name = name;      // 캐릭터 에셋 메타 일치
+            }
+            if (hasObj && CurrentSession.assets?.@object != null)
+                CurrentSession.assets.@object.object_name = objectName.Trim();   // 오브제 이름표
+
+            // Server 모드: 백엔드에 영구 저장(광장 '이전 창작물 이름' 표시용)
+            if (dataSourceMode == DataSourceMode.Server && _apiClient != null)
+                StartCoroutine(_apiClient.SaveNames(
+                    CurrentSession.session_id,
+                    CurrentSession.character_npc_name,
+                    CurrentSession.assets?.@object?.object_name));
+        }
+
+        /// <summary>
         /// 현재 세션의 bubble_text/object_name 을 함께 갱신한다.
         /// Mock: 메모리에만 반영.
         /// Server: 메모리 반영 + PATCH /sessions/{id}/profile API 호출.
@@ -208,13 +252,17 @@ namespace LegoTwin.Managers
         // ════════════════════════════════════════════════════════════
 
         /// <summary>
-        /// 종료 버튼 진입점. 현재 세션을 마무리하고 씬을 리로드해 대기화면으로 복귀한다.
+        /// 관람객 종료 버튼(QuitButton) 진입점. 현재 세션을 '완료' 처리(큐를 다음으로 넘김)하고
+        /// 씬을 리로드해 대기화면으로 복귀한다(다음 관람객).
         /// 리로드가 이전 세션의 스폰물·상태를 전부 초기화하고, 이어서 BeginSessionAcquisition이
         /// 다음 세션을 받는다(대기화면은 리로드된 새 씬에서 자동 표시).
         ///
-        /// 모드별로 다른 부분은 "현재 세션 마무리" 한 단계뿐이며, 이후 흐름은 Mock·Server 동일하다:
-        ///   Mock  : 현재 세션을 mock_plaza에 저장 (다음 관람객에게 이전 창작물로 노출)
+        /// 모드별로 다른 부분은 "현재 세션 완료 + 큐 다음으로" 한 단계뿐이며, 이후 흐름은 Mock·Server 동일하다:
+        ///   Mock  : mock_plaza에 창작물 기록 + MockSessionLoader.AdvanceToNext() (인덱스 +1)
         ///   Server: 대기 큐의 현재 세션을 history로 이동 (POST /unity-queue/advance)
+        ///
+        /// ※ '진짜 앱 종료'(전시 중 수정/재빌드용)는 OperatorQuit이 담당한다 — 그쪽은 advance를 하지
+        ///   않으므로 재시작 시 같은 세션부터 이어진다. (advance는 오직 이 '완료' 경로에서만 일어난다)
         /// </summary>
         public void EndCurrentSession()
         {
@@ -223,9 +271,12 @@ namespace LegoTwin.Managers
 
         private IEnumerator EndCurrentSessionRoutine()
         {
-            // ── 모드별 마무리 (유일한 분기) ──
+            // ── 모드별 마무리 (유일한 분기) — 둘 다 "현재 세션 완료 + 큐 다음으로" 의미 ──
             if (dataSourceMode == DataSourceMode.Mock)
-                LegoTwin.Plaza.PlazaManager.Instance?.SaveCurrentSessionToMockPlaza();
+            {
+                LegoTwin.Plaza.PlazaManager.Instance?.SaveCurrentSessionToMockPlaza();  // 창작물을 광장에 기록
+                MockSessionLoader.AdvanceToNext();                                       // 큐 다음으로 (Server advance 대응)
+            }
             else if (_apiClient != null)
                 yield return _apiClient.AdvanceQueue(_ => { });
 

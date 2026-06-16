@@ -124,6 +124,26 @@ namespace LegoTwin.Network
                 onSuccess?.Invoke();
         }
 
+        /// <summary>
+        /// PATCH /sessions/{id}/names — 캐릭터/오브제 이름 저장.
+        /// 이름 입력은 Unity(대기화면)에서 받지만, 광장에서 '이전 창작물 이름'을 표시하려면 백엔드에
+        /// 영구 저장돼야 하므로 전송한다. 백엔드는 이 값을 보관하고 GET /unity/plaza/sessions 응답의
+        /// character_npc_name(top-level) · assets.object.object_name(nested)으로 돌려줘야 한다.
+        /// </summary>
+        public IEnumerator SaveNames(string sessionId, string characterName, string objectName, Action onSuccess = null)
+        {
+            var payload = new NamesRequest { character_npc_name = characterName, object_name = objectName };
+            using var req = new UnityWebRequest(ServerConfig.NamesUrl(sessionId), "PATCH");
+            req.uploadHandler   = new UploadHandlerRaw(Encoding.UTF8.GetBytes(JsonUtility.ToJson(payload)));
+            req.downloadHandler = new DownloadHandlerBuffer();
+            req.SetRequestHeader("Content-Type", "application/json");
+            yield return req.SendWebRequest();
+            if (req.result != UnityWebRequest.Result.Success)
+                Debug.LogError($"[ApiClient] SaveNames 실패: {req.error}");
+            else
+                onSuccess?.Invoke();
+        }
+
         /// <summary>PATCH /sessions/{id}/profile — bubble_text 업데이트</summary>
         public IEnumerator UpdateBubbleText(string sessionId, string bubbleText, Action onSuccess = null)
         {
