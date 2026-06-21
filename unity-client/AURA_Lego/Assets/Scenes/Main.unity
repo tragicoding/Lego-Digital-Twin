@@ -9834,7 +9834,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: df34435ccdf0476408b42bdd7e6ece5c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LegoTwin.Object.GeneratedObjectSpawner
-  objectPrefab: {fileID: 8244701860994787913, guid: fb3fbef2a2e16d446ba9281cedca3ee4, type: 3}
+  objectPrefab: {fileID: 7328096258878974588, guid: 58e6effad11d8804082cb57466f686e6, type: 3}
   spawnPoint: {fileID: 1031361245}
   spawnScale: 12
   applyGravity: 1
@@ -13720,7 +13720,7 @@ MonoBehaviour:
   _enterVideoFadeDuration: 0.6
   _enterButton: {fileID: 1557484819}
   _enterButtonDelay: 1
-  _mockPrepSeconds: 29
+  _mockPrepSeconds: 1
 --- !u!114 &121814506
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -14118,7 +14118,7 @@ MonoBehaviour:
   - {fileID: -1631306835892522547, guid: a434f5309951e90489c80218c6982ad8, type: 3}
   - {fileID: -7273114725184172021, guid: 392e51b545ceeee4284b16033fb4eead, type: 3}
   - {fileID: 8540051097486574154, guid: b8af30c40ceb6cf4bacb221492dfe48e, type: 3}
-  - {fileID: 7328096258878974588, guid: 58e6effad11d8804082cb57466f686e6, type: 3}
+  - {fileID: 8244701860994787913, guid: fb3fbef2a2e16d446ba9281cedca3ee4, type: 3}
   characterSpawnScale: 6
   objectSpawnScale: 12
   characterForwardOffset: 20
@@ -54862,6 +54862,35 @@ PrefabInstance:
     - {fileID: -9047664277741388935, guid: 67ce2fa15e386eb46a527a170e96005f, type: 3}
     - {fileID: -1842431908472137495, guid: 67ce2fa15e386eb46a527a170e96005f, type: 3}
     - {fileID: -8635029792017735635, guid: 67ce2fa15e386eb46a527a170e96005f, type: 3}
+    - {fileID: -7162533858597612400, guid: 67ce2fa15e386eb46a527a170e96005f, type: 3}
+    - {fileID: 4331172239812977040, guid: 67ce2fa15e386eb46a527a170e96005f, type: 3}
+    - {fileID: -8723448908664055199, guid: 67ce2fa15e386eb46a527a170e96005f, type: 3}
+    - {fileID: 821957140872708934, guid: 67ce2fa15e386eb46a527a170e96005f, type: 3}
+    - {fileID: 6300296936901462758, guid: 67ce2fa15e386eb46a527a170e96005f, type: 3}
+    - {fileID: 7405989077985311199, guid: 67ce2fa15e386eb46a527a170e96005f, type: 3}
+    - {fileID: -3538516883620755289, guid: 67ce2fa15e386eb46a527a170e96005f, type: 3}
+    - {fileID: -6593972611274808224, guid: 67ce2fa15e386eb46a527a170e96005f, type: 3}
+    - {fileID: 2343727214637628188, guid: 67ce2fa15e386eb46a527a170e96005f, type: 3}
+    - {fileID: 3696621507122140262, guid: 67ce2fa15e386eb46a527a170e96005f, type: 3}
+    - {fileID: -3398326824054126498, guid: 67ce2fa15e386eb46a527a170e96005f, type: 3}
+    - {fileID: -8854044197241199196, guid: 67ce2fa15e386eb46a527a170e96005f, type: 3}
+    - {fileID: -4509653082850543215, guid: 67ce2fa15e386eb46a527a170e96005f, type: 3}
+    - {fileID: -1375707702301818560, guid: 67ce2fa15e386eb46a527a170e96005f, type: 3}
+    - {fileID: -7448560274716980387, guid: 67ce2fa15e386eb46a527a170e96005f, type: 3}
+    - {fileID: -7465244219827256994, guid: 67ce2fa15e386eb46a527a170e96005f, type: 3}
+    - {fileID: -3311423222273977134, guid: 67ce2fa15e386eb46a527a170e96005f, type: 3}
+    - {fileID: 355709301487014828, guid: 67ce2fa15e386eb46a527a170e96005f, type: 3}
+    - {fileID: 422379076344956143, guid: 67ce2fa15e386eb46a527a170e96005f, type: 3}
+    - {fileID: -8963349929583308282, guid: 67ce2fa15e386eb46a527a170e96005f, type: 3}
+    - {fileID: 7297126964361058418, guid: 67ce2fa15e386eb46a527a170e96005f, type: 3}
+    - {fileID: 8199249757159134949, guid: 67ce2fa15e386eb46a527a170e96005f, type: 3}
+    - {fileID: 5392940983258129059, guid: 67ce2fa15e386eb46a527a170e96005f, type: 3}
+    - {fileID: -1883736172773737541, guid: 67ce2fa15e386eb46a527a170e96005f, type: 3}
+    - {fileID: -8206838394960499674, guid: 67ce2fa15e386eb46a527a170e96005f, type: 3}
+    - {fileID: -7497043153038416062, guid: 67ce2fa15e386eb46a527a170e96005f, type: 3}
+    - {fileID: -559220762985826185, guid: 67ce2fa15e386eb46a527a170e96005f, type: 3}
+    - {fileID: 5156667129489678296, guid: 67ce2fa15e386eb46a527a170e96005f, type: 3}
+    - {fileID: -3549844710704275724, guid: 67ce2fa15e386eb46a527a170e96005f, type: 3}
     m_AddedGameObjects: []
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 67ce2fa15e386eb46a527a170e96005f, type: 3}
