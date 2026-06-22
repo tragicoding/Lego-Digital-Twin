@@ -222692,6 +222692,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1956779662}
   - component: {fileID: 1956779663}
+  - component: {fileID: 1956779664}
   m_Layer: 0
   m_Name: XRModeManager
   m_TagString: Untagged
@@ -222730,6 +222731,20 @@ MonoBehaviour:
   _minSettle: 0.5
   _settleTimeout: 2
   _stopXrInDesktop: 1
+--- !u!114 &1956779664
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1956779661}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 24301269161449f4eb3d891fe9aee019, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LegoTwin.Core.HeadsetAudioRouter
+  _vrDeviceName: "\uD5E4\uB4DC\uD3F0"
+  _desktopDeviceName: DP
 --- !u!1 &1957425942 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: ef959cb12a387c548975a510f5b1d6d1, type: 3}
