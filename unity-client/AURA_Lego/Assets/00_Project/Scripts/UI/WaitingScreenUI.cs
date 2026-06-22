@@ -4,6 +4,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using LegoTwin.Managers;
+using LegoTwin.Core;
 
 namespace LegoTwin.UI
 {
@@ -198,6 +199,15 @@ namespace LegoTwin.UI
             if (_enterButton       != null) _enterButton.onClick.RemoveListener(OnEnterPressed);
         }
 
+        private void Start()
+        {
+            // ⓪ 대기영상 단계 동안 헤드셋 착용 감지를 계속 열어둔다(미착용이어도 자동 데스크톱 확정 보류).
+            // 착용되면 즉시 VR, 대기영상을 떠날 때(AdvanceFromAttract) 미착용이면 데스크톱으로 확정.
+            // Awake 순서와 무관하도록 Start에서 호출한다(XRModeManager.Instance 보장). 매니저 없으면 null-safe no-op.
+            // 대기영상이 없으면 게이트를 열지 않아 XRModeManager 기본(타임드) 판정이 그대로 동작한다(무회귀).
+            if (_attractActive) XRModeManager.Instance?.BeginGatedResolve();
+        }
+
         private void Update()
         {
             // ⓪ 대기 영상 단계: 아무 키·마우스 클릭·터치가 들어오면 이름 입력으로 넘어간다.
@@ -322,6 +332,10 @@ namespace LegoTwin.UI
         private void AdvanceFromAttract()
         {
             _attractActive = false;
+
+            // 대기영상을 떠나는 순간 = 모드 확정 시점. 그때까지 착용 안 됐으면 데스크톱으로 확정한다
+            // (착용 중이었으면 그 시점에 이미 VR로 확정돼 있어 이 호출은 무시됨). 매니저 없으면 null-safe no-op.
+            XRModeManager.Instance?.ResolveNow();
 
             // 깜빡임 중지 → 현재 알파에서 멈춘 뒤, 대기 영상 루트 CanvasGroup이 페이드 아웃되며 타이틀도 함께 사라진다.
             if (_attractTitleFade != null) { StopCoroutine(_attractTitleFade); _attractTitleFade = null; }
