@@ -275,25 +275,34 @@ Claude Code 작업 기록
 
 
 ────────────────────────────────────────────────────────────────
-[세션 7] (진단·미구현) 네트워크 끊긴 채 시작 → 대기영상 중 재연결 시 VR 전환
+[세션 7] (구현) 네트워크 끊긴 채 시작 → 대기영상 중 재연결 시 VR 전환 (백스톱)
 ────────────────────────────────────────────────────────────────
 
 ## 질문
   VR 기기 네트워크가 끊긴 채 시작해도, 대기영상 중 재연결+착용하면 VR로 전환 가능한가?
 
-## 결론 — 부분만 됨
+## 진단 — 폴링만으론 부분만 됨
   - 됨: XR이 이미 초기화돼 돌아가는 상태에서 착탈/활성 토글 → 게이트 폴링(IsHmdWorn)이 잡아 VR.
   - 안 됨: 시작 시 기기 부재로 Unity XR 로더가 초기화 자체를 못 한 경우 → XRSettings.isDeviceActive가
     계속 false → 폴링이 영영 false. OS/Link 재연결돼도 Unity XR 로더는 스스로 안 올라옴.
-    = 사용자가 말한 "끊긴 채 시작 → 재연결" 케이스가 바로 이 안 되는 경우.
+    = "끊긴 채 시작 → 재연결" 케이스가 바로 이 안 되는 경우 → 백스톱 필요.
 
-## 해결 방향 (제안, 미적용)
-  게이트(_gated) 동안 !isDeviceActive면 주기적으로 XR 로더 초기화 재시도:
-    XRGeneralSettings.Instance.Manager.InitializeLoader()(비동기) → activeLoader!=null이면 StartSubsystems().
-    인스펙터 옵션 _reacquireXrWhileGated(기본 on) + _xrRetryInterval(기본 2s, 매 프레임 호출 방지).
-  전제: XR Plug-in Management(PC) Initialize XR on Startup = ON. 실제 Quest Link 재연결 기기 테스트 필요
-  (InitializeLoader 재시도가 OpenXR 런타임 상태에 따라 갈릴 수 있어 정적 보장 불가, 실패 시 에러 로그).
-  → 사용자 확인 대기(이번 커밋엔 미포함).
+## 구현 (2026-06-23 — 기기 테스트 통과)
+  Scripts/Core/XRModeManager.cs
+  - 인스펙터: _reacquireXrWhileGated(기본 on), _xrRetryInterval(기본 2s).
+  - ResolveRoutine 게이트 분기: _gated && t>=_minSettle && !isDeviceActive 이면
+    _xrRetryInterval 마다 TryStartXr() 호출.
+  - TryStartXr(): activeLoader==null 일 때만 InitializeLoader()(비동기) → 성공 시 StartSubsystems().
+    → 대기영상 중 재연결되면 XR이 올라오고, 이후 착용 시 IsHmdWorn 이 VR로 확정.
+  - 안전장치: activeLoader!=null이면 skip(중복 init 방지) / t>=_minSettle 이후만(부팅 init과 안 겹침)
+    / Mathf.Max(0.5f, interval) 클램프. 게이트 동안에만 동작(commit 후·데스크톱·Mock/Server 무영향).
+  - 전제: XR Plug-in Management(PC) Initialize XR on Startup = ON. 미연결 동안 init 시도마다 엔진
+    에러 로그 가능(interval로 빈도 낮춤). IDE 진단 0건, 실기기 재연결 테스트 통과(사용자 확인).
+
+## 운영(병행 권장) — 끊김 자체 예방
+  헤드셋 자동 절전 끄기(System>Power>Auto Sleep Headset=Never) + 유선 Link + 상시 급전.
+  ※ 근접센서는 끄지 말 것(끄면 userPresence 항상 true → 자동전환이 VR로 굳음). 절전 타이머만 Never.
+  이 백스톱은 그래도 끊겼을 때의 '복구', 위 설정은 '예방' — 병행이 가장 안정적.
 
 
 ────────────────────────────────────────────────────────────────
@@ -318,9 +327,20 @@ Claude Code 작업 기록
 [미해결 / 추후 작업]
 ────────────────────────────────────────────────────────────────
 
-  [ ] (제안) 네트워크 끊긴 채 시작 → 대기영상 중 XR 로더 재초기화 재시도(세션 7) — 기기 테스트 후 결정
+  [x] (세션 7) 네트워크 끊긴 채 시작 → 대기영상 중 XR 재초기화 재시도 — 구현·기기 테스트 완료(2026-06-23)
+  [x] OpenXR/XR 설정·Main 씬 커밋 정리 — 완료(7ddb3ae7)
   [ ] VR에서 대기영상 advance: AnyPress가 키보드/마우스 기반 → VR 컨트롤러 버튼 매핑 필요(VR UI 후속)
-  [ ] OpenXR/XR 설정·Main 씬 별도 커밋 정리(에디터 단위)
   [ ] 전시 빌드 전 디버그 비활성화(_enableGuideSkip·FreeCameraController·PerfHud·SessionDebugHud)
+
+
+────────────────────────────────────────────────────────────────
+[2026-06-23 커밋 내역]
+────────────────────────────────────────────────────────────────
+
+  e0367a90 feat(unity): VR↔키마 자동전환 + 대기영상 착용 감지 게이트 (스크립트 5 + 0622 기록)
+  7ddb3ae7 chore(unity): OpenXR Standalone 설정·Main 씬 자동전환 매니저 배치·Pretendard SDF 갱신
+  (이 커밋) feat(unity): 대기 중 XR 재초기화 백스톱(끊긴 채 시작 → 재연결 시 VR) — 세션 7
+
+  ※ ProjectSettings.asset(로컬 TRILIB define)은 0606/0613 규칙상 커밋 제외(머신별 자동 토글).
 
 ================================================================

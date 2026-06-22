@@ -57,6 +57,14 @@ namespace LegoTwin.Core
         [Tooltip("데스크톱으로 확정될 때 XR 서브시스템을 중지(평면 렌더링·VR 오버헤드 제거).")]
         [SerializeField] private bool _stopXrInDesktop = true;
 
+        [Header("대기 중 XR 재획득")]
+        [Tooltip("대기영상(게이트) 동안 XR이 안 떠 있으면(기기 미연결·Quest Link 끊김) 주기적으로 XR 로더 초기화를 재시도한다.\n" +
+                 "도중에 재연결+착용하면 VR로 전환된다. (전제: XR Plug-in Management(PC)에 Initialize XR on Startup)")]
+        [SerializeField] private bool _reacquireXrWhileGated = true;
+
+        [Tooltip("XR 로더 재초기화 재시도 간격(초). 너무 짧으면 미연결 시 에러 로그가 잦아진다.")]
+        [SerializeField] private float _xrRetryInterval = 2f;
+
         // 대기(attract) 게이트. true면 자동 데스크톱 확정을 보류하고 착용 시에만 즉시 VR로 확정한다.
         // 데스크톱 확정은 외부 게이트의 ResolveNow() 호출로만 이뤄진다(예: 대기영상 종료). 확정 후엔 무의미.
         private bool _gated;
@@ -105,14 +113,27 @@ namespace LegoTwin.Core
             }
 
             float t = 0f;
+            float nextXrTry = 0f;
             while (true)
             {
                 // 착용은 게이트와 무관하게 언제든 즉시 VR로 확정한다(대기영상 도중 착용 포함).
                 if (IsHmdWorn()) { LockMode(AppMode.VR); yield break; }
 
-                // 게이트가 열려 있으면(대기영상 단계) 자동 데스크톱 확정을 보류하고 착용을 계속 기다린다.
-                // 데스크톱 확정은 외부 게이트의 ResolveNow() 가 담당한다(예: 대기영상 종료).
-                if (!_gated)
+                if (_gated)
+                {
+                    // 게이트(대기영상) 동안: 자동 데스크톱 확정을 보류하고 착용을 계속 기다린다.
+                    // 데스크톱 확정은 외부 게이트의 ResolveNow() 가 담당한다(예: 대기영상 종료).
+                    // XR이 안 떠 있으면(기기 미연결·Quest Link 끊김) 주기적으로 로더 재초기화를 시도해,
+                    // 대기영상 도중 재연결되면 위 IsHmdWorn 에서 VR로 확정되게 한다.
+                    // (_minSettle 이후에만 시도 → 부팅 시 Initialize-on-Startup 의 init 과 겹치지 않게)
+                    if (_reacquireXrWhileGated && t >= _minSettle
+                        && !XRSettings.isDeviceActive && Time.unscaledTime >= nextXrTry)
+                    {
+                        nextXrTry = Time.unscaledTime + Mathf.Max(0.5f, _xrRetryInterval);
+                        yield return TryStartXr();
+                    }
+                }
+                else
                 {
                     // 기본(타임드) 동작: 초기화 유예 후 활성 HMD가 전혀 없거나, 대기 한도를 넘기면 데스크톱으로.
                     if (t >= _minSettle && !XRSettings.isDeviceActive) break;
@@ -168,6 +189,19 @@ namespace LegoTwin.Core
 
             mgr.StopSubsystems();
             mgr.DeinitializeLoader();
+        }
+
+        // 대기 중 XR 재획득: 로더가 안 떠 있으면(기기 미연결·Link 끊김) 초기화를 1회 시도한다.
+        // 성공하면 서브시스템을 시작해 XRSettings.isDeviceActive 가 활성화되고, 이후 착용 시 IsHmdWorn 이 VR을 잡는다.
+        // 실패(기기 없음)면 activeLoader 가 null 로 남아 다음 주기에 다시 시도된다.
+        private static IEnumerator TryStartXr()
+        {
+            var mgr = XRGeneralSettings.Instance != null ? XRGeneralSettings.Instance.Manager : null;
+            if (mgr == null || mgr.activeLoader != null) yield break;   // 매니저 없음 or 이미 초기화됨 → 중복 init 방지
+
+            yield return mgr.InitializeLoader();   // 비동기. 기기 없으면 activeLoader 는 null 로 유지된다.
+            if (mgr.activeLoader != null)
+                mgr.StartSubsystems();
         }
     }
 }
