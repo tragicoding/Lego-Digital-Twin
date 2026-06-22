@@ -19710,6 +19710,8 @@ GameObject:
   - component: {fileID: 194217738}
   - component: {fileID: 194217737}
   - component: {fileID: 194217736}
+  - component: {fileID: 194217740}
+  - component: {fileID: 194217739}
   m_Layer: 0
   m_Name: EventSystem
   m_TagString: Untagged
@@ -19778,6 +19780,61 @@ Transform:
   m_Children: []
   m_Father: {fileID: 2111113053}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &194217739
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 194217735}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ab68ce6587aab0146b8dabefbd806791, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.XR.Interaction.Toolkit::UnityEngine.XR.Interaction.Toolkit.UI.XRUIInputModule
+  m_SendPointerHoverToParent: 1
+  m_ClickSpeed: 0.3
+  m_MoveDeadzone: 0.6
+  m_RepeatDelay: 0.5
+  m_RepeatRate: 0.1
+  m_TrackedDeviceDragThresholdMultiplier: 2
+  m_TrackedScrollDeltaMultiplier: 5
+  m_BypassUIToolkitEvents: 0
+  m_ActiveInputMode: 0
+  m_EnableXRInput: 1
+  m_EnableMouseInput: 1
+  m_EnableTouchInput: 1
+  m_EnableGamepadInput: 1
+  m_EnableJoystickInput: 1
+  m_PointAction: {fileID: 0}
+  m_LeftClickAction: {fileID: 0}
+  m_MiddleClickAction: {fileID: 0}
+  m_RightClickAction: {fileID: 0}
+  m_ScrollWheelAction: {fileID: 0}
+  m_NavigateAction: {fileID: 0}
+  m_SubmitAction: {fileID: 0}
+  m_CancelAction: {fileID: 0}
+  m_EnableBuiltinActionsAsFallback: 1
+  m_HorizontalAxis: Horizontal
+  m_VerticalAxis: Vertical
+  m_SubmitButton: Submit
+  m_CancelButton: Cancel
+--- !u!114 &194217740
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 194217735}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1ea6b5f7d2e16e74c952e8ee9739ca6e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LegoTwin.Core.EventSystemModeBinder
+  _vrModules:
+  - {fileID: 194217739}
+  _desktopModules:
+  - {fileID: 194217736}
 --- !u!1 &194986153 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 4409340066238339249, guid: a3b798421dc4d19498df476ced323b0a, type: 3}
@@ -23531,33 +23588,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1946294377}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &231455209 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 450271f9a24847e4287ef638876edbeb, type: 3}
-  m_PrefabInstance: {fileID: 484515301}
-  m_PrefabAsset: {fileID: 0}
---- !u!64 &231455213
-MeshCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 231455209}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 5
-  m_Convex: 0
-  m_CookingOptions: 30
-  m_Mesh: {fileID: -5758184135438507279, guid: 450271f9a24847e4287ef638876edbeb, type: 3}
 --- !u!1001 &233804446
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -53183,10 +53213,7 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 450271f9a24847e4287ef638876edbeb, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 231455213}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 450271f9a24847e4287ef638876edbeb, type: 3}
 --- !u!4 &485614303 stripped
 Transform:
@@ -79082,10 +79109,7 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 05426f1e1d0e5e643a49a4276365b4a3, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 931215627}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 05426f1e1d0e5e643a49a4276365b4a3, type: 3}
 --- !u!4 &759536666 stripped
 Transform:
@@ -96183,33 +96207,6 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: a76d38f7a30f08d48902763765dfe496, type: 3}
---- !u!1 &931215626 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 05426f1e1d0e5e643a49a4276365b4a3, type: 3}
-  m_PrefabInstance: {fileID: 759536665}
-  m_PrefabAsset: {fileID: 0}
---- !u!64 &931215627
-MeshCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 931215626}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 5
-  m_Convex: 0
-  m_CookingOptions: 30
-  m_Mesh: {fileID: 0}
 --- !u!1001 &931411584
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -125051,10 +125048,7 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 8a3909b897b2b8f40af1090b75403884, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1924396036}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 8a3909b897b2b8f40af1090b75403884, type: 3}
 --- !u!4 &1198062791 stripped
 Transform:
@@ -172296,6 +172290,7 @@ Transform:
   - {fileID: 1969333971}
   - {fileID: 282121530}
   - {fileID: 607463908}
+  - {fileID: 1956779662}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1547581635
@@ -220209,33 +220204,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.65000033, y: 0.55, z: 1.2997532}
   m_Center: {x: 0.0000038146973, y: 0, z: -0.000005722046}
---- !u!1 &1924396035 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 8a3909b897b2b8f40af1090b75403884, type: 3}
-  m_PrefabInstance: {fileID: 1198062790}
-  m_PrefabAsset: {fileID: 0}
---- !u!64 &1924396036
-MeshCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1924396035}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 5
-  m_Convex: 0
-  m_CookingOptions: 30
-  m_Mesh: {fileID: 0}
 --- !u!1001 &1925626949
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -222714,6 +222682,54 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 746176122859108529, guid: bc78c7ec5924f9849a1ac512e4181b9f, type: 3}
   m_PrefabInstance: {fileID: 1956601655}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1956779661
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1956779662}
+  - component: {fileID: 1956779663}
+  m_Layer: 0
+  m_Name: XRModeManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1956779662
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1956779661}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1545322762}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1956779663
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1956779661}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e928e4a9b9c79874d930c995be12f1f4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LegoTwin.Core.XRModeManager
+  _override: 0
+  _minSettle: 0.5
+  _settleTimeout: 2
+  _stopXrInDesktop: 1
 --- !u!1 &1957425942 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: ef959cb12a387c548975a510f5b1d6d1, type: 3}
