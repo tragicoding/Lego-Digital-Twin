@@ -394,3 +394,105 @@ Claude Code 작업 기록
   (대기영상 게이트 + 대기 중 XR 로더 재초기화 재시도 모두 살아 있음)
 
 ================================================================
+
+
+================================================================
+[추가 작업] VR UI 대응 + VR 한글 키보드 + 자유모드 버그 수정
+날짜: 2026-06-23 (연속)
+브랜치: feature/unity
+================================================================
+
+공통 원칙: 저결합·중복 제거·확장성·Mock/Server 동일. (커밋 54a468e8)
+
+
+────────────────────────────────────────────────────────────────
+[세션 10] VR UI 대응 — ModeAdaptiveCanvas
+────────────────────────────────────────────────────────────────
+
+## 배경
+  0622에서 "후속 결정 필요"로 남긴 VR UI 이슈: Screen Space - Overlay 캔버스는 VR HMD에 안 보이고,
+  World Space 캔버스도 컨트롤러 레이(TrackedDeviceGraphicRaycaster)가 없어 클릭 불가.
+
+## 조사 (인프라는 이미 있음)
+  - XR 리그 컨트롤러에 NearFarInteractor(레이 포함). EventSystem에 InputSystemUIInputModule(데스크톱) +
+    XRUIInputModule(VR) + EventSystemModeBinder(모드별 토글). → 빠진 건 '캔버스 쪽'뿐.
+
+## 결정 (사용자)
+  데스크톱 Overlay 유지 + VR만 World Space 재구성('기존 동작 동일' 보장 최우선). 텍스트 입력은 별도(세션 11).
+
+## 신규: Scripts/Core/ModeAdaptiveCanvas.cs
+  XRModeManager.Mode 1회 읽기(EventSystemModeBinder 동일 패턴, 저결합). 데스크톱=무수정(Overlay 그대로),
+  VR=TrackedDeviceGraphicRaycaster 보장 + 배치:
+    - HeadFollowing : Overlay→World Space 전환 후 카메라 앞 부드럽게 추적(모달/HUD)
+    - KeepInPlace   : 이미 월드 배치된 캔버스(좋아요 패널 등)는 위치 유지, 레이만 활성
+  매니저 없으면 무동작(무회귀). SessionManager 미참조 → Mock/Server 동일.
+
+## 부착 (에디터)
+  HeadFollowing: WaitingScreenUI·QuitUI·MapTeleportUI(씬) + FreeModePopupUI·MotionPromptUI·
+                 SignatureMotionConfirmUI(프리팹).
+  KeepInPlace  : OwnCreationInteractPanel·PlazaSessionView LikePanel(프리팹).
+  표시 전용(부착 불필요): DialogueUI·NPC 말풍선·LogoUI(이미 World Space).
+
+
+────────────────────────────────────────────────────────────────
+[세션 11] VR 한글 키보드 (자체 제작)
+────────────────────────────────────────────────────────────────
+
+## 방식 결정
+  Meta XR Core SDK 미설치 + 리그가 XRI(OVRVirtualKeyboard는 OVR 스택 기반이라 부적합) →
+  '자체 World Space 한글 키보드'(의존성 0) 채택. (Meta SDK는 설치·브리징 부담·PC Link 불확실)
+
+## 신규: Scripts/Core/HangulComposer.cs
+  두벌식 조합 오토마타(순수 C#, Unity 의존 0). 초/중/종성 조합, 겹받침, 복합모음, 도깨비불, 백스페이스 분해.
+
+## 신규: Scripts/UI/VrKeyboard.cs
+  VR 전용. 포커스된 TMP_InputField 자동 감지(EventSystem) → 조합기 경유 입력 → 필드 갱신.
+  자판은 레이아웃 문자열에서 자동 생성(Key 프리팹 1개만 제공). 한/영·시프트·공백·⌫·완료 특수키.
+  데스크톱은 스스로 꺼짐(물리 키보드+OS IME 그대로). UI 로직 스크립트 무수정. 제출은 각 UI 기존 버튼(VR 레이).
+  ※ 작업량 이슈로 Meta SDK 방향을 잠깐 검토했으나, XRI 불일치·설치부담으로 자체 방식으로 회귀(사용자 결정).
+
+## 신규 에셋: Prefabs/UI/Key.prefab (키 버튼 템플릿)
+## 검증: 사용자 — VR 키보드 입력 정상. 심미성은 에디터에서 조정 예정.
+
+
+────────────────────────────────────────────────────────────────
+[세션 12] (버그) 자유모드 전환 실패 — 비활성 프리팹
+────────────────────────────────────────────────────────────────
+
+## 증상
+  "Coroutine couldn't be started because ... 'PlazaSessionView(Clone)' is inactive!"
+  PlazaSessionView.SetTopLiked → PlazaManager.LoadAndSpawnPlaza 중단 → 자유모드로 안 넘어감.
+
+## 원인
+  PlazaSessionView.prefab 루트 m_IsActive=0(VR용 프리팹 편집 중 루트 활성이 꺼짐).
+  → 클론도 비활성 상속 → Initialize→SetTopLiked의 StartCoroutine(비활성 오브젝트) 예외 → 스폰 루프 중단.
+
+## 처리
+  - 프리팹 루트 다시 활성(☑) 저장(사용자). (LikePanel·AlreadyLikedText·StarObject는 비활성 시작이 정상)
+  - 방어선: PlazaManager 의 sessionViewPrefab Instantiate 2곳(이전 창작물·현재 창작물)에서
+    Initialize 전에 if(!view.gameObject.activeSelf) SetActive(true). 향후 비활성 프리팹이 와도 무중단.
+
+
+────────────────────────────────────────────────────────────────
+[2026-06-22 ~ 06-23 커밋 내역 — 시간순]
+────────────────────────────────────────────────────────────────
+
+  날짜·시각       │ 해시      │ 타입  │ 메시지
+  ───────────────┼──────────┼───────┼──────────────────────────────────────────────────────
+  06-22 01:41    │ 6518c7ba │ feat  │ 열기구 탑승·월드 버튼 인터랙션 추가
+  06-22 01:42    │ dc34658f │ chore │ Main 씬 월드 인터랙션 배치·폰트 갱신, 복구 씬 제거
+  06-22 23:20    │ e0367a90 │ feat  │ VR↔키마 자동전환 + 대기영상 착용 감지 게이트
+  06-22 23:22    │ 7ddb3ae7 │ chore │ OpenXR Standalone 설정·Main 씬 매니저 배치·Pretendard SDF
+  06-23 00:29    │ 449c030a │ feat  │ 대기 중 XR 재초기화 백스톱(끊긴 채 시작→재연결 시 VR)
+  06-23 03:17    │ babea79b │ docs  │ 0622 기록 — 오디오 라우팅 보류 결론·XR 백스톱 유지
+  06-23 03:18    │ b460e67c │ chore │ Main 씬 갱신(오디오 컴포넌트 잔재 제거)·Pretendard SDF
+  06-23 16:48    │ 54a468e8 │ feat  │ VR UI 대응(ModeAdaptiveCanvas)·VR 한글 키보드·광장 뷰 방어선
+  (이 커밋)       │ —        │ docs  │ 0622 기록 — VR UI·VR 키보드·자유모드 버그 정리 + 커밋 이력 표
+
+  ※ 주제별:
+    ① VR↔키마 자동전환·게이트·백스톱 : e0367a90, 7ddb3ae7, 449c030a
+    ② 오디오 라우팅(보류·전량 미커밋)  : 코드 흔적 없음(세션 8) / 결론만 babea79b·b460e67c
+    ③ VR UI·한글 키보드·광장 버그     : 54a468e8 (세션 10~12)
+  ※ ProjectSettings.asset(로컬 TRILIB define)은 0606/0613 규칙상 커밋 제외(머신별 자동 토글).
+
+================================================================
