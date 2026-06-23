@@ -37,21 +37,6 @@ export const uploadAsset = (
 export const getStatus = (sessionId: string) =>
   api.get(`/sessions/${sessionId}/status`);
 
-export const finalizeSession = (sessionId: string) =>
-  api.post(`/sessions/${sessionId}/finalize`);
-
-export const getReviewDashboard = () =>
-  api.get("/admin/review");
-
-export const registerSessionCharacter = (sessionId: string, characterNo: number) =>
-  api.post(`/admin/session-queue/${sessionId}/character`, { character_no: characterNo });
-
-export const cancelReviewSession = (queueName: "session-queue" | "unity-queue" | "history-queue", sessionId: string) =>
-  api.delete(`/admin/review/${queueName}/${sessionId}`);
-
-export const getHistorySessionInfo = (sessionId: string) =>
-  api.get(`/admin/review/history-queue/${sessionId}/info`);
-
 export const getAdminDashboard = () =>
   api.get("/admin/dashboard");
 

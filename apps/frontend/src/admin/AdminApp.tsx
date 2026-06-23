@@ -1,65 +1,72 @@
 import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
 import {
-  cancelReviewSession,
-  getHistorySessionInfo,
-  getReviewDashboard,
-  registerSessionCharacter,
+  cancelAdminSession,
+  clearAdminQueue,
+  clearUnityQueue,
+  deleteAdminSession,
+  getAdminDashboard,
+  resetAdminDatabase,
 } from "../api/client";
 
-type QueueName = "session_queue" | "unity_queue" | "history_queue";
-type ApiQueueName = "session-queue" | "unity-queue" | "history-queue";
-
-type QueueItem = {
-  session_id: string;
-  position: number;
+type AssetSummary = {
+  asset_id: string;
+  asset_type: string;
   status: string;
-  created_at: string | null;
-  updated_at: string | null;
-  character_no: string | null;
-  object_status: string;
-  object_stage: string;
-  object_progress: number;
-  object_model_url: string | null;
-  object_error: string | null;
+  stage: string;
+  progress: number;
+};
+
+type SessionSummary = {
+  session_id: string;
+  status: string;
+  character_name: string | null;
+  object_name: string | null;
+  likes: number;
+  queue_position?: number | null;
+  assets: AssetSummary[];
 };
 
 type Dashboard = {
-  active_session_id: string | null;
-  session_queue: QueueItem[];
-  unity_queue: QueueItem[];
-  history_queue: QueueItem[];
+  server: {
+    backend_host: string;
+    frontend_api_url: string | null;
+    configured_windows_ip: string | null;
+    ports: {
+      localhost: Record<string, boolean>;
+      configured_windows_ip: Record<string, boolean>;
+    };
+  };
+  workers: {
+    workers: Array<{ name: string; state: string; queues: string[]; current_job_id: string | null }>;
+    queues: Array<{ name: string; count: number }>;
+  };
+  redis: {
+    healthy: boolean;
+    unity_queue_length: number;
+  };
+  data: {
+    counts: Record<string, number>;
+    sessions: SessionSummary[];
+  };
+  exhibition: {
+    current_session_id: string | null;
+    unity_queue: SessionSummary[];
+  };
 };
 
-type ModalState = {
-  queue: QueueName;
-  item: QueueItem;
-} | null;
-
-const QUEUES: Array<{ key: QueueName; api: ApiQueueName; title: string; hint: string }> = [
-  { key: "session_queue", api: "session-queue", title: "session_queue", hint: "앱에서 진행 중인 세션" },
-  { key: "unity_queue", api: "unity-queue", title: "unity_queue", hint: "Unity 입장 대기 세션" },
-  { key: "history_queue", api: "history-queue", title: "history_queue", hint: "Unity 종료 후 검수 세션" },
-];
-
-function fmt(value: string | null) {
-  if (!value) return "-";
-  return new Date(value).toLocaleString("ko-KR");
-}
-
-function apiName(queue: QueueName): ApiQueueName {
-  return queue.replace("_", "-") as ApiQueueName;
+function statusLabel(ok: boolean) {
+  return ok ? "OK" : "DOWN";
 }
 
 export default function AdminApp() {
   const [dashboard, setDashboard] = useState<Dashboard | null>(null);
-  const [selected, setSelected] = useState<ModalState>(null);
-  const [characterNo, setCharacterNo] = useState("");
-  const [info, setInfo] = useState<Record<string, string | null> | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
 
   const refresh = async () => {
     try {
-      const res = await getReviewDashboard();
+      const res = await getAdminDashboard();
       setDashboard(res.data);
       setError(null);
     } catch {
@@ -73,36 +80,20 @@ export default function AdminApp() {
     return () => clearInterval(timer);
   }, []);
 
-  const open = (queue: QueueName, item: QueueItem) => {
-    setSelected({ queue, item });
-    setCharacterNo(item.character_no ?? "");
-    setInfo(null);
+  const run = async (label: string, action: () => Promise<unknown>) => {
+    setBusy(label);
+    setError(null);
+    try {
+      await action();
+      await refresh();
+    } catch {
+      setError(`${label} 처리에 실패했습니다.`);
+    } finally {
+      setBusy(null);
+    }
   };
 
-  const close = () => {
-    setSelected(null);
-    setInfo(null);
-  };
-
-  const register = async () => {
-    if (!selected || !characterNo.trim()) return;
-    await registerSessionCharacter(selected.item.session_id, Number(characterNo));
-    await refresh();
-    close();
-  };
-
-  const cancel = async () => {
-    if (!selected) return;
-    await cancelReviewSession(apiName(selected.queue), selected.item.session_id);
-    await refresh();
-    close();
-  };
-
-  const showInfo = async () => {
-    if (!selected) return;
-    const res = await getHistorySessionInfo(selected.item.session_id);
-    setInfo(res.data);
-  };
+  const sessions = dashboard?.data.sessions ?? [];
 
   return (
     <div className="min-h-screen bg-neutral-950 px-5 py-6 text-white">
@@ -111,7 +102,7 @@ export default function AdminApp() {
           <div>
             <h1 className="text-2xl font-black">MINIVERSE Admin</h1>
             <p className="mt-1 text-sm text-white/55">
-              active: {dashboard?.active_session_id ?? "-"} · 3초마다 자동 갱신
+              current: {dashboard?.exhibition.current_session_id ?? "-"} · 3초마다 자동 갱신
             </p>
           </div>
           <button
@@ -124,99 +115,150 @@ export default function AdminApp() {
 
         {error && <p className="rounded-md bg-red-500/15 px-4 py-3 text-sm text-red-200">{error}</p>}
 
-        <main className="grid gap-4 lg:grid-cols-3">
-          {QUEUES.map((queue) => (
-            <section key={queue.key} className="min-h-[28rem] border border-white/10 bg-white/[0.03] p-4">
-              <div className="mb-4">
-                <h2 className="text-lg font-bold">{queue.title}</h2>
-                <p className="text-xs text-white/45">{queue.hint}</p>
-              </div>
-
-              <div className="space-y-3">
-                {(dashboard?.[queue.key] ?? []).map((item) => (
-                  <button
-                    key={item.session_id}
-                    onClick={() => open(queue.key, item)}
-                    className="w-full rounded-md border border-white/10 bg-black/25 p-4 text-left hover:border-white/35"
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-bold">#{item.session_id}</span>
-                      <span className="text-xs text-white/45">pos {item.position}</span>
-                    </div>
-                    <div className="mt-2 grid gap-1 text-xs text-white/65">
-                      <span>character: {item.character_no ?? "-"}</span>
-                      <span>object: {item.object_status} / {item.object_progress}%</span>
-                      <span>updated: {fmt(item.updated_at)}</span>
-                    </div>
-                  </button>
-                ))}
-
-                {(dashboard?.[queue.key] ?? []).length === 0 && (
-                  <div className="rounded-md border border-dashed border-white/10 p-6 text-center text-sm text-white/35">
-                    비어 있음
-                  </div>
-                )}
-              </div>
-            </section>
-          ))}
-        </main>
-      </div>
-
-      {selected && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
-          <div className="w-full max-w-md rounded-md border border-white/15 bg-neutral-950 p-5 shadow-2xl">
-            <div className="mb-5">
-              <div className="text-xs text-white/45">{selected.queue}</div>
-              <h3 className="text-xl font-black">#{selected.item.session_id}</h3>
+        <section className="grid gap-4 lg:grid-cols-3">
+          <div className="rounded-md border border-white/10 bg-white/[0.03] p-4">
+            <h2 className="mb-3 text-lg font-bold">Server</h2>
+            <div className="space-y-2 text-sm text-white/70">
+              <div>backend: {dashboard?.server.backend_host ?? "-"}</div>
+              <div>windows ip: {dashboard?.server.configured_windows_ip ?? "-"}</div>
+              <div>redis: {dashboard ? statusLabel(dashboard.redis.healthy) : "-"}</div>
             </div>
+          </div>
 
-            <div className="space-y-3 text-sm text-white/75">
-              <div>캐릭터 번호: {selected.item.character_no ?? "-"}</div>
-              <div>오브제 상태: {selected.item.object_status} / {selected.item.object_stage}</div>
-              {selected.item.object_error && <div className="text-red-300">{selected.item.object_error}</div>}
+          <div className="rounded-md border border-white/10 bg-white/[0.03] p-4">
+            <h2 className="mb-3 text-lg font-bold">Workers</h2>
+            <div className="space-y-2 text-sm text-white/70">
+              {(dashboard?.workers.queues ?? []).map((queue) => (
+                <div key={queue.name}>
+                  {queue.name}: {queue.count} queued
+                </div>
+              ))}
+              {(dashboard?.workers.workers ?? []).length === 0 && <div>실행 중인 worker 없음</div>}
             </div>
+          </div>
 
-            {selected.queue === "session_queue" && (
-              <div className="mt-5 space-y-3">
-                <input
-                  value={characterNo}
-                  onChange={(e) => setCharacterNo(e.target.value)}
-                  placeholder="캐릭터 번호 입력 (1-5)"
-                  className="w-full rounded-md border border-white/15 bg-black px-3 py-3 text-white outline-none focus:border-white/40"
-                  inputMode="numeric"
-                />
-                <button onClick={register} className="w-full rounded-md bg-white px-4 py-3 font-bold text-black">
-                  등록하기
-                </button>
+          <div className="rounded-md border border-white/10 bg-white/[0.03] p-4">
+            <h2 className="mb-3 text-lg font-bold">Data</h2>
+            <div className="space-y-2 text-sm text-white/70">
+              {Object.entries(dashboard?.data.counts ?? {}).map(([key, value]) => (
+                <div key={key}>
+                  {key}: {value}
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="rounded-md border border-white/10 bg-white/[0.03] p-4">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-bold">Unity Queue</h2>
+              <p className="text-xs text-white/45">{dashboard?.redis.unity_queue_length ?? 0} sessions waiting</p>
+            </div>
+            <button
+              onClick={() => void run("Unity queue 비우기", clearUnityQueue)}
+              disabled={busy !== null}
+              className="rounded-md border border-white/20 px-3 py-2 text-sm font-semibold hover:bg-white/10 disabled:opacity-40"
+            >
+              비우기
+            </button>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+            {(dashboard?.exhibition.unity_queue ?? []).map((session) => (
+              <SessionCard key={session.session_id} session={session} />
+            ))}
+            {(dashboard?.exhibition.unity_queue ?? []).length === 0 && (
+              <div className="rounded-md border border-dashed border-white/10 p-6 text-center text-sm text-white/35">
+                대기 중인 세션 없음
               </div>
             )}
+          </div>
+        </section>
 
-            {selected.queue === "history_queue" && (
-              <div className="mt-5 space-y-3">
-                <button onClick={showInfo} className="w-full rounded-md border border-white/20 px-4 py-3 font-bold">
-                  정보
-                </button>
-                {info && (
-                  <div className="rounded-md bg-white/5 p-3 text-sm text-white/75">
-                    <div>캐릭터 이름: {info.character_name ?? "-"}</div>
-                    <div>오브제 이름: {info.object_name ?? "-"}</div>
-                    <div>bubble_text: {info.bubble_text ?? "-"}</div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            <div className="mt-5 grid grid-cols-2 gap-3">
-              <button onClick={close} className="rounded-md border border-white/20 px-4 py-3 font-bold">
-                뒤로
+        <section className="rounded-md border border-white/10 bg-white/[0.03] p-4">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-lg font-bold">Sessions</h2>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => void run("character queue 비우기", () => clearAdminQueue("lego-character"))}
+                disabled={busy !== null}
+                className="rounded-md border border-white/20 px-3 py-2 text-sm font-semibold hover:bg-white/10 disabled:opacity-40"
+              >
+                character queue 비우기
               </button>
-              <button onClick={cancel} className="rounded-md border border-red-400/50 px-4 py-3 font-bold text-red-200">
-                취소하기
+              <button
+                onClick={() => void run("object queue 비우기", () => clearAdminQueue("lego-object"))}
+                disabled={busy !== null}
+                className="rounded-md border border-white/20 px-3 py-2 text-sm font-semibold hover:bg-white/10 disabled:opacity-40"
+              >
+                object queue 비우기
+              </button>
+              <button
+                onClick={() => void run("DB reset", resetAdminDatabase)}
+                disabled={busy !== null}
+                className="rounded-md border border-red-400/50 px-3 py-2 text-sm font-semibold text-red-200 hover:bg-red-500/10 disabled:opacity-40"
+              >
+                전체 reset
               </button>
             </div>
           </div>
+
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+            {sessions.map((session) => (
+              <SessionCard
+                key={session.session_id}
+                session={session}
+                actions={
+                  <>
+                    <button
+                      onClick={() => void run("세션 취소", () => cancelAdminSession(session.session_id))}
+                      disabled={busy !== null}
+                      className="rounded-md border border-yellow-300/40 px-3 py-2 text-xs font-bold text-yellow-100 disabled:opacity-40"
+                    >
+                      취소
+                    </button>
+                    <button
+                      onClick={() => void run("세션 삭제", () => deleteAdminSession(session.session_id))}
+                      disabled={busy !== null}
+                      className="rounded-md border border-red-400/50 px-3 py-2 text-xs font-bold text-red-200 disabled:opacity-40"
+                    >
+                      삭제
+                    </button>
+                  </>
+                }
+              />
+            ))}
+          </div>
+        </section>
+      </div>
+    </div>
+  );
+}
+
+function SessionCard({ session, actions }: { session: SessionSummary; actions?: ReactNode }) {
+  return (
+    <div className="rounded-md border border-white/10 bg-black/25 p-4">
+      <div className="mb-3 flex items-start justify-between gap-2">
+        <div>
+          <div className="font-bold">#{session.session_id}</div>
+          <div className="text-xs text-white/45">{session.status}</div>
         </div>
-      )}
+        {session.queue_position && <div className="text-xs text-white/45">pos {session.queue_position}</div>}
+      </div>
+      <div className="space-y-1 text-xs text-white/65">
+        <div>character: {session.character_name ?? "-"}</div>
+        <div>object: {session.object_name ?? "-"}</div>
+        <div>likes: {session.likes}</div>
+      </div>
+      <div className="mt-3 space-y-1 text-xs text-white/55">
+        {session.assets.map((asset) => (
+          <div key={asset.asset_id}>
+            {asset.asset_type}: {asset.status} / {asset.progress}%
+          </div>
+        ))}
+      </div>
+      {actions && <div className="mt-4 flex gap-2">{actions}</div>}
     </div>
   );
 }
