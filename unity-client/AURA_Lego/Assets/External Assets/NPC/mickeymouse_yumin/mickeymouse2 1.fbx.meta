@@ -1,9 +1,49 @@
 fileFormatVersion: 2
-guid: 0af778d86ffc6dc46813c88ae02e56c6
+guid: 077e0e674996d9f44ad52937bdfea70b
 ModelImporter:
   serializedVersion: 24200
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: mb_o_11040_283,26
+    second: {fileID: 2100000, guid: 4a9ac30824a669a41971ba6b5f4112ea, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: mb_o_11046_21
+    second: {fileID: 2100000, guid: 2289cb7e10441d84cbfed37cdac18483, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: mb_o_11047_21
+    second: {fileID: 2100000, guid: d98e826d4fab9ce43b8eff68e282b062, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: mb_o_12_21
+    second: {fileID: 2100000, guid: b08ea9672cbca564dab6db7caab0c288, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: mb_o_2209_26
+    second: {fileID: 2100000, guid: c2edf3846b93ed64fbb813e6627f2d74, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: mb_o_3056_26
+    second: {fileID: 2100000, guid: 134fe632c3e5d534a9e2060786a276cd, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: mb_o_3057_26
+    second: {fileID: 2100000, guid: 65fe057de4aaaa1459275637b1afc97d, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: mb_o_3064_1
+    second: {fileID: 2100000, guid: e095e5f4bbda352459ce4ba1166913a3, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0
@@ -34,7 +74,7 @@ ModelImporter:
   meshes:
     lODScreenPercentages: []
     globalScale: 1
-    meshCompression: 0
+    meshCompression: 2
     addColliders: 0
     useSRGBMaterialColor: 1
     sortHierarchyByName: 1
