@@ -80,6 +80,13 @@ namespace LegoTwin.Managers
         /// <summary>가이드 모드 진행 중이면 true. FreeCameraController 등에서 이동 제한에 사용.</summary>
         public static bool IsGuideMode { get; private set; } = true;
 
+        /// <summary>
+        /// 가이드 시나리오가 시작된 뒤 true(= '입장' 이후). 대기화면 동안은 false 로 유지된다.
+        /// FastSkyDayNight 등 "가이드부터 흐르는" 시간 시스템이 이 플래그를 읽어 게이트한다.
+        /// (가이드 진행/자유 모드 내내 true 유지, 씬 리로드 시 Awake 에서 false 로 복귀)
+        /// </summary>
+        public static bool GuideStarted { get; private set; }
+
         // ── 스폰된 오브젝트 참조 (PlazaManager에 전달용) ─────────────
         private GameObject _spawnedCharacterGO;
         private GameObject _spawnedObjectGO;
@@ -100,6 +107,7 @@ namespace LegoTwin.Managers
             // 새 세션마다 가이드 모드로 시작. static은 씬 리로드(A안 종료 흐름)로 자동
             // 초기화되지 않으므로, 매 씬 로드 때 명시적으로 되돌린다. (Awake → 모든 Start보다 먼저)
             IsGuideMode = true;
+            GuideStarted = false;   // 대기화면 동안 시간 정지 → 가이드 시작 시 흐르도록 리셋
 
             // 이전 세션 캐릭터의 텍스처 머티리얼 캐시를 비운다(누수 방지).
             // 이 시점은 안전: 이전 세션 캐릭터는 씬 리로드로 이미 파괴됐고(캐시 외 참조 없음),
@@ -279,6 +287,7 @@ namespace LegoTwin.Managers
         // '입장' 클릭(또는 대기화면 부재 시 즉시) → 가이드 시나리오 코루틴 시작.
         private void BeginGuideScenario()
         {
+            GuideStarted = true;   // 이 시점부터 낮/밤 시간 흐름 시작(대기화면 동안은 정지)
             _currentNPC?.StartGuideScenario();
         }
 

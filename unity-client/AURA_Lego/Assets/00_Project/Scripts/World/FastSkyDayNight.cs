@@ -1,10 +1,14 @@
 using UnityEngine;
+using LegoTwin.Managers;
 
 public class FastSkyDayNight : MonoBehaviour
 {
     [Header("시간 설정")]
     [Range(0, 24)] public float timeOfDay = 12f; // 시작 시간
     public float timeMultiplier = 1f; // 시간 배속
+
+    [Tooltip("켜면 가이드 시작(GameFlowManager.GuideStarted) 전까지 시간을 멈춘다. 대기화면 동안 시작 시각으로 고정.\n끄면 기존처럼 Start부터 바로 흐른다(예: 하늘 테스트 씬).")]
+    public bool waitForGuideStart = true;
 
     [Header("URP 조명 설정")]
     public Light sun; // 메인 Directional Light
@@ -39,6 +43,11 @@ public class FastSkyDayNight : MonoBehaviour
 
     private void UpdateTime()
     {
+        // 가이드 시작 전(대기화면)에는 시간을 멈춰 시작 시각을 유지한다.
+        // 태양 회전·조명은 계속 갱신되므로 하늘은 timeOfDay(시작값)로 정상 표시된다.
+        if (waitForGuideStart && !GameFlowManager.GuideStarted)
+            return;
+
         timeOfDay += Time.deltaTime * timeMultiplier;
         if (timeOfDay >= 24f)
             timeOfDay %= 24f;
