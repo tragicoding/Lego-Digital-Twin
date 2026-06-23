@@ -12,6 +12,27 @@ public class BalloonTour : MonoBehaviour
 
     private int currentIndex = 0;
 
+    // 시작 위치/회전 — ResetToStart()로 되돌릴 기준 (Awake에서 1회 캡처)
+    private Vector3    _startPos;
+    private Quaternion _startRot;
+
+    void Awake()
+    {
+        _startPos = transform.position;
+        _startRot = transform.rotation;
+    }
+
+    /// <summary>
+    /// 열기구를 시작 위치/회전으로 즉시 되돌리고 경로를 처음부터 다시 시작한다.
+    /// (탑승 시 BalloonRide.OnBeforeBoard에 연결해 "리셋 후 비행" 흐름을 만든다)
+    /// </summary>
+    public void ResetToStart()
+    {
+        transform.position = _startPos;
+        transform.rotation = _startRot;
+        currentIndex = 0;
+    }
+
     void Update()
     {
         if (waypoints.Length == 0) return;

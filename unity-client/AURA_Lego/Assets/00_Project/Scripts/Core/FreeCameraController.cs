@@ -20,8 +20,11 @@ namespace LegoTwin.Core
     ///   Shift                       — 이동 속도 증가
     ///
     /// 동작 원리:
-    ///   - 이 컴포넌트가 활성화되면 같은 리그의 TrackedPoseDriver(HMD 트래킹)와
-    ///     XR 이동/중력 Provider 를 자동으로 비활성화한다. (카메라 직접 제어 충돌 방지)
+    ///   - 실행 모드는 XRModeManager(단일 소스)가 시작 시 1회 판정한다.
+    ///       · 데스크톱(키마) 모드 → 이 컴포넌트가 동작하며, 같은 리그의 TrackedPoseDriver
+    ///         (HMD 트래킹)·XR 이동/중력 Provider 를 비활성화한다(카메라 직접 제어 충돌 방지).
+    ///       · VR 모드            → 이 컴포넌트가 스스로 꺼지고 XR 트래킹/이동을 그대로 둔다.
+    ///     XRModeManager 가 없으면 _modeResolveTimeout 후 데스크톱으로 폴백(무회귀).
     ///   - FreeCameraController 가 붙은 GameObject(Main Camera)의 부모에서
     ///     CharacterController 를 찾아 그 루트(XR Origin)를 이동시킨다.
     ///
@@ -29,7 +32,7 @@ namespace LegoTwin.Core
     ///   [ ] Main Camera (XR Origin 안)에 이 컴포넌트 추가
     ///   [ ] 부모 계층에 CharacterController 필요 (XR Origin 루트에 기본 존재)
     ///   [ ] 바닥/지형/계단에 Collider 필요
-    ///   [ ] VR 빌드 배포 시 이 컴포넌트 비활성화 또는 제거 (XR 이동 복원)
+    ///   [ ] 씬에 XRModeManager 배치 (VR↔키마 자동 판정의 단일 소스)
     /// </summary>
     public class FreeCameraController : MonoBehaviour
     {
@@ -44,11 +47,21 @@ namespace LegoTwin.Core
         public float jumpHeight = 2.5f;   // 점프 최고 높이 (월드 단위)
         public float gravity    = 25f;    // 중력 가속도
 
+        [Header("실행 모드")]
+        [Tooltip("XRModeManager 가 씬에 없을 때 이 시간(초) 후 데스크톱(키마)으로 폴백. " +
+                 "매니저가 있으면(대기영상 게이트 동안 확정 보류 포함) 확정될 때까지 무한 대기한다.")]
+        public float modeResolveTimeout = 4f;
+
         private CharacterController _cc;
         private Transform _rig;            // CharacterController 가 붙은 루트(XR Origin)
         private float _yaw;
         private float _pitch;
         private float _verticalVelocity;
+
+        // 실행 모드(VR/데스크톱) 적용 상태 — XRModeManager 확정 전엔 카메라 조작을 보류한다.
+        private bool _modeApplied;
+        private AppMode _appliedMode;
+        private float _modeWaitTimer;
 
         // 비VR 자유 카메라와 충돌하는 XR 컴포넌트 (타입 이름 부분 일치로 비활성화)
         private static readonly string[] ConflictingTypes =
@@ -68,12 +81,8 @@ namespace LegoTwin.Core
                 Debug.LogWarning("[FreeCameraController] 부모에서 CharacterController를 찾지 못했습니다. " +
                                  "충돌/중력 없이 단순 이동으로 동작합니다.");
 
-            DisableConflictingXrComponents();
-        }
-
-        private void Start()
-        {
-            SyncLookFromTransforms();   // 초기 _yaw/_pitch 를 현재 회전에서 잡는다
+            // XR 비활성화는 더 이상 Awake에서 무조건 하지 않는다.
+            // 데스크톱 모드로 확정될 때만 끈다(ApplyMode). VR 모드면 XR 트래킹을 그대로 둔다.
         }
 
         // 현재 리그(yaw)·카메라(pitch) 회전에서 _yaw/_pitch 를 다시 읽어온다.
@@ -87,6 +96,16 @@ namespace LegoTwin.Core
 
         private void Update()
         {
+            // 모드 확정 전에는 카메라를 조작하지 않는다(잘못된 모드로 한 프레임도 움직이지 않게).
+            if (!_modeApplied)
+            {
+                TryResolveMode();
+                if (!_modeApplied) return;
+            }
+
+            // VR 모드면 XR 리그가 카메라를 구동하므로 자유 카메라는 정지한다.
+            if (_appliedMode != AppMode.DesktopKBM) { enabled = false; return; }
+
             HandleLook();
 
             // 가이드 모드 중 또는 입력창 타이핑 중에는 WASD·점프를 잠근다.
@@ -194,8 +213,36 @@ namespace LegoTwin.Core
             return kb != null ? kb[key].wasPressedThisFrame : Input.GetKeyDown(fallback);
         }
 
+        // ── 실행 모드 해석 (XRModeManager 단일 소스) ────────────────
+        // 매니저가 확정하면 그 모드를 적용. 매니저가 없거나 늦으면 데스크톱으로 폴백(무회귀).
+        private void TryResolveMode()
+        {
+            if (XRModeManager.Resolved) { ApplyMode(XRModeManager.Mode); return; }
+
+            // 매니저가 씬에 있으면 확정을 맡긴다(대기영상 게이트 동안엔 일부러 확정을 미룬다 →
+            // 그동안 헤드셋을 쓰면 VR 로 확정됨). 스스로 데스크톱으로 확정해 그 기회를 빼앗지 않는다.
+            if (XRModeManager.Instance != null) return;
+
+            // 매니저가 아예 없을 때만 안전 폴백(기존 키마 흐름 무회귀).
+            _modeWaitTimer += Time.unscaledDeltaTime;
+            if (_modeWaitTimer >= modeResolveTimeout) ApplyMode(AppMode.DesktopKBM);
+        }
+
+        private void ApplyMode(AppMode mode)
+        {
+            _modeApplied = true;
+            _appliedMode = mode;
+
+            if (mode == AppMode.DesktopKBM)
+            {
+                DisableConflictingXrComponents();   // 키마 모드일 때만 XR 트래킹/이동을 끈다
+                SyncLookFromTransforms();           // 이동 시작 전 시선(_yaw/_pitch) 동기화
+            }
+            // VR 모드: 아무것도 끄지 않는다. 다음 Update에서 enabled=false 로 자유 카메라 정지.
+        }
+
         // 비VR 자유 카메라와 충돌하는 XR 컴포넌트를 비활성화
-        // (이 컴포넌트가 켜진 동안만 — VR 빌드에서는 이 스크립트를 끄면 원복)
+        // (데스크톱 모드로 확정됐을 때만 — VR 모드/이 스크립트 비활성 시 원복)
         private void DisableConflictingXrComponents()
         {
             if (_rig == null) return;

@@ -369,7 +369,7 @@ Transform:
   m_GameObject: {fileID: 2418198662214852172}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 280.09094, y: 2.303955, z: 27}
+  m_LocalPosition: {x: 96.9642, y: -29.636364, z: -39.158096}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -476,17 +476,17 @@ RectTransform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3058490734850272060}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 299.99994}
+  m_LocalPosition: {x: 0, y: 0, z: 299.9999}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 8815521804702871511}
   m_Father: {fileID: 5688463631917572808}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 400, y: 400}
-  m_SizeDelta: {x: 0, y: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 500, y: 300}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &2489370850104955391
 CanvasRenderer:
@@ -761,6 +761,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5688463631917572808}
   - component: {fileID: 7240108916611563763}
+  - component: {fileID: 7099344948119394640}
   m_Layer: 0
   m_Name: WorldCanvas
   m_TagString: Untagged
@@ -813,6 +814,24 @@ Canvas:
   m_SortingLayerID: 0
   m_SortingOrder: 0
   m_TargetDisplay: 0
+--- !u!114 &7099344948119394640
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4458950858421656189}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: faf6bfe09109172488836df8b6a29c4c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LegoTwin.Core.ModeAdaptiveCanvas
+  _placement: 1
+  _distance: 1.5
+  _scale: 0.0015
+  _worldSize: {x: 1000, y: 700}
+  _followLerp: 8
+  _camera: {fileID: 0}
 --- !u!1 &4531009605138868576
 GameObject:
   m_ObjectHideFlags: 0
