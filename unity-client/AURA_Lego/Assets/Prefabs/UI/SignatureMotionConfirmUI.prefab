@@ -71,15 +71,15 @@ MonoBehaviour:
   m_text: "\uC9C0\uAE08 \uC774 \uB3D9\uC791\uC744 \n\uC2DC\uADF8\uB2C8\uCC98 \uB3D9\uC791\uC73C\uB85C
     \uC124\uC815\uD560\uAE4C\uC694?\n"
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: ca6b1f9ae18b8d849af7194097119401, type: 2}
-  m_sharedMaterial: {fileID: 1501170179310764122, guid: ca6b1f9ae18b8d849af7194097119401, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: bb4cf0f888d7a584387176caefe126f4, type: 2}
+  m_sharedMaterial: {fileID: 879610679151626807, guid: bb4cf0f888d7a584387176caefe126f4, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
     rgba: 4278190080
-  m_fontColor: {r: 0, g: 0, b: 0, a: 1}
+  m_fontColor: {r: 1, g: 1, b: 1, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -396,6 +396,7 @@ GameObject:
   - component: {fileID: 6932070885270625515}
   - component: {fileID: 256558543372171239}
   - component: {fileID: 3767552704609439263}
+  - component: {fileID: 7735329806490125894}
   m_Layer: 0
   m_Name: SignatureMotionConfirmUI
   m_TagString: Untagged
@@ -435,7 +436,7 @@ Canvas:
   m_RenderMode: 0
   m_Camera: {fileID: 0}
   m_PlaneDistance: 100
-  m_PixelPerfect: 0
+  m_PixelPerfect: 1
   m_ReceivesEvents: 1
   m_OverrideSorting: 0
   m_OverridePixelPerfect: 0
@@ -503,10 +504,29 @@ MonoBehaviour:
   _yesButton: {fileID: 8505858245421311308}
   _noButton: {fileID: 1068717834788131446}
   _exitButton: {fileID: 940477755012491867}
+  _noCaptionText: {fileID: 0}
   _canvasGroup: {fileID: 4865704759988086699}
   _fadeDuration: 0.2
   _message: "\uD604\uC7AC \uB3D9\uC791\uC744 \uC2DC\uADF8\uB2C8\uCC98 \uB3D9\uC791\uC73C\uB85C
     \uC124\uC815\uD560\uAE4C\uC694?"
+--- !u!114 &7735329806490125894
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4257795801044458375}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: faf6bfe09109172488836df8b6a29c4c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LegoTwin.Core.ModeAdaptiveCanvas
+  _placement: 0
+  _distance: 1.5
+  _scale: 0.0015
+  _worldSize: {x: 1000, y: 700}
+  _followLerp: 8
+  _camera: {fileID: 0}
 --- !u!1 &5224020146481616217
 GameObject:
   m_ObjectHideFlags: 0
@@ -582,7 +602,7 @@ MonoBehaviour:
   m_fontColor32:
     serializedVersion: 2
     rgba: 4284835173
-  m_fontColor: {r: 0.3962264, g: 0.3962264, b: 0.3962264, a: 1}
+  m_fontColor: {r: 1, g: 1, b: 1, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -677,10 +697,10 @@ RectTransform:
   - {fileID: 6734585258180935846}
   m_Father: {fileID: 4703166433238307529}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 1920, y: 1080}
+  m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!225 &4865704759988086699
 CanvasGroup:
@@ -715,7 +735,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 0.101960786}
+  m_Color: {r: 0, g: 0, b: 0, a: 0.4}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -883,7 +903,7 @@ MonoBehaviour:
   m_fontColor32:
     serializedVersion: 2
     rgba: 4284966759
-  m_fontColor: {r: 0.4056604, g: 0.4056604, b: 0.4056604, a: 1}
+  m_fontColor: {r: 1, g: 1, b: 1, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -1140,7 +1160,7 @@ MonoBehaviour:
   m_fontColor32:
     serializedVersion: 2
     rgba: 4284835173
-  m_fontColor: {r: 0.3962264, g: 0.3962264, b: 0.3962264, a: 1}
+  m_fontColor: {r: 1, g: 1, b: 1, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -1276,7 +1296,7 @@ MonoBehaviour:
   m_fontColor32:
     serializedVersion: 2
     rgba: 4284835173
-  m_fontColor: {r: 0.3962264, g: 0.3962264, b: 0.3962264, a: 1}
+  m_fontColor: {r: 1, g: 1, b: 1, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:

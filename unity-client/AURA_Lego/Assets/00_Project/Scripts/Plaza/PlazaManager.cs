@@ -341,6 +341,7 @@ namespace LegoTwin.Plaza
                     var view = Instantiate(sessionViewPrefab,
                         new Vector3(point.position.x, viewHeightOffset, point.position.z),
                         point.rotation * Quaternion.Euler(0f, 180f, 0f));
+                    if (!view.gameObject.activeSelf) view.gameObject.SetActive(true);   // 비활성 프리팹 방어(코루틴/초기화 보장)
                     view.Initialize(session, session.session_id == _topSessionId);
                     // 이전 창작물은 캐릭터가 광장을 배회하므로, 투표 뷰(스폰 포인트 고정)에
                     // 캐릭터를 연결하지 않는다. 시그니처 재생은 PlazaWanderingCharacter 가 담당.
@@ -643,6 +644,7 @@ namespace LegoTwin.Plaza
             var pos = new Vector3(anchorPos.x, viewHeightOffset, anchorPos.z);
             var rot = anchorGo.transform.rotation * Quaternion.Euler(0f, 180f, 0f);
             var view = Instantiate(sessionViewPrefab, pos, rot);
+            if (!view.gameObject.activeSelf) view.gameObject.SetActive(true);   // 비활성 프리팹 방어(코루틴/초기화 보장)
             view.Initialize(sessionData, sessionData.is_top_liked);
             _views.Add(view);
 

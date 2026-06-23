@@ -144,7 +144,7 @@ MonoBehaviour:
   m_text: "\uC790\uC720\uBAA8\uB4DC\uB85C \uC804\uD658\uB418\uC5C8\uC2B5\uB2C8\uB2E4.\nMINIVERSE\uB97C
     \uB9C8\uC74C\uAECF \uC990\uACA8\uBCF4\uC138\uC694!"
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: bb4cf0f888d7a584387176caefe126f4, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: ca6b1f9ae18b8d849af7194097119401, type: 2}
   m_sharedMaterial: {fileID: 879610679151626807, guid: bb4cf0f888d7a584387176caefe126f4, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
@@ -210,7 +210,7 @@ MonoBehaviour:
   m_margin: {x: 0, y: 0, z: 0, w: 0}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
-  m_hasFontAssetChanged: 0
+  m_hasFontAssetChanged: 1
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
 --- !u!1 &5971759044982145133
@@ -226,6 +226,7 @@ GameObject:
   - component: {fileID: 2403958662796100623}
   - component: {fileID: 6123219406646531895}
   - component: {fileID: 7779335590960856781}
+  - component: {fileID: 3904403387971278674}
   m_Layer: 5
   m_Name: FreeModePopupUI
   m_TagString: Untagged
@@ -265,7 +266,7 @@ Canvas:
   m_RenderMode: 0
   m_Camera: {fileID: 0}
   m_PlaneDistance: 100
-  m_PixelPerfect: 0
+  m_PixelPerfect: 1
   m_ReceivesEvents: 1
   m_OverrideSorting: 0
   m_OverridePixelPerfect: 0
@@ -335,6 +336,24 @@ MonoBehaviour:
   _displayDuration: 3
   _message: "\uC790\uC720\uBAA8\uB4DC\uB85C \uC804\uD658\uB418\uC5C8\uC2B5\uB2C8\uB2E4.
     MINIVERSE\uB97C \uB9C8\uC74C\uAECF \uC990\uACA8\uBCF4\uC138\uC694!"
+--- !u!114 &3904403387971278674
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5971759044982145133}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: faf6bfe09109172488836df8b6a29c4c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LegoTwin.Core.ModeAdaptiveCanvas
+  _placement: 0
+  _distance: 1.5
+  _scale: 0.0015
+  _worldSize: {x: 1000, y: 700}
+  _followLerp: 8
+  _camera: {fileID: 0}
 --- !u!1 &6008947035465329737
 GameObject:
   m_ObjectHideFlags: 0
@@ -367,10 +386,10 @@ RectTransform:
   - {fileID: 169028353615900514}
   m_Father: {fileID: 1685498924958125897}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 1920, y: 1080}
+  m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!225 &2445507020741943742
 CanvasGroup:
