@@ -50,6 +50,19 @@ namespace LegoTwin.Core
 
         private void Awake() => _canvas = GetComponent<Canvas>();
 
+        /// <summary>
+        /// 런타임에 생성한 World Space 캔버스(예: 광장 좋아요 패널 앵커)에 VR 레이 클릭을 보장한다.
+        /// KeepInPlace 로 동작 — VR 모드에서만 TrackedDeviceGraphicRaycaster 를 추가하고 위치는 그대로 둔다.
+        /// 데스크톱은 아무것도 하지 않아 기존(마우스) 동작과 100% 동일.
+        /// </summary>
+        public static ModeAdaptiveCanvas EnsureForWorldCanvas(GameObject canvasGo)
+        {
+            var c = canvasGo.GetComponent<ModeAdaptiveCanvas>();
+            if (c == null) c = canvasGo.AddComponent<ModeAdaptiveCanvas>();
+            c._placement = Placement.KeepInPlace;
+            return c;
+        }
+
         private void Update()
         {
             if (!_applied)
