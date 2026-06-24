@@ -6,8 +6,9 @@ from typing import Optional, List
 
 class CharacterAsset(BaseModel):
     asset_id: str
-    model_url: str           # 리깅된 FBX URL (Unity Animator 리타겟팅용)
+    model_url: Optional[str] = None  # 리깅된 FBX URL 또는 사전 제작 캐릭터면 빈 값
     texture_url: Optional[str] = None  # PBR 텍스쳐 소스 GLB (glTFast 텍스쳐 추출)
+    character_number: Optional[int] = None
     role: str = "guide_npc"
     npc_name: Optional[str] = None
 
@@ -25,6 +26,7 @@ class UnitySessionResponse(BaseModel):
     object_name: Optional[str]
     bubble_text: Optional[str]
     signature_motion: Optional[str] = None
+    character_number: Optional[int] = None
     likes: int = 0
     ready_for_unity: bool
     assets: dict  # character / object
@@ -50,6 +52,7 @@ class PlazaSessionData(BaseModel):
     object_name: Optional[str] = None
     bubble_text: Optional[str]
     signature_motion: Optional[str] = None
+    character_number: Optional[int] = None
     likes: int = 0
     is_top_liked: bool = False   # 좋아요 1위 여부 (별 표시용)
     assets: dict                 # character / object

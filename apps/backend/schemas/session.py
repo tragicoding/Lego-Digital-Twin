@@ -20,11 +20,21 @@ class SignatureMotionUpdate(BaseModel):
     signature_motion: str
 
 
+class CharacterCompositionUpdate(BaseModel):
+    bottom: int
+    middle: int
+    top: int
+
+
 class SessionResponse(BaseModel):
     session_id: str
     nickname: Optional[str]
     object_name: Optional[str]
     bubble_text: Optional[str]
+    character_bottom: Optional[int] = None
+    character_middle: Optional[int] = None
+    character_top: Optional[int] = None
+    character_number: Optional[int] = None
     status: str
     created_at: datetime
 

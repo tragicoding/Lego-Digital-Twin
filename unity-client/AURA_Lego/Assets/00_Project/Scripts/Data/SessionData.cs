@@ -22,6 +22,7 @@ namespace LegoTwin.Data
         public int    likes;
         public bool   ready_for_unity;
         public string signature_motion;   // 시그니처 클립 이름 e.g. "Dance2", "" = 미설정 (옛 데이터는 MotionType 이름 "Dance")
+        public int    character_number;   // 1~27 사전 제작 캐릭터 번호
         public SessionAssets assets;
     }
 
@@ -42,6 +43,7 @@ namespace LegoTwin.Data
         public string asset_id;
         public string model_url;      // FBX URL (서버) or "" (Mock → Inspector prefab 사용)
         public string texture_url;    // pbr_model GLB URL (텍스쳐 소스, glTFast로 로드)
+        public int    character_number; // 1~27 사전 제작 캐릭터 번호
         public string role;           // guide_npc
         public string npc_name;
     }
@@ -77,6 +79,7 @@ namespace LegoTwin.Data
         public int    likes;
         public bool   is_top_liked;             // true → 별 표시
         public string signature_motion;         // 시그니처 클립 이름 e.g. "Dance2", "" = 미설정 (옛 데이터는 MotionType 이름)
+        public int    character_number;         // 1~27 사전 제작 캐릭터 번호
         public SessionAssets assets;
     }
 

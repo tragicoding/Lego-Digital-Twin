@@ -42,6 +42,10 @@ namespace LegoTwin.Plaza
         public GameObject[] mockCharacterPrefabs;
         public GameObject[] mockObjectPrefabs;
 
+        [Header("Server Mode — 사전 제작 캐릭터 Resources 경로")]
+        [Tooltip("Assets/**/Resources 아래 경로. 예: Resources/PrebuiltCharacters/Character_1.fbx")]
+        public string prebuiltCharacterResourcePrefix = "PrebuiltCharacters/Character_";
+
         [Header("스폰 설정")]
         public float characterSpawnScale    = 6f;
         public float objectSpawnScale       = 12f;
@@ -244,6 +248,7 @@ namespace LegoTwin.Plaza
                 character_npc_name = session.character_npc_name,
                 bubble_text        = session.bubble_text        ?? "",
                 signature_motion   = session.signature_motion   ?? "",
+                character_number   = session.character_number,
                 likes              = currentLikes,
                 is_top_liked       = false,
                 assets             = session.assets
@@ -373,7 +378,14 @@ namespace LegoTwin.Plaza
             {
                 GameObject charGo = null;
 
-                if (!string.IsNullOrEmpty(charData.model_url))
+                if (charData.character_number > 0)
+                {
+                    charGo = SpawnPrebuiltCharacter(
+                        session.session_id,
+                        charData.character_number,
+                        point);
+                }
+                else if (!string.IsNullOrEmpty(charData.model_url))
                 {
                     // Server Mode: TriLib FBX 비동기 로드
                     bool done = false;
@@ -514,6 +526,23 @@ namespace LegoTwin.Plaza
             return go;
         }
 
+        private GameObject SpawnPrebuiltCharacter(string sessionId, int characterNumber, Transform point)
+        {
+            var resourcePath = $"{prebuiltCharacterResourcePrefix}{characterNumber}";
+            var prefab = Resources.Load<GameObject>(resourcePath);
+            if (prefab == null)
+            {
+                Debug.LogWarning($"[PlazaManager] 사전 제작 캐릭터 없음: Resources/{resourcePath}");
+                return null;
+            }
+
+            var go = Instantiate(prefab,
+                point.position + point.forward * characterForwardOffset, point.rotation);
+            go.name = $"PlazaChar_{sessionId}_{characterNumber}";
+            go.transform.localScale = Vector3.one * characterSpawnScale;
+            return go;
+        }
+
         private Avatar GetReferenceAvatar(int sessionIndex)
         {
             var prefab = PickMockPrefab(mockCharacterPrefabs, sessionIndex);
@@ -628,6 +657,7 @@ namespace LegoTwin.Plaza
                 character_npc_name = _currentSession.character_npc_name,
                 bubble_text        = _currentSession.bubble_text,
                 signature_motion   = _currentSession.signature_motion ?? "",
+                character_number   = _currentSession.character_number,
                 likes              = _currentSession.likes,
                 is_top_liked       = _currentSession.session_id == _topSessionId,
                 assets             = _currentSession.assets

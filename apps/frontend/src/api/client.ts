@@ -21,6 +21,12 @@ export const api = axios.create({ baseURL: BASE_URL });
 
 export const createSession = () => api.post("/sessions");
 
+export const prepareCharacterPlaceholder = (sessionId: string) =>
+  api.post(`/sessions/${sessionId}/character-placeholder`);
+
+export const captureObjectFromCameras = (sessionId: string) =>
+  api.post(`/sessions/${sessionId}/capture/object`);
+
 export const uploadAsset = (
   sessionId: string,
   assetType: string,
@@ -36,21 +42,6 @@ export const uploadAsset = (
 
 export const getStatus = (sessionId: string) =>
   api.get(`/sessions/${sessionId}/status`);
-
-export const finalizeSession = (sessionId: string) =>
-  api.post(`/sessions/${sessionId}/finalize`);
-
-export const getReviewDashboard = () =>
-  api.get("/admin/review");
-
-export const registerSessionCharacter = (sessionId: string, characterNo: number) =>
-  api.post(`/admin/session-queue/${sessionId}/character`, { character_no: characterNo });
-
-export const cancelReviewSession = (queueName: "session-queue" | "unity-queue" | "history-queue", sessionId: string) =>
-  api.delete(`/admin/review/${queueName}/${sessionId}`);
-
-export const getHistorySessionInfo = (sessionId: string) =>
-  api.get(`/admin/review/history-queue/${sessionId}/info`);
 
 export const getAdminDashboard = () =>
   api.get("/admin/dashboard");
@@ -72,3 +63,8 @@ export const deleteAdminSession = (sessionId: string) =>
 
 export const resetAdminDatabase = () =>
   api.delete("/admin/db/reset");
+
+export const updateCharacterComposition = (
+  sessionId: string,
+  body: { bottom: number; middle: number; top: number },
+) => api.patch(`/admin/sessions/${sessionId}/character-composition`, body);
