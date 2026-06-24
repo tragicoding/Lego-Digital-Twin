@@ -247,12 +247,16 @@ def _remove_session_everywhere(session_id: str, db: DBSession) -> None:
     if not session:
         raise HTTPException(404, "세션을 찾을 수 없습니다.")
 
-    asset_ids = {asset.id for asset in session.assets}
+    asset_ids = {
+        row[0]
+        for row in db.query(Asset.id).filter(Asset.session_id == session_id).all()
+    }
 
-    db.query(AssetAnimation).filter(AssetAnimation.asset_id.in_(asset_ids)).delete(synchronize_session=False)
+    if asset_ids:
+        db.query(AssetAnimation).filter(AssetAnimation.asset_id.in_(asset_ids)).delete(synchronize_session=False)
     db.query(PlazaObject).filter(PlazaObject.session_id == session_id).delete(synchronize_session=False)
     db.query(Asset).filter(Asset.session_id == session_id).delete(synchronize_session=False)
-    db.delete(session)
+    db.query(Session).filter(Session.id == session_id).delete(synchronize_session=False)
     db.commit()
 
     redis_conn = _redis()

@@ -47,7 +47,7 @@ def _cleanup_plaza_sessions(db: DBSession, plaza_list: list) -> None:
             db.query(AssetAnimation).filter(AssetAnimation.asset_id.in_(asset_ids)).delete(synchronize_session=False)
         db.query(PlazaObject).filter(PlazaObject.session_id == session.id).delete(synchronize_session=False)
         db.query(Asset).filter(Asset.session_id == session.id).delete(synchronize_session=False)
-        db.delete(session)
+        db.query(Session).filter(Session.id == session.id).delete(synchronize_session=False)
     db.commit()
 
     plaza_list[:] = [item for item in plaza_list if item["session"].id not in deleted_ids]

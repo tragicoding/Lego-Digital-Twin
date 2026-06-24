@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { type ChangeEvent, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { captureObjectFromCameras, getCameraHealth, prepareCharacterPlaceholder } from "../api/client";
+import { prepareCharacterPlaceholder, uploadAsset } from "../api/client";
 import { useSessionStore } from "../store/sessionStore";
 import PrimaryButton from "../components/PrimaryButton";
 
@@ -20,43 +20,13 @@ interface CapturePageProps {
 export default function CapturePage({ testMode = false }: CapturePageProps) {
   const { sessionId, setUploaded } = useSessionStore();
   const navigate = useNavigate();
+  const objectCameraInputRef = useRef<HTMLInputElement | null>(null);
   const [step, setStep] = useState<"character" | "object">("character");
   const [uploading, setUploading] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
-  const [cameraReady, setCameraReady] = useState(testMode);
-  const [cameraStatus, setCameraStatus] = useState(testMode ? "카메라 테스트 모드" : "카메라 연결 확인 중...");
+  const cameraReady = true;
+  const cameraStatus = testMode ? "카메라 테스트 모드" : "기기 카메라 앱으로 촬영합니다";
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (testMode) return;
-
-    let cancelled = false;
-    const checkCamera = async () => {
-      try {
-        const res = await getCameraHealth();
-        if (cancelled) return;
-        const cameras = res.data.cameras ?? [];
-        const ready = Boolean(res.data.ready);
-        setCameraReady(ready);
-        setCameraStatus(
-          ready
-            ? "카메라 4대 연결 완료"
-            : `카메라 연결 대기 중 (${cameras.filter((camera: { opened?: boolean }) => camera.opened).length}/4)`,
-        );
-      } catch {
-        if (cancelled) return;
-        setCameraReady(false);
-        setCameraStatus("Windows 카메라 서버 연결 대기 중");
-      }
-    };
-
-    void checkCamera();
-    const timer = window.setInterval(() => void checkCamera(), 3000);
-    return () => {
-      cancelled = true;
-      window.clearInterval(timer);
-    };
-  }, [testMode]);
 
   const delay = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
@@ -101,19 +71,29 @@ export default function CapturePage({ testMode = false }: CapturePageProps) {
 
   const handleObjectCapture = async () => {
     if (uploading) return;
-    if (!cameraReady && !testMode) {
-      setError("카메라 4대가 모두 준비된 뒤 촬영할 수 있습니다.");
-      return;
-    }
-    playShutterSound();
-    setUploading(true);
-    await runCountdown();
 
     if (testMode) {
+      playShutterSound();
+      setUploading(true);
+      await runCountdown();
       setUploaded("object");
       navigate("/test/loading");
       return;
     }
+
+    setError(null);
+    objectCameraInputRef.current?.click();
+  };
+
+  const handleObjectFileSelected = async (event: ChangeEvent<HTMLInputElement>) => {
+    if (uploading) return;
+    const file = event.currentTarget.files?.[0];
+    event.currentTarget.value = "";
+    if (!file) return;
+
+    playShutterSound();
+    setUploading(true);
+    await runCountdown();
 
     if (!sessionId) {
       setError("세션 정보가 없습니다. 처음부터 다시 시작해 주세요.");
@@ -122,11 +102,11 @@ export default function CapturePage({ testMode = false }: CapturePageProps) {
     }
 
     try {
-      await captureObjectFromCameras(sessionId);
+      await uploadAsset(sessionId, "object", file, "front");
       setUploaded("object");
       navigate("/loading");
     } catch {
-      setError("오브제 카메라 촬영에 실패했습니다. Windows 카메라 서버를 확인해 주세요.");
+      setError("오브제 사진 업로드에 실패했습니다. 다시 촬영해 주세요.");
       setUploading(false);
     }
   };
@@ -167,6 +147,16 @@ export default function CapturePage({ testMode = false }: CapturePageProps) {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-6 py-10 bg-white">
+      {!testMode && (
+        <input
+          ref={objectCameraInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={handleObjectFileSelected}
+        />
+      )}
       {countdown !== null ? (
         <motion.div
           key={countdown}
@@ -196,7 +186,7 @@ export default function CapturePage({ testMode = false }: CapturePageProps) {
           "오브제 촬영하기",
           handleObjectCapture,
           uploading || !cameraReady,
-          uploading ? "촬영 중..." : cameraReady ? "촬영하기" : "카메라 연결 중",
+          uploading ? "촬영 중..." : cameraReady ? "촬영하기" : "태블릿 카메라 연결 중",
         )
       )}
     </div>

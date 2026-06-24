@@ -1,6 +1,6 @@
 """
 오브제 처리 파이프라인 (RQ Worker에서 실행)
-이미지 → 3D 생성 (multiview 또는 single) → GLB 저장 → DB 업데이트
+이미지 1장 → image_to_model → GLB 저장 → DB 업데이트
 
 GLB 파일명: object_{순서번호}.glb
 """
@@ -60,47 +60,16 @@ async def _run(asset_id: str):
         seq = _seq_num(db, asset)
         prefix = f"object_{seq}"
 
-        # 1. front 이미지 업로드
+        # 1. 태블릿 카메라에서 받은 front 이미지 1장을 Tripo에 업로드한다.
         front_path = Path(asset.input_image_path)
         front_token = await tripo.upload_image(front_path)
         if _is_session_cancelled(db, asset.session_id):
             _mark_cancelled(db, asset)
             return
 
-        # 2. 나머지 이미지 대기 (최대 90초)
-        left_path = back_path = right_path = None
-        for tick in range(90):
-            img_dir = front_path.parent
-            if not left_path:
-                c = sorted(img_dir.glob("object_left*"))
-                if c: left_path = c[0]
-            if not back_path:
-                c = sorted(img_dir.glob("object_back*"))
-                if c: back_path = c[0]
-            if not right_path:
-                c = sorted(img_dir.glob("object_right*"))
-                if c: right_path = c[0]
-            if left_path and back_path and right_path:
-                print(f"[obj] 4방향 이미지 모두 수신 ({tick+1}s)", flush=True)
-                break
-            await asyncio.sleep(1.0)
-
-        # 3. 3D 모델 생성 — back 이미지가 있으면 multiview, 없으면 single
-        if back_path:
-            found = [p.name for p in [left_path, back_path, right_path] if p]
-            print(f"[obj] multiview_to_model: {found}", flush=True)
-            back_token = await tripo.upload_image(back_path)
-            left_token = await tripo.upload_image(left_path) if left_path else None
-            right_token = await tripo.upload_image(right_path) if right_path else None
-            if _is_session_cancelled(db, asset.session_id):
-                _mark_cancelled(db, asset)
-                return
-            task_id = await tripo.create_multiview_task(
-                front_token, back_token, left_token, right_token
-            )
-        else:
-            print(f"[obj] back 이미지 없음 → image_to_model (fallback)", flush=True)
-            task_id = await tripo.create_model_task(front_token, front_path)
+        # 2. 테스트 브랜치에서는 multiview_to_model을 쓰지 않고 즉시 image_to_model로 생성한다.
+        print("[obj] image_to_model: tablet camera single image", flush=True)
+        task_id = await tripo.create_model_task(front_token, front_path)
 
         asset.progress = 40
         db.commit()

@@ -17,6 +17,7 @@ Override with environment variables if Windows assigns different indices:
     set CAMERA_LEFT_INDEX=1
     set CAMERA_BACK_INDEX=2
     set CAMERA_RIGHT_INDEX=3
+    set CAMERA_FRAME_SCALE=0.7
 
 The WSL backend calls:
     POST http://<Windows-IP>:3100/capture-and-upload
@@ -64,6 +65,49 @@ def _camera_specs() -> list[CameraSpec]:
         CameraSpec("back", int(os.getenv("CAMERA_BACK_INDEX", "2"))),
         CameraSpec("right", int(os.getenv("CAMERA_RIGHT_INDEX", "3"))),
     ]
+
+
+def _frame_scale() -> float:
+    try:
+        return float(os.getenv("CAMERA_FRAME_SCALE", "0.7"))
+    except ValueError:
+        return 0.7
+
+
+def _padding_color() -> tuple[int, int, int]:
+    raw = os.getenv("CAMERA_PADDING_BGR", "255,255,255")
+    try:
+        values = [int(part.strip()) for part in raw.split(",")]
+    except ValueError:
+        return (255, 255, 255)
+    if len(values) != 3:
+        return (255, 255, 255)
+    return tuple(max(0, min(255, value)) for value in values)
+
+
+def _scale_frame_to_canvas(frame):
+    scale = _frame_scale()
+    if scale <= 0 or scale >= 1:
+        return frame
+
+    height, width = frame.shape[:2]
+    scaled_width = max(1, int(width * scale))
+    scaled_height = max(1, int(height * scale))
+    scaled = cv2.resize(frame, (scaled_width, scaled_height), interpolation=cv2.INTER_AREA)
+
+    left = (width - scaled_width) // 2
+    right = width - scaled_width - left
+    top = (height - scaled_height) // 2
+    bottom = height - scaled_height - top
+    return cv2.copyMakeBorder(
+        scaled,
+        top,
+        bottom,
+        left,
+        right,
+        cv2.BORDER_CONSTANT,
+        value=_padding_color(),
+    )
 
 
 class CameraManager:
@@ -143,6 +187,7 @@ class CameraManager:
             if frame is None:
                 raise RuntimeError(f"{view} camera did not return a frame")
 
+            frame = _scale_frame_to_canvas(frame)
             ok, encoded = cv2.imencode(".jpg", frame, [int(cv2.IMWRITE_JPEG_QUALITY), 94])
             if not ok:
                 raise RuntimeError(f"{view} camera JPEG encode failed")
