@@ -6,8 +6,11 @@ Run this on Windows, not WSL:
     py -m pip install fastapi uvicorn opencv-python requests
     py scripts\\windows_camera_capture_server.py
 
-Default camera indices:
-    front=0, left=1, back=2, right=3
+Default camera index mapping:
+    index 0 -> front
+    index 1 -> left
+    index 2 -> back
+    index 3 -> right
 
 Override with environment variables if Windows assigns different indices:
     set CAMERA_FRONT_INDEX=0
@@ -23,6 +26,7 @@ from __future__ import annotations
 import os
 import time
 from dataclasses import dataclass
+from threading import Lock
 
 import cv2
 import requests
@@ -46,6 +50,13 @@ class CameraSpec:
     index: int
 
 
+@dataclass
+class CameraState:
+    spec: CameraSpec
+    opened: bool = False
+    error: str | None = None
+
+
 def _camera_specs() -> list[CameraSpec]:
     return [
         CameraSpec("front", int(os.getenv("CAMERA_FRONT_INDEX", "0"))),
@@ -55,33 +66,111 @@ def _camera_specs() -> list[CameraSpec]:
     ]
 
 
-def _capture_jpeg(spec: CameraSpec) -> bytes:
-    cap = cv2.VideoCapture(spec.index, cv2.CAP_DSHOW)
-    try:
-        if not cap.isOpened():
-            raise RuntimeError(f"camera {spec.index} not opened")
+class CameraManager:
+    def __init__(self) -> None:
+        self._lock = Lock()
+        self._caps: dict[str, cv2.VideoCapture] = {}
+        self._states: dict[str, CameraState] = {
+            spec.view: CameraState(spec=spec)
+            for spec in _camera_specs()
+        }
 
-        # Warm up a few frames so exposure/white balance settles.
-        frame = None
-        for _ in range(5):
-            ok, frame = cap.read()
+    def open_all(self) -> None:
+        with self._lock:
+            self.release_all()
+            for spec in _camera_specs():
+                state = CameraState(spec=spec)
+                cap = cv2.VideoCapture(spec.index, cv2.CAP_DSHOW)
+                cap.set(cv2.CAP_PROP_FRAME_WIDTH, int(os.getenv("CAMERA_WIDTH", "1280")))
+                cap.set(cv2.CAP_PROP_FRAME_HEIGHT, int(os.getenv("CAMERA_HEIGHT", "720")))
+                if not cap.isOpened():
+                    state.opened = False
+                    state.error = f"camera index {spec.index} not opened"
+                    cap.release()
+                else:
+                    state.opened = True
+                    self._caps[spec.view] = cap
+                self._states[spec.view] = state
+
+            # Warm up after every camera is open. This keeps capture clicks fast.
+            for _ in range(8):
+                for view, cap in self._caps.items():
+                    ok, _ = cap.read()
+                    if not ok:
+                        self._states[view].opened = False
+                        self._states[view].error = "warmup frame read failed"
+                time.sleep(0.03)
+
+    def release_all(self) -> None:
+        for cap in self._caps.values():
+            cap.release()
+        self._caps.clear()
+
+    def health(self) -> dict:
+        with self._lock:
+            cameras = []
+            for view in ("front", "left", "back", "right"):
+                state = self._states.get(view)
+                if state is None:
+                    continue
+                cap = self._caps.get(view)
+                opened = bool(state.opened and cap is not None and cap.isOpened())
+                cameras.append(
+                    {
+                        "view": state.spec.view,
+                        "index": state.spec.index,
+                        "opened": opened,
+                        "error": None if opened else state.error,
+                    }
+                )
+            ready = len(cameras) == 4 and all(camera["opened"] for camera in cameras)
+            return {"status": "ok" if ready else "not_ready", "ready": ready, "cameras": cameras}
+
+    def capture_jpeg(self, view: str) -> bytes:
+        with self._lock:
+            cap = self._caps.get(view)
+            state = self._states.get(view)
+            if cap is None or state is None or not cap.isOpened():
+                raise RuntimeError(f"{view} camera is not open")
+
+            frame = None
+            for _ in range(3):
+                ok, frame = cap.read()
+                if ok and frame is not None:
+                    break
+                time.sleep(0.03)
+
+            if frame is None:
+                raise RuntimeError(f"{view} camera did not return a frame")
+
+            ok, encoded = cv2.imencode(".jpg", frame, [int(cv2.IMWRITE_JPEG_QUALITY), 94])
             if not ok:
-                time.sleep(0.05)
+                raise RuntimeError(f"{view} camera JPEG encode failed")
+            return encoded.tobytes()
 
-        if frame is None:
-            raise RuntimeError(f"camera {spec.index} did not return a frame")
 
-        ok, encoded = cv2.imencode(".jpg", frame, [int(cv2.IMWRITE_JPEG_QUALITY), 94])
-        if not ok:
-            raise RuntimeError(f"camera {spec.index} JPEG encode failed")
-        return encoded.tobytes()
-    finally:
-        cap.release()
+manager = CameraManager()
+
+
+@app.on_event("startup")
+def startup() -> None:
+    manager.open_all()
+
+
+@app.on_event("shutdown")
+def shutdown() -> None:
+    manager.release_all()
 
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "cameras": [spec.__dict__ for spec in _camera_specs()]}
+    return manager.health()
+
+
+@app.post("/reload-cameras")
+def reload_cameras():
+    manager.open_all()
+    return manager.health()
 
 
 @app.post("/capture-and-upload")
@@ -90,9 +179,13 @@ def capture_and_upload(body: CaptureRequest):
     upload_url = f"{backend}/sessions/{body.session_id}/assets"
 
     uploaded = []
+    health_payload = manager.health()
+    if not health_payload["ready"]:
+        raise HTTPException(status_code=503, detail=health_payload)
+
     for spec in _camera_specs():
         try:
-            image = _capture_jpeg(spec)
+            image = manager.capture_jpeg(spec.view)
             response = requests.post(
                 upload_url,
                 data={"asset_type": body.asset_type, "view": spec.view},

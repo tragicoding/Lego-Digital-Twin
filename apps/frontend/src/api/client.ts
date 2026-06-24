@@ -27,6 +27,9 @@ export const prepareCharacterPlaceholder = (sessionId: string) =>
 export const captureObjectFromCameras = (sessionId: string) =>
   api.post(`/sessions/${sessionId}/capture/object`);
 
+export const getCameraHealth = () =>
+  api.get("/camera/health");
+
 export const uploadAsset = (
   sessionId: string,
   assetType: string,
