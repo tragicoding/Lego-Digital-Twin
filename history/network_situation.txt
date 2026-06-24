@@ -18,8 +18,8 @@ hostname -I
 2-2 Windows powershell(관리자)에서 Wsl IP 방금 확인한 거로 교체
 netsh interface portproxy delete v4tov4 listenport=3000 listenaddress=0.0.0.0
 netsh interface portproxy delete v4tov4 listenport=8000 listenaddress=0.0.0.0
-netsh interface portproxy add v4tov4 listenport=8000 listenaddress=0.0.0.0 connectport=8000 connectaddress=172.28.225.24
-netsh interface portproxy add v4tov4 listenport=3000 listenaddress=0.0.0.0 connectport=3000 connectaddress=172.28.225.24
+netsh interface portproxy add v4tov4 listenport=8000 listenaddress=0.0.0.0 connectport=8000 connectaddress=172.31.45.75
+netsh interface portproxy add v4tov4 listenport=3000 listenaddress=0.0.0.0 connectport=3000 connectaddress=172.31.45.75
 
 방화벽 허용
 netsh advfirewall firewall add rule name="WSL2 3000" dir=in action=allow protocol=TCP localport=3000 profile=any
@@ -93,9 +93,9 @@ netsh interface portproxy delete v4tov4 listenport=3000 listenaddress=0.0.0.0
 netsh interface portproxy delete v4tov4 listenport=3001 listenaddress=0.0.0.0
 netsh interface portproxy delete v4tov4 listenport=8000 listenaddress=0.0.0.0
 
-netsh interface portproxy add v4tov4 listenport=3000 listenaddress=0.0.0.0 connectport=3000 connectaddress=172.28.225.24
-netsh interface portproxy add v4tov4 listenport=3001 listenaddress=0.0.0.0 connectport=3001 connectaddress=172.28.225.24
-netsh interface portproxy add v4tov4 listenport=8000 listenaddress=0.0.0.0 connectport=8000 connectaddress=172.28.225.24
+netsh interface portproxy add v4tov4 listenport=3000 listenaddress=0.0.0.0 connectport=3000 connectaddress=172.31.45.75
+netsh interface portproxy add v4tov4 listenport=3001 listenaddress=0.0.0.0 connectport=3001 connectaddress=172.31.45.75
+netsh interface portproxy add v4tov4 listenport=8000 listenaddress=0.0.0.0 connectport=8000 connectaddress=172.31.45.75
 
 netsh advfirewall firewall add rule name="WSL2 3000" dir=in action=allow protocol=TCP localport=3000 profile=any
 netsh advfirewall firewall add rule name="WSL2 3001" dir=in action=allow protocol=TCP localport=3001 profile=any
