@@ -37,8 +37,8 @@ namespace LegoTwin.Character
         public GameObject mockCharacterPrefab;
 
         [Header("Server Mode — 사전 제작 캐릭터 Resources 경로")]
-        [Tooltip("Assets/**/Resources 아래 경로. 예: Resources/PrebuiltCharacters/Character_1.fbx")]
-        public string prebuiltCharacterResourcePrefix = "PrebuiltCharacters/Character_";
+        [Tooltip("Assets/**/Resources 아래 경로. 예: Resources/PrebuiltCharacters/character_1.fbx")]
+        public string prebuiltCharacterResourcePrefix = "PrebuiltCharacters/character_";
 
         [Header("스폰 위치")]
         [Tooltip("가이드 NPC 스폰 위치 (등장 시작점)")]
@@ -204,8 +204,7 @@ namespace LegoTwin.Character
 
         private GameObject InstantiatePrebuilt(int characterNumber, Vector3 pos, Quaternion rot, string role)
         {
-            var resourcePath = $"{prebuiltCharacterResourcePrefix}{characterNumber}";
-            var prefab = Resources.Load<GameObject>(resourcePath);
+            var prefab = LoadPrebuiltPrefab(characterNumber, out var resourcePath);
             if (prefab == null)
             {
                 Debug.LogWarning($"[CharacterSpawner] 사전 제작 캐릭터 없음: Resources/{resourcePath}");
@@ -216,6 +215,42 @@ namespace LegoTwin.Character
             go.name = $"Character_{role}_{characterNumber}";
             go.transform.localScale = Vector3.one * spawnScale;
             return go;
+        }
+
+        private GameObject LoadPrebuiltPrefab(int characterNumber, out string resourcePath)
+        {
+            resourcePath = $"{prebuiltCharacterResourcePrefix}{characterNumber}";
+            var prefab = Resources.Load<GameObject>(resourcePath);
+            if (prefab != null) return prefab;
+
+            const string lowerPrefix = "PrebuiltCharacters/character_";
+            const string upperPrefix = "PrebuiltCharacters/Character_";
+
+            var lowerPath = $"{lowerPrefix}{characterNumber}";
+            if (!string.Equals(lowerPath, resourcePath, StringComparison.Ordinal))
+            {
+                prefab = Resources.Load<GameObject>(lowerPath);
+                if (prefab != null)
+                {
+                    resourcePath = lowerPath;
+                    return prefab;
+                }
+            }
+
+            var upperPath = $"{upperPrefix}{characterNumber}";
+            if (!string.Equals(upperPath, resourcePath, StringComparison.Ordinal) &&
+                !string.Equals(upperPath, lowerPath, StringComparison.Ordinal))
+            {
+                prefab = Resources.Load<GameObject>(upperPath);
+                if (prefab != null)
+                {
+                    resourcePath = upperPath;
+                    return prefab;
+                }
+            }
+
+            resourcePath = $"{resourcePath} (fallback tried: {lowerPath}, {upperPath})";
+            return null;
         }
 
         private GameObject InstantiateMock(Vector3 pos, Quaternion rot, string role)
@@ -267,8 +302,13 @@ namespace LegoTwin.Character
         {
             if (animatorController == null) return;
 
-            var animator = go.GetComponentInChildren<Animator>();
-            if (animator == null || animator.runtimeAnimatorController != null) return;
+            var animator = go.GetComponentInChildren<Animator>(true);
+            if (animator == null)
+            {
+                Debug.LogWarning($"[CharacterSpawner] Animator 없음: {go.name}");
+                return;
+            }
+            if (animator.runtimeAnimatorController == animatorController) return;
 
             animator.runtimeAnimatorController = animatorController;
         }
