@@ -190,14 +190,24 @@ def get_session_status(session_id: str, db: DBSession = Depends(get_db)):
         if asset.status != "completed":
             all_completed = False
     # Unity로 넘길 준비가 되어있는지 판단한다.
-    # 이름 입력은 Unity 대기화면에서 받으므로 character/object 에셋 완료만 본다.
-    has_character = "character" in assets_status
+    # 캐릭터는 관리자 페이지에서 조합 번호를 확정해야 완료로 본다.
+    character_item = assets_status.get("character")
+    character_ready = (
+        session.character_number is not None
+        and character_item is not None
+        and character_item.status == "completed"
+    )
     has_object = "object" in assets_status or "building" in assets_status
+    object_ready = any(
+        item.status == "completed"
+        for asset_type, item in assets_status.items()
+        if asset_type in ("object", "building")
+    )
     ready_for_unity = (
         session.status != "cancelled"
-        and has_character
+        and character_ready
         and has_object
-        and all_completed
+        and object_ready
     )
 
     return SessionStatusResponse(

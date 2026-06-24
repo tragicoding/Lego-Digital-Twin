@@ -7,6 +7,7 @@ import {
   deleteAdminSession,
   getAdminDashboard,
   resetAdminDatabase,
+  updateCharacterComposition,
 } from "../api/client";
 
 type AssetSummary = {
@@ -22,6 +23,11 @@ type SessionSummary = {
   status: string;
   character_name: string | null;
   object_name: string | null;
+  character_bottom: number | null;
+  character_middle: number | null;
+  character_top: number | null;
+  character_number: number | null;
+  character_selection_ready: boolean;
   likes: number;
   queue_position?: number | null;
   assets: AssetSummary[];
@@ -63,6 +69,8 @@ export default function AdminApp() {
   const [dashboard, setDashboard] = useState<Dashboard | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [selectedSession, setSelectedSession] = useState<SessionSummary | null>(null);
+  const [composition, setComposition] = useState({ bottom: 1, middle: 1, top: 1 });
 
   const refresh = async () => {
     try {
@@ -94,6 +102,26 @@ export default function AdminApp() {
   };
 
   const sessions = dashboard?.data.sessions ?? [];
+
+  const openSession = (session: SessionSummary) => {
+    setSelectedSession(session);
+    setComposition({
+      bottom: session.character_bottom ?? 1,
+      middle: session.character_middle ?? 1,
+      top: session.character_top ?? 1,
+    });
+  };
+
+  const saveComposition = async () => {
+    if (!selectedSession) return;
+    await run("캐릭터 조합 저장", () =>
+      updateCharacterComposition(selectedSession.session_id, composition),
+    );
+    setSelectedSession(null);
+  };
+
+  const calculatedCharacterNumber =
+    (composition.bottom - 1) * 9 + (composition.middle - 1) * 3 + composition.top;
 
   return (
     <div className="min-h-screen bg-neutral-950 px-5 py-6 text-white">
@@ -166,7 +194,7 @@ export default function AdminApp() {
 
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
             {(dashboard?.exhibition.unity_queue ?? []).map((session) => (
-              <SessionCard key={session.session_id} session={session} />
+              <SessionCard key={session.session_id} session={session} onOpen={openSession} />
             ))}
             {(dashboard?.exhibition.unity_queue ?? []).length === 0 && (
               <div className="rounded-md border border-dashed border-white/10 p-6 text-center text-sm text-white/35">
@@ -209,6 +237,7 @@ export default function AdminApp() {
               <SessionCard
                 key={session.session_id}
                 session={session}
+                onOpen={openSession}
                 actions={
                   <>
                     <button
@@ -232,13 +261,41 @@ export default function AdminApp() {
           </div>
         </section>
       </div>
+
+      {selectedSession && (
+        <CharacterCompositionModal
+          session={selectedSession}
+          composition={composition}
+          characterNumber={calculatedCharacterNumber}
+          busy={busy !== null}
+          onChange={setComposition}
+          onClose={() => setSelectedSession(null)}
+          onSave={() => void saveComposition()}
+        />
+      )}
     </div>
   );
 }
 
-function SessionCard({ session, actions }: { session: SessionSummary; actions?: ReactNode }) {
+function SessionCard({
+  session,
+  actions,
+  onOpen,
+}: {
+  session: SessionSummary;
+  actions?: ReactNode;
+  onOpen?: (session: SessionSummary) => void;
+}) {
   return (
-    <div className="rounded-md border border-white/10 bg-black/25 p-4">
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={() => onOpen?.(session)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") onOpen?.(session);
+      }}
+      className="rounded-md border border-white/10 bg-black/25 p-4 text-left hover:border-white/25"
+    >
       <div className="mb-3 flex items-start justify-between gap-2">
         <div>
           <div className="font-bold">#{session.session_id}</div>
@@ -249,6 +306,11 @@ function SessionCard({ session, actions }: { session: SessionSummary; actions?: 
       <div className="space-y-1 text-xs text-white/65">
         <div>character: {session.character_name ?? "-"}</div>
         <div>object: {session.object_name ?? "-"}</div>
+        <div>
+          parts: bottom_{session.character_bottom ?? "-"} / middle_{session.character_middle ?? "-"} / top_
+          {session.character_top ?? "-"}
+        </div>
+        <div>character no: {session.character_number ?? "미선택"}</div>
         <div>likes: {session.likes}</div>
       </div>
       <div className="mt-3 space-y-1 text-xs text-white/55">
@@ -258,7 +320,116 @@ function SessionCard({ session, actions }: { session: SessionSummary; actions?: 
           </div>
         ))}
       </div>
-      {actions && <div className="mt-4 flex gap-2">{actions}</div>}
+      {actions && (
+        <div
+          className="mt-4 flex gap-2"
+          onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.stopPropagation()}
+        >
+          {actions}
+        </div>
+      )}
     </div>
+  );
+}
+
+function CharacterCompositionModal({
+  session,
+  composition,
+  characterNumber,
+  busy,
+  onChange,
+  onClose,
+  onSave,
+}: {
+  session: SessionSummary;
+  composition: { bottom: number; middle: number; top: number };
+  characterNumber: number;
+  busy: boolean;
+  onChange: (next: { bottom: number; middle: number; top: number }) => void;
+  onClose: () => void;
+  onSave: () => void;
+}) {
+  const updatePart = (key: "bottom" | "middle" | "top", value: string) => {
+    const parsed = Number(value);
+    onChange({ ...composition, [key]: parsed });
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
+      <div className="w-full max-w-md rounded-md border border-white/15 bg-neutral-950 p-5 text-white shadow-2xl">
+        <div className="mb-5 flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-black">Session #{session.session_id}</h2>
+            <p className="mt-1 text-sm text-white/50">캐릭터 조합을 선택하세요</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="rounded-md border border-white/20 px-3 py-1 text-sm hover:bg-white/10"
+          >
+            닫기
+          </button>
+        </div>
+
+        <div className="grid gap-3">
+          <PartSelect
+            label="하체 bottom"
+            value={composition.bottom}
+            onChange={(value) => updatePart("bottom", value)}
+          />
+          <PartSelect
+            label="상체 middle"
+            value={composition.middle}
+            onChange={(value) => updatePart("middle", value)}
+          />
+          <PartSelect
+            label="머리 top"
+            value={composition.top}
+            onChange={(value) => updatePart("top", value)}
+          />
+        </div>
+
+        <div className="mt-5 rounded-md bg-white/[0.06] p-4 text-sm">
+          <div className="text-white/55">Unity character number</div>
+          <div className="mt-1 text-4xl font-black">{characterNumber}</div>
+          <div className="mt-2 text-white/55">
+            bottom_{composition.bottom} + middle_{composition.middle} + top_{composition.top}
+          </div>
+        </div>
+
+        <button
+          onClick={onSave}
+          disabled={busy}
+          className="mt-5 w-full rounded-md bg-white px-4 py-3 text-sm font-black text-black disabled:opacity-40"
+        >
+          저장하고 Unity Queue 조건 반영
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function PartSelect({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="grid gap-2 text-sm font-semibold text-white/75">
+      {label}
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="rounded-md border border-white/15 bg-black px-3 py-3 text-base text-white"
+      >
+        <option value={1}>1</option>
+        <option value={2}>2</option>
+        <option value={3}>3</option>
+      </select>
+    </label>
   );
 }

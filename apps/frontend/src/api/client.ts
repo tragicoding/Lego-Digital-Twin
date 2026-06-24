@@ -21,6 +21,12 @@ export const api = axios.create({ baseURL: BASE_URL });
 
 export const createSession = () => api.post("/sessions");
 
+export const prepareCharacterPlaceholder = (sessionId: string) =>
+  api.post(`/sessions/${sessionId}/character-placeholder`);
+
+export const captureObjectFromCameras = (sessionId: string) =>
+  api.post(`/sessions/${sessionId}/capture/object`);
+
 export const uploadAsset = (
   sessionId: string,
   assetType: string,
@@ -57,3 +63,8 @@ export const deleteAdminSession = (sessionId: string) =>
 
 export const resetAdminDatabase = () =>
   api.delete("/admin/db/reset");
+
+export const updateCharacterComposition = (
+  sessionId: string,
+  body: { bottom: number; middle: number; top: number },
+) => api.patch(`/admin/sessions/${sessionId}/character-composition`, body);

@@ -1,11 +1,10 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { uploadAsset } from "../api/client";
+import { captureObjectFromCameras, prepareCharacterPlaceholder } from "../api/client";
 import { useSessionStore } from "../store/sessionStore";
 import PrimaryButton from "../components/PrimaryButton";
 
-const VIEWS = ["front", "left", "back", "right"] as const;
 const shutterSound = new Audio("/sounds/camera-shutter.mp3");
 shutterSound.volume = 0.7;
 
@@ -21,25 +20,57 @@ interface CapturePageProps {
 export default function CapturePage({ testMode = false }: CapturePageProps) {
   const { sessionId, setUploaded } = useSessionStore();
   const navigate = useNavigate();
-  const fileRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState<"character" | "object">("character");
   const [uploading, setUploading] = useState(false);
+  const [countdown, setCountdown] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const handleCharacterCapture = () => {
+  const delay = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
+
+  const runCountdown = async () => {
+    setError(null);
+    for (const value of [3, 2, 1]) {
+      setCountdown(value);
+      await delay(850);
+    }
+    setCountdown(null);
+  };
+
+  const handleCharacterCapture = async () => {
+    if (uploading) return;
     playShutterSound();
+    setUploading(true);
+    await runCountdown();
 
     if (testMode) {
       setUploaded("character");
       setStep("object");
+      setUploading(false);
       return;
     }
 
-    fileRef.current?.click();
+    if (!sessionId) {
+      setError("세션 정보가 없습니다. 처음부터 다시 시작해 주세요.");
+      setUploading(false);
+      return;
+    }
+
+    try {
+      await prepareCharacterPlaceholder(sessionId);
+      setUploaded("character");
+      setStep("object");
+    } catch {
+      setError("캐릭터 세션 준비에 실패했습니다. 다시 시도해 주세요.");
+    } finally {
+      setUploading(false);
+    }
   };
 
-  const handleObjectCapture = () => {
+  const handleObjectCapture = async () => {
+    if (uploading) return;
     playShutterSound();
+    setUploading(true);
+    await runCountdown();
 
     if (testMode) {
       setUploaded("object");
@@ -47,34 +78,18 @@ export default function CapturePage({ testMode = false }: CapturePageProps) {
       return;
     }
 
-    fileRef.current?.click();
-  };
-
-  const handleFiles = async (selectedFiles: File[]) => {
-    if (!sessionId) return;
-
-    const files = selectedFiles.slice(0, 4);
-    if (files.length < 4) {
-      setError("front, left, back, right 사진 4장이 필요합니다.");
+    if (!sessionId) {
+      setError("세션 정보가 없습니다. 처음부터 다시 시작해 주세요.");
+      setUploading(false);
       return;
     }
 
-    setUploading(true);
-    setError(null);
     try {
-      for (let i = 0; i < VIEWS.length; i += 1) {
-        await uploadAsset(sessionId, step, files[i], VIEWS[i]);
-      }
-      setUploaded(step);
-      if (step === "character") {
-        setStep("object");
-        setUploading(false);
-        if (fileRef.current) fileRef.current.value = "";
-      } else {
-        navigate("/loading");
-      }
+      await captureObjectFromCameras(sessionId);
+      setUploaded("object");
+      navigate("/loading");
     } catch {
-      setError(`${step === "character" ? "캐릭터" : "오브제"} 업로드에 실패했습니다. 다시 시도해 주세요.`);
+      setError("오브제 카메라 촬영에 실패했습니다. Windows 카메라 서버를 확인해 주세요.");
       setUploading(false);
     }
   };
@@ -110,29 +125,37 @@ export default function CapturePage({ testMode = false }: CapturePageProps) {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-6 py-10 bg-white">
-      {step === "character"
-        ? renderCaptureStep(
-            "캐릭터를 촬영하겠습니다",
-            handleCharacterCapture,
-            uploading,
-            uploading ? "업로드 중..." : "촬영",
-          )
-        : renderCaptureStep(
-            "오브제를 촬영하겠습니다",
-            handleObjectCapture,
-            uploading,
-            uploading ? "업로드 중..." : "촬영",
-          )}
-
-      {!testMode && (
-        <input
-          ref={fileRef}
-          type="file"
-          accept="image/*"
-          multiple
-          className="hidden"
-          onChange={(e) => void handleFiles(Array.from(e.target.files ?? []))}
-        />
+      {countdown !== null ? (
+        <motion.div
+          key={countdown}
+          className="flex h-screen w-full items-center justify-center bg-white"
+          initial={{ opacity: 0, scale: 0.45, y: 24 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 1.35 }}
+          transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <motion.span
+            className="text-[9rem] font-black leading-none text-gray-950"
+            animate={{ scale: [1, 1.08, 1], opacity: [0.85, 1, 0.9] }}
+            transition={{ duration: 0.65, ease: "easeOut" }}
+          >
+            {countdown}
+          </motion.span>
+        </motion.div>
+      ) : step === "character" ? (
+        renderCaptureStep(
+          "캐릭터 촬영하기",
+          handleCharacterCapture,
+          uploading,
+          uploading ? "촬영 중..." : "촬영하기",
+        )
+      ) : (
+        renderCaptureStep(
+          "오브제 촬영하기",
+          handleObjectCapture,
+          uploading,
+          uploading ? "촬영 중..." : "촬영하기",
+        )
       )}
     </div>
   );

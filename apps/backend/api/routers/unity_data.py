@@ -57,17 +57,22 @@ def _build_assets(session: Session) -> dict:
     """Session 모델에서 Unity용 assets dict를 만든다."""
     assets_out = {}
     for asset in session.assets:
-        if asset.status != "completed" or not asset.model_url:
+        if asset.status != "completed":
             continue
         if asset.asset_type == "character":
+            if session.character_number is None:
+                continue
             assets_out["character"] = {
                 "asset_id": asset.id,
                 "model_url": asset.model_url,
                 "texture_url": asset.thumbnail_url,   # pbr_model GLB
+                "character_number": session.character_number,
                 "role": "guide_npc",
                 "npc_name": session.nickname,
             }
         elif asset.asset_type in ("object", "building"):
+            if not asset.model_url:
+                continue
             assets_out["object"] = {
                 "asset_id": asset.id,
                 "model_url": asset.model_url,
@@ -95,6 +100,7 @@ def get_unity_session(session_id: str, db: DBSession = Depends(get_db)):
         object_name=session.object_name,
         bubble_text=session.bubble_text,
         signature_motion=session.signature_motion,
+        character_number=session.character_number,
         likes=session.likes or 0,
         ready_for_unity=ready,
         assets=assets_out,
@@ -142,6 +148,7 @@ def get_plaza_sessions(db: DBSession = Depends(get_db)):
             object_name=s.object_name,
             bubble_text=s.bubble_text,
             signature_motion=s.signature_motion,
+            character_number=s.character_number,
             likes=s.likes or 0,
             is_top_liked=(s.id == top_session_id),
             assets=item["assets"],

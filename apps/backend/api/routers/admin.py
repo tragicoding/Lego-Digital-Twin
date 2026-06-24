@@ -5,6 +5,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from redis import Redis
 from rq import Queue, Worker
 from rq.registry import (
@@ -31,6 +32,7 @@ from ...models.asset_animation import AssetAnimation
 from ...models.plaza_object import PlazaObject
 from ...models.session import Session
 from ...services.event_service import UNITY_QUEUE_KEY
+from ...services.event_service import check_and_notify
 from ...services import unity_queue_service as uq
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -49,6 +51,21 @@ MANAGED_QUEUES = {
     "lego-character": RQ_QUEUE_CHARACTER,
     "lego-object": RQ_QUEUE_OBJECT,
 }
+
+
+class CharacterCompositionBody(BaseModel):
+    bottom: int
+    middle: int
+    top: int
+
+
+def _character_number(bottom: int, middle: int, top: int) -> int:
+    return (bottom - 1) * 9 + (middle - 1) * 3 + top
+
+
+def _validate_part(value: int, name: str) -> None:
+    if value not in (1, 2, 3):
+        raise HTTPException(422, f"{name} 값은 1, 2, 3 중 하나여야 합니다.")
 
 
 def _redis() -> Redis:
@@ -159,6 +176,11 @@ def _session_summary(session: Session, queue_position: int | None = None) -> dic
         "object_name": session.object_name,
         "bubble_text": session.bubble_text,
         "signature_motion": session.signature_motion,
+        "character_bottom": session.character_bottom,
+        "character_middle": session.character_middle,
+        "character_top": session.character_top,
+        "character_number": session.character_number,
+        "character_selection_ready": session.character_number is not None,
         "likes": session.likes or 0,
         "queue_position": queue_position,
         "image_checks": {
@@ -407,6 +429,56 @@ def clear_unity_queue():
 def delete_session(session_id: str, db: DBSession = Depends(get_db)):
     _remove_session_everywhere(session_id, db)
     return {"status": "ok", "removed": session_id}
+
+
+@router.patch("/sessions/{session_id}/character-composition")
+def update_character_composition(
+    session_id: str,
+    body: CharacterCompositionBody,
+    db: DBSession = Depends(get_db),
+):
+    """관리자 페이지에서 하체/상체/머리 조합을 확정한다."""
+    _validate_part(body.bottom, "bottom")
+    _validate_part(body.middle, "middle")
+    _validate_part(body.top, "top")
+
+    session = db.get(Session, session_id)
+    if not session:
+        raise HTTPException(404, "세션을 찾을 수 없습니다.")
+    if session.status == "cancelled":
+        raise HTTPException(409, "취소된 세션입니다.")
+
+    character_asset = _asset_by_type(session, "character")
+    if character_asset is None:
+        character_asset = Asset(
+            session_id=session_id,
+            asset_type="character",
+            status="completed",
+            stage="ready",
+            progress=100,
+        )
+        db.add(character_asset)
+
+    session.character_bottom = body.bottom
+    session.character_middle = body.middle
+    session.character_top = body.top
+    session.character_number = _character_number(body.bottom, body.middle, body.top)
+
+    character_asset.status = "completed"
+    character_asset.stage = "ready"
+    character_asset.progress = 100
+    db.commit()
+
+    check_and_notify(session_id)
+
+    return {
+        "status": "ok",
+        "session_id": session_id,
+        "bottom": body.bottom,
+        "middle": body.middle,
+        "top": body.top,
+        "character_number": session.character_number,
+    }
 
 
 @router.delete("/db/reset")
