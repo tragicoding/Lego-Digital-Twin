@@ -22,8 +22,7 @@ DB에 status/progress/model_url 업데이트
 GET /sessions/{session_id}/status를 3초마다 호출
 ↓
 진행률 표시
-↓
-모든 asset 완료 + 프로필 완료
+모든 asset 완료
 ↓
 ready_for_unity = true
 
@@ -36,7 +35,6 @@ POST /sessions/{id}/assets   — 이미지 업로드 → Queue 등록
 GET  /sessions/{id}/status   — 처리 상태 조회
 """
 import shutil
-from pathlib import Path
 from typing import Literal
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
@@ -47,8 +45,7 @@ from ...core.database import get_db
 from ...models.asset import Asset
 from ...models.session import Session
 from ...schemas.asset import AssetUploadResponse, SessionStatusResponse, AssetStatusItem
-from ...services.queue_service import enqueue_asset, enqueue_object_session
-from ...services import session_queue_service as sq
+from ...services.queue_service import enqueue_asset
 
 #기본 경로는 /sessions
 """
@@ -80,31 +77,13 @@ async def upload_asset(
     db: DBSession = Depends(get_db),
 ):
     session = db.get(Session, session_id)
-    queued_session = sq.get_session_data(session_id)
-    if not session and not queued_session:
+    if not session:
         raise HTTPException(404, "세션을 찾을 수 없습니다.")
-    if session and session.status == "cancelled":
+    if session.status == "cancelled":
         raise HTTPException(409, "취소된 세션에는 이미지를 업로드할 수 없습니다.")
 
     save_dir = STORAGE_IMAGES / session_id
     save_dir.mkdir(parents=True, exist_ok=True)
-
-    # 심사용 플로우: 캐릭터는 사전 제작 FBX를 관리자에서 등록하므로 촬영만 통과시킨다.
-    if asset_type == "character":
-        save_path = save_dir / f"character_{view}.jpg"
-        with open(save_path, "wb") as f:
-            shutil.copyfileobj(file.file, f)
-        return AssetUploadResponse(asset_id="", status="saved", asset_type=f"character_{view}")
-
-    # 심사용 플로우: Redis session_queue 세션은 오브제 파일만 저장하고 object worker에 session_id를 보낸다.
-    if queued_session and asset_type == "object":
-        save_path = save_dir / f"object_{view}.jpg"
-        with open(save_path, "wb") as f:
-            shutil.copyfileobj(file.file, f)
-        if view == "front":
-            sq.update_session(session_id, object_status="queued", object_stage="waiting", object_progress=0)
-            enqueue_object_session(session_id)
-        return AssetUploadResponse(asset_id="", status="queued" if view == "front" else "saved", asset_type=f"object_{view}")
 
     # left/back/right 이미지: 파일 저장만, DB/큐 등록 없음 (worker가 polling으로 감지)
     if view in ("back", "left", "right") and asset_type in ("character", "object"):
@@ -117,7 +96,7 @@ async def upload_asset(
             asset_type=f"{asset_type}_{view}",
         )
 
-    # front / 오브제: 기존 파이프라인 그대로
+    # front 이미지가 들어오면 Asset을 만들고 worker를 시작한다.
     save_path = save_dir / f"{asset_type}_{file.filename}"
     with open(save_path, "wb") as f:
         shutil.copyfileobj(file.file, f)
@@ -175,32 +154,6 @@ DB 상태 업데이트"""
 def get_session_status(session_id: str, db: DBSession = Depends(get_db)):
     #session_id 한번더 확인
     session = db.get(Session, session_id)
-    queued_session = sq.get_session_data(session_id)
-    if queued_session:
-        object_status = queued_session.get("object_status", "waiting")
-        object_stage = queued_session.get("object_stage", "waiting")
-        object_progress = int(queued_session.get("object_progress") or 0)
-        character_ready = bool(queued_session.get("character_no"))
-        ready_for_unity = character_ready and object_status == "completed"
-        return SessionStatusResponse(
-            session_id=session_id,
-            profile_completed=character_ready,
-            assets={
-                "character": AssetStatusItem(
-                    status="completed" if character_ready else "waiting",
-                    stage="ready" if character_ready else "waiting",
-                    progress=100 if character_ready else 0,
-                    model_url=queued_session.get("character_model_url") or None,
-                ),
-                "object": AssetStatusItem(
-                    status=object_status,
-                    stage=object_stage,
-                    progress=object_progress,
-                    model_url=queued_session.get("object_model_url") or None,
-                ),
-            },
-            ready_for_unity=ready_for_unity,
-        )
     if not session:
         raise HTTPException(404, "세션을 찾을 수 없습니다.")
 
@@ -236,19 +189,25 @@ def get_session_status(session_id: str, db: DBSession = Depends(get_db)):
         #하나라도 완료되지 않은 asset이 있으면 전체 완료가 아니라고 판단
         if asset.status != "completed":
             all_completed = False
-    #Unity로 넘길 준비가 되어있는지 판단하는 조건. 
-    #조건은 3개
-    #1. asset이 하나 이상 있어야 함
-    #2. 모든 asset 처리가 completed여야 함
-    #3. nickname이 있어야 함, 즉 프로필 입력 완료
-    #즉, 이미지 변환만 끝났다고 바로 Unity 준비 완료가 아니고,
-    #프로필까지 입력되어야 ready_for_unity = True가 된다.
-    has_assets = len(session.assets) > 0
+    # Unity로 넘길 준비가 되어있는지 판단한다.
+    # 캐릭터는 관리자 페이지에서 조합 번호를 확정해야 완료로 본다.
+    character_item = assets_status.get("character")
+    character_ready = (
+        session.character_number is not None
+        and character_item is not None
+        and character_item.status == "completed"
+    )
+    has_object = "object" in assets_status or "building" in assets_status
+    object_ready = any(
+        item.status == "completed"
+        for asset_type, item in assets_status.items()
+        if asset_type in ("object", "building")
+    )
     ready_for_unity = (
         session.status != "cancelled"
-        and has_assets
-        and all_completed
-        and bool(session.nickname)
+        and character_ready
+        and has_object
+        and object_ready
     )
 
     return SessionStatusResponse(

@@ -189,6 +189,11 @@ npm run dev:admin -- --host 0.0.0.0 --port 3001
 ## Unity Notes
 
 - Unity should be run from `unity-client/AURA_Lego`
+- Server-mode prebuilt character FBX/prefab files should be placed under:
+  `unity-client/AURA_Lego/Assets/00_Project/Resources/PrebuiltCharacters`
+  using names `Character_1` through `Character_27`.
+  The backend sends only `character_number`; Unity resolves
+  `Resources/PrebuiltCharacters/Character_{number}` locally.
 - The Unity client consumes:
   - `/sessions/active`
   - `/unity/sessions/{session_id}`
@@ -236,6 +241,8 @@ The admin dashboard is intended for live exhibition operation and debugging.
 
 Typical tasks:
 
+- select the current session's prebuilt character parts:
+  `bottom`, `middle`, and `top`, each from `1` to `3`
 - inspect session queue state
 - inspect worker state
 - inspect Redis / backend health
@@ -249,6 +256,9 @@ Typical tasks:
   default exhibition startup entrypoint; runs IP update + Docker + backend/worker/frontend/admin
 - `scripts/run_exhibition.sh`
   process startup helper for backend, workers, frontend, and admin only
+- `scripts/windows_camera_capture_server.py`
+  Windows-only USB camera relay. Run it on Windows so four USB cameras can capture
+  `front`, `left`, `back`, and `right` images and upload them to the WSL backend.
 - `scripts/update_network_ip.py`
   maintenance helper for updating IP-sensitive local config when the Windows IP changes
 - `run_worker.py`

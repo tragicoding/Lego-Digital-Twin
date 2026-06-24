@@ -60,13 +60,16 @@ def check_and_notify(session_id: str):
     db = SessionLocal()
     try:
         session = db.get(Session, session_id)
-        if not session or not session.nickname:
+        if not session:
             return
         if session.status == "cancelled":
             return
         if not session.assets:
             return
-        if all(a.status == "completed" for a in session.assets):
+        completed_types = {a.asset_type for a in session.assets if a.status == "completed"}
+        has_character = "character" in completed_types
+        has_object = bool({"object", "building"} & completed_types)
+        if has_character and has_object:
             enqueue_unity_session(session_id)
             publish_session_ready(session_id)
     finally:

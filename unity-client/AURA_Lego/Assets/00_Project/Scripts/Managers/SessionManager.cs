@@ -153,6 +153,8 @@ namespace LegoTwin.Managers
                 data.bubble_text = data.object_name;
             if (string.IsNullOrEmpty(data.object_name) && !string.IsNullOrEmpty(data.bubble_text))
                 data.object_name = data.bubble_text;
+            if (data.character_number > 0 && data.assets?.character != null && data.assets.character.character_number <= 0)
+                data.assets.character.character_number = data.character_number;
 
             CurrentSession = data;
             onLoaded?.Invoke(data);

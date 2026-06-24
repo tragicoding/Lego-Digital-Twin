@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PYTHON_BIN="/home/jskim/anaconda3/envs/triposr/bin/python"
+PYTHON_BIN="/home/jskim/miniconda3/envs/triposr/bin/python"
 
 cd "$ROOT_DIR"
 

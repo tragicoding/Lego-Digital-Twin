@@ -31,6 +31,10 @@ async def lifespan(app: FastAPI):
     with engine.begin() as conn:
         conn.execute(text("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS is_true BOOLEAN DEFAULT TRUE"))
         conn.execute(text("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS object_name VARCHAR(100)"))
+        conn.execute(text("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS character_bottom INTEGER"))
+        conn.execute(text("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS character_middle INTEGER"))
+        conn.execute(text("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS character_top INTEGER"))
+        conn.execute(text("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS character_number INTEGER"))
     # Redis Pub/Sub → WebSocket 브로드캐스트 백그라운드 태스크
     task = asyncio.create_task(redis_subscriber(manager.broadcast))
     yield

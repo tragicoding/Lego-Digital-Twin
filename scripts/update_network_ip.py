@@ -46,15 +46,18 @@ UNITY_SERVER_CONFIG = (
 IP_RE = re.compile(r"^\d{1,3}(\.\d{1,3}){3}$")
 
 
-def update_env_var(path: Path, key: str, new_ip: str) -> str | None:
+def update_env_var(path: Path, key: str, new_ip: str, default_port: str = "8000") -> str | None:
     """env 파일의 'KEY=http://host:port' 줄을 새 IP로 치환하고, 기존 host:port를 반환한다."""
     text = path.read_text()
     m = re.search(rf"^{key}=http://([^:\s]+):?(\d*)\s*$", text, re.MULTILINE)
     if not m:
-        print(f"  [경고] {path.relative_to(ROOT)} 에서 {key} 줄을 찾지 못함 — 건너뜀")
+        suffix = "\n" if text and not text.endswith("\n") else ""
+        text = f"{text}{suffix}{key}=http://{new_ip}:{default_port}\n"
+        path.write_text(text)
+        print(f"  {path.relative_to(ROOT)}: {key} 줄이 없어 새로 추가 → {key}=http://{new_ip}:{default_port}")
         return None
 
-    old_host, old_port = m.group(1), (m.group(2) or "8000")
+    old_host, old_port = m.group(1), (m.group(2) or default_port)
     new_line = f"{key}=http://{new_ip}:{old_port}"
     text = re.sub(rf"^{key}=http://[^\s]+\s*$", new_line, text, flags=re.MULTILINE)
     path.write_text(text)
@@ -140,6 +143,7 @@ def main() -> None:
 
     print("[2/4] backend/.env 갱신")
     old_backend = update_env_var(BACKEND_ENV, "BACKEND_HOST", new_ip)
+    update_env_var(BACKEND_ENV, "WINDOWS_CAMERA_URL", new_ip, "3100")
 
     print("[3/4] Unity server_config.json 갱신")
     old_unity = update_unity_server_config(UNITY_SERVER_CONFIG, new_ip)

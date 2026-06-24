@@ -36,6 +36,10 @@ namespace LegoTwin.Character
         [Header("Mock Mode — FBX 로 만든 Prefab 연결")]
         public GameObject mockCharacterPrefab;
 
+        [Header("Server Mode — 사전 제작 캐릭터 Resources 경로")]
+        [Tooltip("Assets/**/Resources 아래 경로. 예: Resources/PrebuiltCharacters/Character_1.fbx")]
+        public string prebuiltCharacterResourcePrefix = "PrebuiltCharacters/Character_";
+
         [Header("스폰 위치")]
         [Tooltip("가이드 NPC 스폰 위치 (등장 시작점)")]
         public Transform guideSpawnPoint;
@@ -182,10 +186,36 @@ namespace LegoTwin.Character
                 return;
             }
 
+            if (data.character_number > 0)
+            {
+                var prebuilt = InstantiatePrebuilt(data.character_number, pos, rot, role);
+                if (prebuilt != null)
+                {
+                    onCreated?.Invoke(prebuilt);
+                    return;
+                }
+            }
+
             if (!string.IsNullOrEmpty(data.model_url))
                 LoadFromServer(data, pos, rot, role, onCreated);
             else
                 onCreated?.Invoke(InstantiateMock(pos, rot, role));
+        }
+
+        private GameObject InstantiatePrebuilt(int characterNumber, Vector3 pos, Quaternion rot, string role)
+        {
+            var resourcePath = $"{prebuiltCharacterResourcePrefix}{characterNumber}";
+            var prefab = Resources.Load<GameObject>(resourcePath);
+            if (prefab == null)
+            {
+                Debug.LogWarning($"[CharacterSpawner] 사전 제작 캐릭터 없음: Resources/{resourcePath}");
+                return null;
+            }
+
+            var go = Instantiate(prefab, pos, rot);
+            go.name = $"Character_{role}_{characterNumber}";
+            go.transform.localScale = Vector3.one * spawnScale;
+            return go;
         }
 
         private GameObject InstantiateMock(Vector3 pos, Quaternion rot, string role)
