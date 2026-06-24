@@ -43,8 +43,8 @@ namespace LegoTwin.Plaza
         public GameObject[] mockObjectPrefabs;
 
         [Header("Server Mode — 사전 제작 캐릭터 Resources 경로")]
-        [Tooltip("Assets/**/Resources 아래 경로. 예: Resources/PrebuiltCharacters/Character_1.fbx")]
-        public string prebuiltCharacterResourcePrefix = "PrebuiltCharacters/Character_";
+        [Tooltip("Assets/**/Resources 아래 경로. 예: Resources/PrebuiltCharacters/character_1.fbx")]
+        public string prebuiltCharacterResourcePrefix = "PrebuiltCharacters/character_";
 
         [Header("스폰 설정")]
         public float characterSpawnScale    = 6f;
@@ -457,12 +457,18 @@ namespace LegoTwin.Plaza
         // 반환: 구성된 PlacedCharacterController (실패 시 null).
         private PlacedCharacterController SetupCharacterForPlaza(GameObject go, string signatureMotionName, string npcName)
         {
-            // Animator Controller 설정 (없을 때만)
+            // Animator Controller 설정
             if (characterAnimatorController != null)
             {
-                var animator = go.GetComponentInChildren<Animator>();
-                if (animator != null && animator.runtimeAnimatorController == null)
+                var animator = go.GetComponentInChildren<Animator>(true);
+                if (animator != null && animator.runtimeAnimatorController != characterAnimatorController)
+                {
                     animator.runtimeAnimatorController = characterAnimatorController;
+                }
+                else if (animator == null)
+                {
+                    Debug.LogWarning($"[PlazaManager] Animator 없음: {go.name}");
+                }
             }
 
             // CharacterAnimationController 먼저 — PlacedCharacterController가 Awake에서 참조
@@ -528,8 +534,7 @@ namespace LegoTwin.Plaza
 
         private GameObject SpawnPrebuiltCharacter(string sessionId, int characterNumber, Transform point)
         {
-            var resourcePath = $"{prebuiltCharacterResourcePrefix}{characterNumber}";
-            var prefab = Resources.Load<GameObject>(resourcePath);
+            var prefab = LoadPrebuiltPrefab(characterNumber, out var resourcePath);
             if (prefab == null)
             {
                 Debug.LogWarning($"[PlazaManager] 사전 제작 캐릭터 없음: Resources/{resourcePath}");
@@ -541,6 +546,42 @@ namespace LegoTwin.Plaza
             go.name = $"PlazaChar_{sessionId}_{characterNumber}";
             go.transform.localScale = Vector3.one * characterSpawnScale;
             return go;
+        }
+
+        private GameObject LoadPrebuiltPrefab(int characterNumber, out string resourcePath)
+        {
+            resourcePath = $"{prebuiltCharacterResourcePrefix}{characterNumber}";
+            var prefab = Resources.Load<GameObject>(resourcePath);
+            if (prefab != null) return prefab;
+
+            const string lowerPrefix = "PrebuiltCharacters/character_";
+            const string upperPrefix = "PrebuiltCharacters/Character_";
+
+            var lowerPath = $"{lowerPrefix}{characterNumber}";
+            if (!string.Equals(lowerPath, resourcePath, System.StringComparison.Ordinal))
+            {
+                prefab = Resources.Load<GameObject>(lowerPath);
+                if (prefab != null)
+                {
+                    resourcePath = lowerPath;
+                    return prefab;
+                }
+            }
+
+            var upperPath = $"{upperPrefix}{characterNumber}";
+            if (!string.Equals(upperPath, resourcePath, System.StringComparison.Ordinal) &&
+                !string.Equals(upperPath, lowerPath, System.StringComparison.Ordinal))
+            {
+                prefab = Resources.Load<GameObject>(upperPath);
+                if (prefab != null)
+                {
+                    resourcePath = upperPath;
+                    return prefab;
+                }
+            }
+
+            resourcePath = $"{resourcePath} (fallback tried: {lowerPath}, {upperPath})";
+            return null;
         }
 
         private Avatar GetReferenceAvatar(int sessionIndex)

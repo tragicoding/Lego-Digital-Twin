@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { captureObjectFromCameras, prepareCharacterPlaceholder } from "../api/client";
+import { captureObjectFromCameras, getCameraHealth, prepareCharacterPlaceholder } from "../api/client";
 import { useSessionStore } from "../store/sessionStore";
 import PrimaryButton from "../components/PrimaryButton";
 
@@ -23,7 +23,40 @@ export default function CapturePage({ testMode = false }: CapturePageProps) {
   const [step, setStep] = useState<"character" | "object">("character");
   const [uploading, setUploading] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
+  const [cameraReady, setCameraReady] = useState(testMode);
+  const [cameraStatus, setCameraStatus] = useState(testMode ? "카메라 테스트 모드" : "카메라 연결 확인 중...");
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (testMode) return;
+
+    let cancelled = false;
+    const checkCamera = async () => {
+      try {
+        const res = await getCameraHealth();
+        if (cancelled) return;
+        const cameras = res.data.cameras ?? [];
+        const ready = Boolean(res.data.ready);
+        setCameraReady(ready);
+        setCameraStatus(
+          ready
+            ? "카메라 4대 연결 완료"
+            : `카메라 연결 대기 중 (${cameras.filter((camera: { opened?: boolean }) => camera.opened).length}/4)`,
+        );
+      } catch {
+        if (cancelled) return;
+        setCameraReady(false);
+        setCameraStatus("Windows 카메라 서버 연결 대기 중");
+      }
+    };
+
+    void checkCamera();
+    const timer = window.setInterval(() => void checkCamera(), 3000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [testMode]);
 
   const delay = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
@@ -34,11 +67,11 @@ export default function CapturePage({ testMode = false }: CapturePageProps) {
       await delay(850);
     }
     setCountdown(null);
+    playShutterSound();
   };
 
   const handleCharacterCapture = async () => {
     if (uploading) return;
-    playShutterSound();
     setUploading(true);
     await runCountdown();
 
@@ -68,7 +101,10 @@ export default function CapturePage({ testMode = false }: CapturePageProps) {
 
   const handleObjectCapture = async () => {
     if (uploading) return;
-    playShutterSound();
+    if (!cameraReady && !testMode) {
+      setError("카메라 4대가 모두 준비된 뒤 촬영할 수 있습니다.");
+      return;
+    }
     setUploading(true);
     await runCountdown();
 
@@ -99,6 +135,7 @@ export default function CapturePage({ testMode = false }: CapturePageProps) {
     onCapture: () => void,
     disabled = false,
     buttonLabel = "촬영",
+    showCameraStatus = false,
   ) => (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -119,6 +156,11 @@ export default function CapturePage({ testMode = false }: CapturePageProps) {
       <PrimaryButton onClick={onCapture} disabled={disabled}>
         {buttonLabel}
       </PrimaryButton>
+      {!testMode && showCameraStatus && (
+        <p className={`text-center text-sm ${cameraReady ? "text-emerald-600" : "text-gray-400"}`}>
+          {cameraStatus}
+        </p>
+      )}
       {error && <p className="text-center text-sm text-red-500">{error}</p>}
     </motion.div>
   );
@@ -148,13 +190,15 @@ export default function CapturePage({ testMode = false }: CapturePageProps) {
           handleCharacterCapture,
           uploading,
           uploading ? "촬영 중..." : "촬영하기",
+          false,
         )
       ) : (
         renderCaptureStep(
           "오브제 촬영하기",
           handleObjectCapture,
-          uploading,
-          uploading ? "촬영 중..." : "촬영하기",
+          uploading || !cameraReady,
+          uploading ? "촬영 중..." : cameraReady ? "촬영하기" : "카메라 연결 중",
+          false,
         )
       )}
     </div>

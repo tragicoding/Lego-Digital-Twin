@@ -114,9 +114,10 @@ def get_plaza_sessions(db: DBSession = Depends(get_db)):
     자유 모드 진입 시 Unity가 호출. 완료된 세션만 반환.
     좋아요 1위 세션에 is_top_liked=True, top_session_id 포함.
     """
-    # 완료된 에셋을 가진 세션만
+    # 광장에는 체험 종료 후 history로 넘어간 이전 관람객 세션만 표시한다.
+    # 현재 세션은 GameFlowManager/PlazaManager.RegisterCurrentSession 경로로만 배치한다.
     sessions = db.query(Session).filter(
-        Session.status != "cancelled",
+        Session.status == "completed",
         Session.is_true.is_(True),
     ).all()
 

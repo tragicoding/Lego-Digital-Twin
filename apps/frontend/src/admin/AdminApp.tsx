@@ -49,7 +49,9 @@ type Dashboard = {
   };
   redis: {
     healthy: boolean;
+    session_queue_length: number;
     unity_queue_length: number;
+    history_queue_length: number;
   };
   data: {
     counts: Record<string, number>;
@@ -57,7 +59,10 @@ type Dashboard = {
   };
   exhibition: {
     current_session_id: string | null;
+    active_session_id: string | null;
+    session_queue: SessionSummary[];
     unity_queue: SessionSummary[];
+    history_queue: SessionSummary[];
   };
 };
 
@@ -101,7 +106,8 @@ export default function AdminApp() {
     }
   };
 
-  const sessions = dashboard?.data.sessions ?? [];
+  const sessionQueue = dashboard?.exhibition.session_queue ?? [];
+  const historyQueue = dashboard?.exhibition.history_queue ?? [];
 
   const openSession = (session: SessionSummary) => {
     setSelectedSession(session);
@@ -206,7 +212,12 @@ export default function AdminApp() {
 
         <section className="rounded-md border border-white/10 bg-white/[0.03] p-4">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-lg font-bold">Sessions</h2>
+            <div>
+              <h2 className="text-lg font-bold">Session Queue</h2>
+              <p className="text-xs text-white/45">
+                {dashboard?.redis.session_queue_length ?? 0} sessions before Unity Queue
+              </p>
+            </div>
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => void run("character queue 비우기", () => clearAdminQueue("lego-character"))}
@@ -233,7 +244,7 @@ export default function AdminApp() {
           </div>
 
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-            {sessions.map((session) => (
+            {sessionQueue.map((session) => (
               <SessionCard
                 key={session.session_id}
                 session={session}
@@ -258,6 +269,44 @@ export default function AdminApp() {
                 }
               />
             ))}
+            {sessionQueue.length === 0 && (
+              <div className="rounded-md border border-dashed border-white/10 p-6 text-center text-sm text-white/35">
+                Unity Queue 진입 전 세션 없음
+              </div>
+            )}
+          </div>
+        </section>
+
+        <section className="rounded-md border border-white/10 bg-white/[0.03] p-4">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-bold">History Queue</h2>
+              <p className="text-xs text-white/45">{dashboard?.redis.history_queue_length ?? 0} completed sessions</p>
+            </div>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+            {historyQueue.map((session) => (
+              <SessionCard
+                key={session.session_id}
+                session={session}
+                onOpen={openSession}
+                actions={
+                  <button
+                    onClick={() => void run("세션 삭제", () => deleteAdminSession(session.session_id))}
+                    disabled={busy !== null}
+                    className="rounded-md border border-red-400/50 px-3 py-2 text-xs font-bold text-red-200 disabled:opacity-40"
+                  >
+                    삭제
+                  </button>
+                }
+              />
+            ))}
+            {historyQueue.length === 0 && (
+              <div className="rounded-md border border-dashed border-white/10 p-6 text-center text-sm text-white/35">
+                완료된 세션 없음
+              </div>
+            )}
           </div>
         </section>
       </div>
