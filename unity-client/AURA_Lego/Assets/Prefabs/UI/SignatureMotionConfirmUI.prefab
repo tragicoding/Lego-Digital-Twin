@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 6680386987039247417}
   - component: {fileID: 5083824813594681456}
   - component: {fileID: 7124997691326588871}
-  m_Layer: 0
+  m_Layer: 5
   m_Name: MessageText
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -152,7 +152,7 @@ GameObject:
   - component: {fileID: 3419892968854644921}
   - component: {fileID: 8713094624137521104}
   - component: {fileID: 1068717834788131446}
-  m_Layer: 0
+  m_Layer: 5
   m_Name: NoButton
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -274,7 +274,7 @@ GameObject:
   - component: {fileID: 1922997443932121247}
   - component: {fileID: 4766772748017903766}
   - component: {fileID: 8505858245421311308}
-  m_Layer: 0
+  m_Layer: 5
   m_Name: YesButton
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -397,7 +397,7 @@ GameObject:
   - component: {fileID: 256558543372171239}
   - component: {fileID: 3767552704609439263}
   - component: {fileID: 7735329806490125894}
-  m_Layer: 0
+  m_Layer: 5
   m_Name: SignatureMotionConfirmUI
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -524,6 +524,8 @@ MonoBehaviour:
   _placement: 0
   _distance: 3
   _scale: 0.0015
+  _worldWidthMeters: 0
+  _matchCanvasScalerResolution: 1
   _worldSize: {x: 1000, y: 700}
   _followLerp: 8
   _camera: {fileID: 0}
@@ -538,7 +540,7 @@ GameObject:
   - component: {fileID: 3570890836996512241}
   - component: {fileID: 5586283046302764449}
   - component: {fileID: 1060204486760782379}
-  m_Layer: 0
+  m_Layer: 5
   m_Name: Text (TMP) (1)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -675,7 +677,7 @@ GameObject:
   - component: {fileID: 4865704759988086699}
   - component: {fileID: 6993619635537616453}
   - component: {fileID: 991594943145483152}
-  m_Layer: 0
+  m_Layer: 5
   m_Name: SignatureRoot
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -763,7 +765,7 @@ GameObject:
   - component: {fileID: 6734585258180935846}
   - component: {fileID: 8130662372194420059}
   - component: {fileID: 2215626170253192962}
-  m_Layer: 0
+  m_Layer: 5
   m_Name: SignaturePanel
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -839,7 +841,7 @@ GameObject:
   - component: {fileID: 3401197788904438705}
   - component: {fileID: 7018396353566305406}
   - component: {fileID: 6875311961418631202}
-  m_Layer: 0
+  m_Layer: 5
   m_Name: Text (TMP)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -976,7 +978,7 @@ GameObject:
   - component: {fileID: 4667983241955357632}
   - component: {fileID: 765145033129444375}
   - component: {fileID: 940477755012491867}
-  m_Layer: 0
+  m_Layer: 5
   m_Name: ExitButton
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1096,7 +1098,7 @@ GameObject:
   - component: {fileID: 3833129721813403683}
   - component: {fileID: 2947506131499669360}
   - component: {fileID: 6979602597713114301}
-  m_Layer: 0
+  m_Layer: 5
   m_Name: Text (TMP)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1232,7 +1234,7 @@ GameObject:
   - component: {fileID: 8490363634779590675}
   - component: {fileID: 6569677812582109954}
   - component: {fileID: 6387669926178452219}
-  m_Layer: 0
+  m_Layer: 5
   m_Name: Text (TMP)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
