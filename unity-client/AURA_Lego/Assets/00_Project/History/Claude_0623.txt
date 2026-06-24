@@ -1,0 +1,136 @@
+================================================================
+Claude Code 작업 기록
+날짜: 2026-06-23
+브랜치: feature/unity
+================================================================
+
+주제: ① (검토) 메카브릭스 FBX 고폴리 → 거리별 저폴리(LOD) 가능성 — 보류
+      ② (분석) Server 모드에서 추가 렉 예상치
+      ③ VR 모드 광장 좋아요 버튼 클릭 불가 수정 — 커밋 완료
+
+공통 원칙: 저결합·중복 제거·확장성·Mock/Server 동일 동작.
+
+
+────────────────────────────────────────────────────────────────
+[세션 1] (검토) 메카브릭스 FBX 고폴리 → LOD 가능성 — 보류
+────────────────────────────────────────────────────────────────
+
+## 배경
+  "메카브릭스에서 가져오는 FBX가 고폴리 같다. 멀어지면 저폴리로 바꿀 수 있나?"
+  PerfHud 기준 씬 전체 Tris 1억+ / DrawCalls 4~5만 — 지오메트리·드로우콜 바운드.
+
+## 확인 결과
+  - External Assets 에 최대 61MB FBX 다수 + LEGO minifigure 텍스처 확인.
+    메카브릭스 LEGO 모델(브릭마다 스터드 로고·베벨·내부 지오메트리)이 1억+ Tris의 유력 정체.
+  - "거리 멀면 저폴리" = Unity LOD Group 으로 가능. 단 '바꿀 저폴리 메시'가 있어야 함(자동 생성 아님).
+
+## 옵션 (효과·간단함 순)
+  A. 메카브릭스 저디테일 재익스포트 ⭐ 근본·최선
+     - 스터드 로고 끄기 / 베벨 최소화 / 내부 가려진 지오메트리 제거 / Render→Game(Low) 품질.
+     - LOD 없이도 Tris 5~10배↓ 가능, VR 거리에선 외형 충분히 유지.
+  B. 자동 LOD 생성 + LOD Group
+     - UnityMeshSimplifier(오픈소스 MIT) 등으로 저폴리 생성 → LOD0/LOD1/LOD2/Culled 구성.
+     - 의존성·셋업 추가. 근거리에서도 봐야 하는 핵심 오브젝트에 적합.
+  C. 거리 컬링(CameraCullDistances) — 멀면 아예 안 보이게(LOD 아님). 멀리서 안 봐도 되는 오브젝트.
+
+## 주의 (안 통하는 길)
+  - FBX Import 설정(Mesh Compression·Optimize Mesh)은 Tris 를 줄이지 않음(저장 용량만).
+    폴리는 메시에 박혀 있어 재익스포트/데시메이션만이 줄인다.
+
+## 결론
+  사용자 요청으로 이번엔 보류. 진행 시 A(재익스포트) 우선 권장.
+
+
+────────────────────────────────────────────────────────────────
+[세션 2] (분석) Server 모드 추가 렉 예상치
+────────────────────────────────────────────────────────────────
+
+## 확인 (코드 근거)
+  - 1억+ Tris의 정체는 정적 메카브릭스 환경(공원) → Mock·Server 완전 동일(같은 씬).
+  - 생성물(캐릭터+오브제)은 둘 다 Tripo 출력 → 모델당 폴리/머티리얼 비슷.
+  - 광장 동시 표시 상한: PlazaManager.MaxPlazaSessions = 31 + spawnPoints.Length 로 제한
+    (무한 증가 아님).
+  - Mock 풀: 캐릭터 9종 재사용(mock_session_pool.json: character 9 / model_url 18).
+  - 로딩 분기: Server 는 ApiClient(UnityWebRequest) + 런타임 임포트, Mock 은 사전 임포트 FBX.
+
+## 예상 결론
+  - 고개 돌릴 때 연속 렉: 환경이 지배 → Server라도 거의 동일(+~2% Tris, 드로우콜 +60~150).
+  - 광장 진입/모델 스폰: Server 고유 '순간 히치' 발생(런타임 GLB/FBX 다운로드+파싱).
+    특히 광장 31개 동시 로드 시 체감 큼.
+  - 장시간/풀 상태: 31개 고유 텍스처 모델 → VRAM·RAM 압박, 한도 초과 시 텍스처 스래싱으로
+    급격히 악화(GTX1060급에서 Server 모드 렉의 주원인 후보).
+
+## 권장
+  - Server 통합 테스트 시 Tris/드로우콜뿐 아니라 VRAM(또는 OVR Metrics 메모리) 동시 관찰.
+  - 광장 31개 동시 로드 대신 순차/지연 로드(스폰 분산)로 히치 완화.
+  - 근본 절감(메카브릭스 저폴리)은 Mock·Server 양쪽에 효과 → 세션 1 LOD/재익스포트가 최대 레버.
+
+
+────────────────────────────────────────────────────────────────
+[세션 3] VR 모드 광장 좋아요 버튼 클릭 불가 수정
+────────────────────────────────────────────────────────────────
+
+## 증상
+  VR 모드에서 광장 타인 창작물 접근 시 뜨는 좋아요 버튼이 컨트롤러 레이로 눌리지 않음
+  (데스크톱 키마 모드에서는 정상 동작).
+
+## 원인 (2겹)
+  1) 입력 경로 — LikeSystem.Update() 가 좋아요 클릭을 '옛 Input 마우스' 방식으로만 감지:
+       Input.GetMouseButtonDown(0) + Input.mousePosition
+       + RectTransformUtility.RectangleContainsScreenPoint(rect, mousePos, Camera.main)
+     → VR 컨트롤러 트리거는 마우스 이벤트를 발생시키지 않고, VR엔 마우스 스크린좌표가 없으며,
+       VR 레이는 스크린 포인트가 아닌 '월드 레이'라 RectangleContainsScreenPoint로 안 잡힘.
+       (주석에도 "EventSystem 미설정 환경 대응"이라 명시)
+  2) 레이캐스터 없는 런타임 캔버스 — PlazaSessionView.PlaceLikePanelAtObject() →
+     ReparentPanelToObject() 가 좋아요 패널을 런타임 생성 World Space 캔버스("PanelAnchor")로
+     '재부모'시키는데, 이 캔버스엔 GraphicRaycaster도 TrackedDeviceGraphicRaycaster도 없음.
+     프리팹의 ModeAdaptiveCanvas는 '원래' 캔버스에만 붙어 있어 런타임 앵커엔 적용 안 됨.
+
+## 핵심 단서
+  - 좋아요 버튼 onClick 은 프리팹에서 이미 LikeSystem.OnLikePressed 에 연결돼 있음
+    (m_PersistentCalls). 즉 표준 UI 클릭 경로는 존재 → 유일한 결손은 런타임 앵커의 VR 레이캐스터.
+  - 데스크톱이 되는 이유: PanelAnchor에 레이캐스터가 없어도 LikeSystem.Update() 마우스
+    히트테스트가 별도 경로로 처리해 줬기 때문.
+
+## 수정 (코드 2개, 에디터 작업 없음)
+  1) Core/ModeAdaptiveCanvas.cs — 정적 헬퍼 추가
+       public static ModeAdaptiveCanvas EnsureForWorldCanvas(GameObject canvasGo)
+       · 런타임 World Space 캔버스에 KeepInPlace 로 컴포넌트 보장
+       · VR 모드일 때만 TrackedDeviceGraphicRaycaster 추가(EnsureTrackedRaycaster 재사용),
+         데스크톱은 ApplyMode가 즉시 return → 무동작
+  2) Plaza/PlazaSessionView.cs — PlaceLikePanelAtObject()
+       · ReparentPanelToObject() 반환 앵커를 받아 ModeAdaptiveCanvas.EnsureForWorldCanvas(anchor) 호출
+       · 잘못된 주석("GraphicRaycaster 불필요") → 실제 동작에 맞게 갱신
+
+## 동작 (모드별)
+  - 데스크톱: LikeSystem.Update() 마우스 히트테스트(기존) → 변화 없음(무회귀).
+  - VR     : 컨트롤러 레이 → TrackedDeviceGraphicRaycaster → 버튼 onClick → OnLikePressed.
+  - 이중 호출 없음(데스크톱 앵커엔 레이캐스터 미추가 → 히트테스트만 / VR엔 마우스 없음 → 레이만).
+  - Mock/Server 분기·중복투표 방지·하트 이펙트 로직 불변 → Mock·Server 동일.
+
+## 설계 준수
+  - XRModeManager 정적 Mode/Resolved만 1회 읽는 기존 패턴 재사용(저결합).
+  - VR 클릭 보장 로직을 ModeAdaptiveCanvas로 일원화(중복 제거·DRY).
+  - 신규 런타임 캔버스도 헬퍼 1줄로 VR 대응(확장).
+
+## 테스트
+  사용자 VR 실기기 테스트 — 좋아요 정상 클릭 확인 완료.
+
+## 커밋
+  82b627fa fix(unity): VR에서 광장 좋아요 버튼 클릭 가능하도록 수정
+           (ModeAdaptiveCanvas.cs, PlazaSessionView.cs — 2 files, +19/-3)
+  - 워킹트리의 무관한 대량 변경(NPC 에셋 정리·삭제, mecabricks .meta, ProjectSettings,
+    Main.unity, 폰트, 미추적 VrRenderScale/CameraCullDistances)은 스테이징 제외.
+  - 푸시는 사용자 요청 시 진행(현재 origin/feature/unity 대비 로컬 2 커밋 앞섬).
+
+
+────────────────────────────────────────────────────────────────
+미해결 / 다음 작업
+────────────────────────────────────────────────────────────────
+  [ ] (보류) 메카브릭스 고폴리 → 재익스포트(A) 또는 LOD(B) — 성능 최대 레버
+  [ ] VrRenderScale.cs / CameraCullDistances.cs 커밋(성능 작업 확정 후)
+  [ ] 워킹트리 NPC 에셋 정리분 별도 커밋 정리
+  [ ] Server 모드 통합 테스트 — VRAM/메모리 동시 관찰, 광장 스폰 분산 검토
+  [ ] (백엔드) TODO_ForServer.txt — /names 저장 + plaza 응답 이름 포함
+  [ ] 전시 빌드 전 디버그 비활성화(_enableGuideSkip·FreeCameraController·PerfHud·SessionDebugHud)
+================================================================

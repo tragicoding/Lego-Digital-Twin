@@ -827,7 +827,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LegoTwin.Core.ModeAdaptiveCanvas
   _placement: 1
-  _distance: 1.5
+  _distance: 3
   _scale: 0.0015
   _worldSize: {x: 1000, y: 700}
   _followLerp: 8

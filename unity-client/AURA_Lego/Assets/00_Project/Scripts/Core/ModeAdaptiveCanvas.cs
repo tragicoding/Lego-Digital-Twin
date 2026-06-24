@@ -35,9 +35,13 @@ namespace LegoTwin.Core
         [Header("HeadFollowing 전용 (VR)")]
         [Tooltip("카메라 앞 거리(m)")]
         [SerializeField] private float _distance = 1.5f;
-        [Tooltip("World Space 스케일 (Overlay 픽셀 → m 환산)")]
+        [Tooltip("World Space 스케일 (Overlay 픽셀 → m 환산). _worldWidthMeters=0 일 때 사용.")]
         [SerializeField] private float _scale = 0.0015f;
-        [Tooltip("World Space 전환 시 캔버스 RectTransform 크기(px)")]
+        [Tooltip("패널의 목표 물리 폭(m). >0 이면 캡처한 캔버스 폭에 맞춰 스케일을 자동 산출 → 화면 해상도와 무관하게 일정 크기. 0이면 _scale 사용.")]
+        [SerializeField] private float _worldWidthMeters = 0f;
+        [Tooltip("켜면 CanvasScaler(Scale With Screen Size)의 referenceResolution을 World 크기로 사용 → 작성된 레이아웃이 보존됨(버튼 위치 어긋남 방지). 없으면 _worldSize 폴백.")]
+        [SerializeField] private bool _matchCanvasScalerResolution = true;
+        [Tooltip("World Space 전환 시 캔버스 RectTransform 크기(px). CanvasScaler 자동 매칭이 불가할 때의 폴백.")]
         [SerializeField] private Vector2 _worldSize = new Vector2(1000f, 700f);
         [Tooltip("머리 추적 부드러움(클수록 빠르게 따라옴). 0이면 첫 배치 후 고정")]
         [SerializeField] private float _followLerp = 8f;
@@ -49,6 +53,19 @@ namespace LegoTwin.Core
         private bool _follow;
 
         private void Awake() => _canvas = GetComponent<Canvas>();
+
+        /// <summary>
+        /// 런타임에 생성한 World Space 캔버스(예: 광장 좋아요 패널 앵커)에 VR 레이 클릭을 보장한다.
+        /// KeepInPlace 로 동작 — VR 모드에서만 TrackedDeviceGraphicRaycaster 를 추가하고 위치는 그대로 둔다.
+        /// 데스크톱은 아무것도 하지 않아 기존(마우스) 동작과 100% 동일.
+        /// </summary>
+        public static ModeAdaptiveCanvas EnsureForWorldCanvas(GameObject canvasGo)
+        {
+            var c = canvasGo.GetComponent<ModeAdaptiveCanvas>();
+            if (c == null) c = canvasGo.AddComponent<ModeAdaptiveCanvas>();
+            c._placement = Placement.KeepInPlace;
+            return c;
+        }
 
         private void Update()
         {
@@ -74,12 +91,26 @@ namespace LegoTwin.Core
 
             // HeadFollowing: Overlay → World Space 전환 + 카메라 앞 배치
             Camera cam = ResolveCamera();
+
+            // ★ 변환 '전에' Overlay 상태의 실제 rect 크기를 캡처한다.
+            //   이 크기를 그대로 World sizeDelta 로 쓰면 캔버스 rect 가 변하지 않아
+            //   자식(가장자리 앵커·Constant Pixel Size 포함)이 데스크톱 Overlay 와 동일하게 보존된다.
+            //   (임의 고정 크기를 넣으면 가장자리 앵커가 재배치돼 레이아웃이 깨짐)
+            var rt = (RectTransform)_canvas.transform;
+            Vector2 sourceSize = rt.rect.size;
+
             _canvas.renderMode = RenderMode.WorldSpace;
             _canvas.worldCamera = cam;
 
-            var rt = (RectTransform)_canvas.transform;
-            rt.sizeDelta = _worldSize;
-            rt.localScale = Vector3.one * _scale;
+            // 캡처 성공 시 동일 크기 유지, 실패(0) 시에만 CanvasScaler/_worldSize 폴백.
+            rt.sizeDelta = (sourceSize.x > 1f && sourceSize.y > 1f) ? sourceSize : ResolveWorldSize();
+
+            // 물리 크기: _worldWidthMeters>0 이면 캡처 폭에 맞춰 스케일 자동 산출(해상도 무관 일정 크기),
+            //            아니면 기존 _scale 사용.
+            float scale = (_worldWidthMeters > 0f && rt.sizeDelta.x > 1f)
+                ? _worldWidthMeters / rt.sizeDelta.x
+                : _scale;
+            rt.localScale = Vector3.one * scale;
 
             SnapInFront(cam);                  // 첫 프레임 튐 방지로 즉시 1회 배치
             _follow = _followLerp > 0f;        // 추적 사용 시 Update 유지
@@ -118,6 +149,25 @@ namespace LegoTwin.Core
             if (_camera != null) return _camera;
             if (_canvas.worldCamera != null) return _canvas.worldCamera;
             return Camera.main;
+        }
+
+        /// <summary>
+        /// World Space 전환 시 캔버스 rect 크기를 정한다.
+        /// CanvasScaler 가 Scale With Screen Size 면 그 referenceResolution(레이아웃이 작성된 좌표계)을
+        /// 사용해 자식(버튼 등) 위치가 보존되게 한다. 조건 미충족이면 _worldSize 로 폴백(무회귀).
+        /// </summary>
+        private Vector2 ResolveWorldSize()
+        {
+            if (_matchCanvasScalerResolution)
+            {
+                var scaler = GetComponent<CanvasScaler>();
+                if (scaler != null
+                    && scaler.uiScaleMode == CanvasScaler.ScaleMode.ScaleWithScreenSize
+                    && scaler.referenceResolution.x > 0f
+                    && scaler.referenceResolution.y > 0f)
+                    return scaler.referenceResolution;
+            }
+            return _worldSize;
         }
     }
 }

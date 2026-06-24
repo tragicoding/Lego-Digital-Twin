@@ -155,8 +155,8 @@ namespace LegoTwin.Plaza
 
         /// <summary>
         /// LikePanel(좋아요 패널)을 오브제 위에 떠 있도록 재배치한다(카메라 빌보드, 오브제 추적).
-        /// LikeSystem.likePanel 을 사용한다. 클릭 감지는 LikeSystem 이 카메라 기반으로 직접
-        /// 처리하므로(GraphicRaycaster 불필요) 재배치 후에도 그대로 동작한다.
+        /// LikeSystem.likePanel 을 사용한다. 데스크톱은 LikeSystem 의 카메라 기반 마우스 히트테스트로,
+        /// VR 은 런타임 앵커 캔버스에 보장한 TrackedDeviceGraphicRaycaster + 버튼 onClick 으로 눌린다.
         /// likePanel 또는 objectTransform 이 없으면 아무것도 하지 않는다(예: 자기 창작물 — 투표 불가).
         /// </summary>
         public void PlaceLikePanelAtObject(Transform objectTransform, float heightOffset,
@@ -170,8 +170,11 @@ namespace LegoTwin.Plaza
             if (panel == null) return;   // 비어 있거나 RectTransform 아님(자기 창작물 등) → 무시
 
             // 좋아요 패널은 오브제 '앞'(카메라 쪽) + 플레이어 눈높이에 — 크기 비례 전진.
-            ReparentPanelToObject(panel, objectTransform, heightOffset, scaleMultiplier, rightOffset,
+            var anchor = ReparentPanelToObject(panel, objectTransform, heightOffset, scaleMultiplier, rightOffset,
                                   forwardOffset, forwardSizeFactor: forwardSizeFactor, eyeLevel: true);
+
+            // VR 에서만 런타임 좋아요 캔버스에 컨트롤러 레이 클릭 보장(데스크톱은 무영향 — 기존 마우스 경로 유지).
+            LegoTwin.Core.ModeAdaptiveCanvas.EnsureForWorldCanvas(anchor);
         }
 
         /// <summary>
