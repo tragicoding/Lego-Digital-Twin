@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 8815521804702871511}
   - component: {fileID: 2941839082813306421}
   - component: {fileID: 8022362543822572240}
-  m_Layer: 0
+  m_Layer: 5
   m_Name: BubbleText
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -147,7 +147,7 @@ GameObject:
   - component: {fileID: 3516806845933535960}
   - component: {fileID: 5129122061186873402}
   - component: {fileID: 2562406226800146760}
-  m_Layer: 0
+  m_Layer: 5
   m_Name: AlreadyLikedText
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -283,7 +283,7 @@ GameObject:
   - component: {fileID: 647485187420878521}
   - component: {fileID: 1701785716448142682}
   - component: {fileID: 2963401401358152529}
-  m_Layer: 0
+  m_Layer: 5
   m_Name: StarObject
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -353,7 +353,7 @@ GameObject:
   - component: {fileID: 489589678516008920}
   - component: {fileID: 6241844795737618911}
   - component: {fileID: 6579950491007266982}
-  m_Layer: 0
+  m_Layer: 5
   m_Name: PlazaSessionView
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -461,7 +461,7 @@ GameObject:
   - component: {fileID: 6395431244197330300}
   - component: {fileID: 2489370850104955391}
   - component: {fileID: 266142244162679009}
-  m_Layer: 0
+  m_Layer: 5
   m_Name: BubblePanel
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -537,7 +537,7 @@ GameObject:
   - component: {fileID: 6154035119345304857}
   - component: {fileID: 6872550357744874380}
   - component: {fileID: 6956312339874504985}
-  m_Layer: 0
+  m_Layer: 5
   m_Name: part.001
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -626,7 +626,7 @@ GameObject:
   - component: {fileID: 796825238566894958}
   - component: {fileID: 8698004641401968024}
   - component: {fileID: 6171884974748914808}
-  m_Layer: 0
+  m_Layer: 5
   m_Name: GuideText
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -762,7 +762,7 @@ GameObject:
   - component: {fileID: 5688463631917572808}
   - component: {fileID: 7240108916611563763}
   - component: {fileID: 7099344948119394640}
-  m_Layer: 0
+  m_Layer: 5
   m_Name: WorldCanvas
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -829,6 +829,8 @@ MonoBehaviour:
   _placement: 1
   _distance: 3
   _scale: 0.0015
+  _worldWidthMeters: 0
+  _matchCanvasScalerResolution: 1
   _worldSize: {x: 1000, y: 700}
   _followLerp: 8
   _camera: {fileID: 0}
@@ -843,7 +845,7 @@ GameObject:
   - component: {fileID: 6639966260950092050}
   - component: {fileID: 6187695789545098043}
   - component: {fileID: 1829557315722540104}
-  m_Layer: 0
+  m_Layer: 5
   m_Name: LikesText
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -979,7 +981,7 @@ GameObject:
   - component: {fileID: 5835483719035975728}
   - component: {fileID: 9012943646753227772}
   - component: {fileID: 8308690706304300812}
-  m_Layer: 0
+  m_Layer: 5
   m_Name: Text (TMP)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1113,7 +1115,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5639132180592351299}
-  m_Layer: 0
+  m_Layer: 5
   m_Name: star (1)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1148,7 +1150,7 @@ GameObject:
   - component: {fileID: 3226135802481590005}
   - component: {fileID: 4987363588027992522}
   - component: {fileID: 8036278082055044771}
-  m_Layer: 0
+  m_Layer: 5
   m_Name: part
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1238,7 +1240,7 @@ GameObject:
   - component: {fileID: 3590081644335408556}
   - component: {fileID: 7314621298577130437}
   - component: {fileID: 3243921692782135262}
-  m_Layer: 0
+  m_Layer: 5
   m_Name: HeartButton
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1368,7 +1370,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8280739655541624626}
-  m_Layer: 0
+  m_Layer: 5
   m_Name: HeartEffect
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1401,7 +1403,7 @@ GameObject:
   - component: {fileID: 3450902555926296914}
   - component: {fileID: 2678487395441798106}
   - component: {fileID: 4849430605579739555}
-  m_Layer: 0
+  m_Layer: 5
   m_Name: LikePanel
   m_TagString: Untagged
   m_Icon: {fileID: 0}

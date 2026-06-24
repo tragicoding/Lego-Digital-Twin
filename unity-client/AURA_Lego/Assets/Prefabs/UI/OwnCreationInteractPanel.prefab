@@ -85,7 +85,7 @@ MonoBehaviour:
   m_FallbackScreenDPI: 96
   m_DefaultSpriteDPI: 96
   m_DynamicPixelsPerUnit: 1
-  m_PresetInfoIsWorld: 0
+  m_PresetInfoIsWorld: 1
 --- !u!114 &5621486283481551378
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -118,6 +118,8 @@ MonoBehaviour:
   _placement: 1
   _distance: 3
   _scale: 0.0015
+  _worldWidthMeters: 0
+  _matchCanvasScalerResolution: 1
   _worldSize: {x: 1000, y: 700}
   _followLerp: 8
   _camera: {fileID: 0}

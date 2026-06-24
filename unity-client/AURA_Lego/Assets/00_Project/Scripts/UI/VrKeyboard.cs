@@ -34,7 +34,24 @@ namespace LegoTwin.UI
         [Tooltip("키 버튼 템플릿(자식에 TMP_Text 라벨 포함)")]
         [SerializeField] private Button _keyPrefab;
         [SerializeField] private float _rowHeight = 90f;
+        [Tooltip("켜면 rowsParent 높이에 맞춰 행 높이를 자동 계산(세로 빈 공간 제거)")]
+        [SerializeField] private bool _fillHeight = true;
+        [Tooltip("행 최소 높이")]
+        [SerializeField] private float _rowMinHeight = 40f;
+        [Tooltip("rowsParent 높이를 아직 못 읽을 때 사용할 기본 높이")]
+        [SerializeField] private float _fallbackHeight = 420f;
         [SerializeField] private float _keySpacing = 6f;
+        [Tooltip("행 사이 세로 간격")]
+        [SerializeField] private float _rowSpacing = 6f;
+        [Tooltip("키 최소 너비(폭이 너무 좁아도 이보다 작아지지 않음)")]
+        [SerializeField] private float _keyMinWidth = 36f;
+        [Tooltip("rowsParent 폭을 아직 못 읽을 때 사용할 기본 폭")]
+        [SerializeField] private float _fallbackWidth = 900f;
+        [Tooltip("키보드 안쪽 여백(좌·우·상·하)")]
+        [SerializeField] private int _padLeft = 14;
+        [SerializeField] private int _padRight = 14;
+        [SerializeField] private int _padTop = 14;
+        [SerializeField] private int _padBottom = 14;
 
         [Header("VR 배치 (카메라 앞 추적)")]
         [SerializeField] private float _distance = 1.2f;
@@ -193,53 +210,117 @@ namespace LegoTwin.UI
         {
             if (_rowsParent == null || _keyPrefab == null) return;
 
+            EnsureRowsLayout();
+
             for (int i = _rowsParent.childCount - 1; i >= 0; i--)
                 Destroy(_rowsParent.GetChild(i).gameObject);
             _charKeys.Clear();
 
-            foreach (string row in (_english ? _engRows : _korRows))
+            var rows = _english ? _engRows : _korRows;
+
+            // 1) 가장 키가 많은 행 기준으로 열 수 산출(특수키 행 = 5열).
+            int maxCols = 5;
+            foreach (string row in rows) maxCols = Mathf.Max(maxCols, CountTokens(row));
+
+            // 2) rowsParent 안쪽 폭에서 키 너비를 역산 → 어떤 행이든 폭 안에 들어옴.
+            float contentWidth = _rowsParent.rect.width - _padLeft - _padRight;
+            if (contentWidth <= 1f) contentWidth = _fallbackWidth - _padLeft - _padRight;
+            float cellWidth = (contentWidth - _keySpacing * (maxCols - 1)) / maxCols;
+            cellWidth = Mathf.Max(_keyMinWidth, cellWidth);
+
+            // 2-b) rowsParent 안쪽 높이에서 행 높이를 역산 → 세로도 꽉 채움(아래 빈 공간 제거).
+            int totalRows = rows.Length + 1;   // 문자 행 + 특수키 행
+            float rowH = _rowHeight;
+            if (_fillHeight)
             {
-                var rowT = NewRow();
+                float contentHeight = _rowsParent.rect.height - _padTop - _padBottom;
+                if (contentHeight <= 1f) contentHeight = _fallbackHeight - _padTop - _padBottom;
+                rowH = Mathf.Max(_rowMinHeight, (contentHeight - _rowSpacing * (totalRows - 1)) / totalRows);
+            }
+
+            // 3) 문자 행 — 키 폭 균일, 짧은 행은 가운데 정렬.
+            foreach (string row in rows)
+            {
+                var rowT = NewRow(rowH);
                 foreach (string token in row.Split(' '))
                 {
                     if (string.IsNullOrWhiteSpace(token)) continue;
                     string[] bs = token.Split('/');
                     string baseV = bs[0];
                     string shiftV = bs.Length > 1 ? bs[1] : bs[0];
-                    var label = NewKey(rowT, _shift ? shiftV : baseV, () => OnCharKey(_shift ? shiftV : baseV));
+                    var label = NewKey(rowT, _shift ? shiftV : baseV, cellWidth, rowH, () => OnCharKey(_shift ? shiftV : baseV));
                     _charKeys.Add((label, baseV, shiftV));
                 }
             }
 
-            // 특수키 행
-            var special = NewRow();
-            NewKey(special, "⇧",   () => SetShift(!_shift));
-            NewKey(special, _english ? "한" : "A", ToggleLanguage);
-            NewKey(special, "공백", OnSpace);
-            NewKey(special, "⌫",   OnBackspace);
-            NewKey(special, "완료", OnDone);
+            // 4) 특수키 행 — 공백/완료는 넓게(여러 셀 폭 + 사이 간격).
+            var special = NewRow(rowH);
+            NewKey(special, "⇧",                  cellWidth,                          rowH, () => SetShift(!_shift));
+            NewKey(special, _english ? "한" : "A", cellWidth,                          rowH, ToggleLanguage);
+            NewKey(special, "공백",                cellWidth * 3f + _keySpacing * 2f,  rowH, OnSpace);
+            NewKey(special, "⌫",                  cellWidth,                          rowH, OnBackspace);
+            NewKey(special, "완료",                cellWidth * 2f + _keySpacing,       rowH, OnDone);
         }
 
-        private RectTransform NewRow()
+        private static int CountTokens(string row)
+        {
+            int n = 0;
+            foreach (var t in row.Split(' ')) if (!string.IsNullOrWhiteSpace(t)) n++;
+            return n;
+        }
+
+        // rowsParent 가 행을 세로로 쌓고 가로 폭을 채우도록 보장(없으면 추가).
+        private void EnsureRowsLayout()
+        {
+            var v = _rowsParent.GetComponent<VerticalLayoutGroup>();
+            if (v == null) v = _rowsParent.gameObject.AddComponent<VerticalLayoutGroup>();
+            v.spacing = _rowSpacing;
+            v.padding = new RectOffset(_padLeft, _padRight, _padTop, _padBottom);
+            v.childAlignment = TextAnchor.MiddleCenter;     // 남는 세로 공간이 있어도 가운데
+            v.childControlWidth = true;  v.childControlHeight = true;
+            v.childForceExpandWidth = true;  v.childForceExpandHeight = false;
+        }
+
+        private RectTransform NewRow(float rowH)
         {
             var go = new GameObject("Row", typeof(RectTransform), typeof(HorizontalLayoutGroup), typeof(LayoutElement));
             var rt = (RectTransform)go.transform;
             rt.SetParent(_rowsParent, false);
             var h = go.GetComponent<HorizontalLayoutGroup>();
             h.spacing = _keySpacing;
-            h.childAlignment = TextAnchor.MiddleCenter;
-            h.childForceExpandWidth = false; h.childForceExpandHeight = true;
-            go.GetComponent<LayoutElement>().preferredHeight = _rowHeight;
+            h.childAlignment = TextAnchor.MiddleCenter;     // 짧은 행 가운데 정렬
+            h.childControlWidth = true;  h.childControlHeight = true;
+            h.childForceExpandWidth = false; h.childForceExpandHeight = false;
+            var le = go.GetComponent<LayoutElement>();
+            le.preferredHeight = rowH; le.minHeight = rowH; le.flexibleHeight = 0;
             return rt;
         }
 
-        private TMP_Text NewKey(RectTransform row, string label, Action onClick)
+        private TMP_Text NewKey(RectTransform row, string label, float width, float rowH, Action onClick)
         {
             var btn = Instantiate(_keyPrefab, row);
             btn.gameObject.SetActive(true);
             btn.onClick.AddListener(() => onClick());
+
+            // 키 너비/높이를 레이아웃이 강제하도록 LayoutElement 로 고정.
+            var le = btn.GetComponent<LayoutElement>();
+            if (le == null) le = btn.gameObject.AddComponent<LayoutElement>();
+            le.preferredWidth = width;  le.minWidth = width;  le.flexibleWidth = 0;
+            le.preferredHeight = rowH; le.minHeight = rowH; le.flexibleHeight = 0;
+
+            // 라벨을 키에 꽉 채우고 자동 축소 → 긴 라벨(공백/완료)도 키 밖으로 안 나감.
             var tmp = btn.GetComponentInChildren<TMP_Text>();
-            if (tmp != null) tmp.text = label;
+            if (tmp != null)
+            {
+                var rt = tmp.rectTransform;
+                rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one;
+                rt.offsetMin = Vector2.zero; rt.offsetMax = Vector2.zero;
+                tmp.alignment = TextAlignmentOptions.Center;
+                tmp.enableAutoSizing = true;
+                tmp.fontSizeMin = 8f;
+                tmp.fontSizeMax = rowH * 0.6f;
+                tmp.text = label;
+            }
             return tmp;
         }
     }
