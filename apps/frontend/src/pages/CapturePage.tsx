@@ -67,11 +67,11 @@ export default function CapturePage({ testMode = false }: CapturePageProps) {
       await delay(850);
     }
     setCountdown(null);
+    playShutterSound();
   };
 
   const handleCharacterCapture = async () => {
     if (uploading) return;
-    playShutterSound();
     setUploading(true);
     await runCountdown();
 
@@ -105,7 +105,6 @@ export default function CapturePage({ testMode = false }: CapturePageProps) {
       setError("카메라 4대가 모두 준비된 뒤 촬영할 수 있습니다.");
       return;
     }
-    playShutterSound();
     setUploading(true);
     await runCountdown();
 
@@ -136,6 +135,7 @@ export default function CapturePage({ testMode = false }: CapturePageProps) {
     onCapture: () => void,
     disabled = false,
     buttonLabel = "촬영",
+    showCameraStatus = false,
   ) => (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -156,7 +156,7 @@ export default function CapturePage({ testMode = false }: CapturePageProps) {
       <PrimaryButton onClick={onCapture} disabled={disabled}>
         {buttonLabel}
       </PrimaryButton>
-      {!testMode && (
+      {!testMode && showCameraStatus && (
         <p className={`text-center text-sm ${cameraReady ? "text-emerald-600" : "text-gray-400"}`}>
           {cameraStatus}
         </p>
@@ -190,6 +190,7 @@ export default function CapturePage({ testMode = false }: CapturePageProps) {
           handleCharacterCapture,
           uploading,
           uploading ? "촬영 중..." : "촬영하기",
+          false,
         )
       ) : (
         renderCaptureStep(
@@ -197,6 +198,7 @@ export default function CapturePage({ testMode = false }: CapturePageProps) {
           handleObjectCapture,
           uploading || !cameraReady,
           uploading ? "촬영 중..." : cameraReady ? "촬영하기" : "카메라 연결 중",
+          false,
         )
       )}
     </div>
