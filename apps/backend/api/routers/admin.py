@@ -31,7 +31,6 @@ from ...models.asset import Asset
 from ...models.asset_animation import AssetAnimation
 from ...models.plaza_object import PlazaObject
 from ...models.session import Session
-from ...services.event_service import UNITY_QUEUE_KEY
 from ...services.event_service import check_and_notify
 from ...services import unity_queue_service as uq
 
@@ -113,6 +112,12 @@ def _get_wsl_ips() -> list[str]:
 
 def _iso(dt: datetime | None) -> str | None:
     return dt.isoformat() if dt else None
+
+
+def _decode_redis_value(value):
+    if isinstance(value, bytes):
+        return value.decode()
+    return value
 
 
 def _front_file_exists(session_id: str, asset_prefix: str) -> bool:
@@ -243,16 +248,21 @@ def _queue_snapshot(name: str, redis_conn: Redis) -> dict:
 
 
 def _remove_session_everywhere(session_id: str, db: DBSession) -> None:
-    session = db.get(Session, session_id)
-    if not session:
-        raise HTTPException(404, "세션을 찾을 수 없습니다.")
+    exists = db.query(Session.id).filter(Session.id == session_id).first()
+    if not exists:
+        uq.remove_from_all_queues(session_id)
+        return
 
-    asset_ids = {asset.id for asset in session.assets}
+    asset_ids = {
+        asset_id
+        for (asset_id,) in db.query(Asset.id).filter(Asset.session_id == session_id).all()
+    }
 
-    db.query(AssetAnimation).filter(AssetAnimation.asset_id.in_(asset_ids)).delete(synchronize_session=False)
+    if asset_ids:
+        db.query(AssetAnimation).filter(AssetAnimation.asset_id.in_(asset_ids)).delete(synchronize_session=False)
     db.query(PlazaObject).filter(PlazaObject.session_id == session_id).delete(synchronize_session=False)
     db.query(Asset).filter(Asset.session_id == session_id).delete(synchronize_session=False)
-    db.delete(session)
+    db.query(Session).filter(Session.id == session_id).delete(synchronize_session=False)
     db.commit()
 
     redis_conn = _redis()
@@ -303,7 +313,9 @@ def get_admin_dashboard(db: DBSession = Depends(get_db)):
     redis_conn = _redis()
     try:
         redis_ok = bool(redis_conn.ping())
-        unity_queue_ids = [item.decode() for item in redis_conn.lrange(UNITY_QUEUE_KEY, 0, -1)]
+        unity_queue_ids = [_decode_redis_value(item) for item in redis_conn.lrange(uq.UNITY_QUEUE_KEY, 0, -1)]
+        history_queue_ids = [_decode_redis_value(item) for item in redis_conn.lrange(uq.HISTORY_QUEUE_KEY, 0, -1)]
+        active_session_id = _decode_redis_value(redis_conn.get(uq.ACTIVE_SESSION_KEY))
         worker_list = []
         for worker in Worker.all(connection=redis_conn):
             worker_list.append(
@@ -332,7 +344,22 @@ def get_admin_dashboard(db: DBSession = Depends(get_db)):
         if session:
             unity_sessions.append(_session_summary(session, queue_position=index))
 
+    history_sessions = []
+    for index, session_id in enumerate(history_queue_ids, start=1):
+        session = db.get(Session, session_id)
+        if session:
+            history_sessions.append(_session_summary(session, queue_position=index))
+
     sessions = db.query(Session).order_by(desc(Session.created_at)).all()
+    queued_or_done_ids = set(unity_queue_ids) | set(history_queue_ids)
+    if active_session_id:
+        queued_or_done_ids.add(active_session_id)
+    session_queue = [
+        _session_summary(session)
+        for session in sessions
+        if session.id not in queued_or_done_ids
+        and session.status not in ("cancelled", "unity_queue", "runtime", "completed")
+    ]
     session_summaries = [_session_summary(session) for session in sessions]
 
     likes_ranking = [
@@ -388,7 +415,9 @@ def get_admin_dashboard(db: DBSession = Depends(get_db)):
         "redis": {
             "healthy": redis_ok,
             "key_counts": redis_keys,
+            "session_queue_length": len(session_queue),
             "unity_queue_length": len(unity_queue_ids),
+            "history_queue_length": len(history_queue_ids),
         },
         "data": {
             "counts": {
@@ -402,8 +431,11 @@ def get_admin_dashboard(db: DBSession = Depends(get_db)):
             "sessions": session_summaries,
         },
         "exhibition": {
-            "current_session_id": unity_queue_ids[0] if unity_queue_ids else None,
+            "current_session_id": active_session_id or (unity_queue_ids[0] if unity_queue_ids else None),
+            "active_session_id": active_session_id,
+            "session_queue": session_queue,
             "unity_queue": unity_sessions,
+            "history_queue": history_sessions,
             "likes_ranking": likes_ranking,
         },
     }
@@ -418,8 +450,8 @@ def clear_queue(queue_name: str):
 def clear_unity_queue():
     redis_conn = _redis()
     try:
-        removed = redis_conn.llen(UNITY_QUEUE_KEY)
-        redis_conn.delete(UNITY_QUEUE_KEY)
+        removed = redis_conn.llen(uq.UNITY_QUEUE_KEY)
+        redis_conn.delete(uq.UNITY_QUEUE_KEY)
         return {"status": "ok", "removed_count": removed}
     finally:
         redis_conn.close()
@@ -490,7 +522,7 @@ def reset_database(db: DBSession = Depends(get_db)):
     redis_conn = _redis()
     try:
         redis_conn.delete(
-            UNITY_QUEUE_KEY,
+            uq.UNITY_QUEUE_KEY,
             uq.HISTORY_QUEUE_KEY,
             uq.ACTIVE_SESSION_KEY,
         )

@@ -41,12 +41,16 @@ def publish_likes_updated(session_id: str, likes: int, top_session_id: str | Non
     r.close()
 
 
-def enqueue_unity_session(session_id: str):
-    """Unity 대기 큐에 세션 추가 (중복 방지). 완료된 세션만 호출해야 한다."""
+def enqueue_unity_session(session_id: str) -> bool:
+    """Unity 대기 큐에 세션 추가 (중복 방지). 새로 추가됐으면 True."""
     r = Redis.from_url(REDIS_URL)
-    if r.lpos(UNITY_QUEUE_KEY, session_id) is None:
-        r.rpush(UNITY_QUEUE_KEY, session_id)
-    r.close()
+    try:
+        if r.lpos(UNITY_QUEUE_KEY, session_id) is None:
+            r.rpush(UNITY_QUEUE_KEY, session_id)
+            return True
+        return False
+    finally:
+        r.close()
 
 
 def check_and_notify(session_id: str):
@@ -62,7 +66,7 @@ def check_and_notify(session_id: str):
         session = db.get(Session, session_id)
         if not session:
             return
-        if session.status == "cancelled":
+        if session.status in ("cancelled", "runtime", "completed"):
             return
         if not session.assets:
             return
@@ -70,8 +74,12 @@ def check_and_notify(session_id: str):
         has_character = "character" in completed_types
         has_object = bool({"object", "building"} & completed_types)
         if has_character and has_object:
-            enqueue_unity_session(session_id)
-            publish_session_ready(session_id)
+            enqueued = enqueue_unity_session(session_id)
+            if session.status != "unity_queue":
+                session.status = "unity_queue"
+                db.commit()
+            if enqueued:
+                publish_session_ready(session_id)
     finally:
         db.close()
 
