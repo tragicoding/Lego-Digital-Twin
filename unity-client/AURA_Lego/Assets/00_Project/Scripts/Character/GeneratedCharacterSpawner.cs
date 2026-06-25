@@ -280,7 +280,6 @@ namespace LegoTwin.Character
             var wrapper = new GameObject($"Character_{role}");
             wrapper.transform.SetPositionAndRotation(pos, rot);
             wrapper.transform.localScale = Vector3.one * spawnScale;
-            var referenceAvatar = GetReferenceAvatar();
 
             TripoFbxLoader.Load(
                 data.model_url, wrapper,
@@ -290,8 +289,7 @@ namespace LegoTwin.Character
                     Debug.LogWarning($"[CharacterSpawner] 서버 FBX 로드 실패({role}): {msg} → Mock 폴백");
                     Destroy(wrapper);
                     onCreated?.Invoke(InstantiateMock(pos, rot, role));
-                },
-                referenceAvatar);
+                });
         }
 
         // ════════════════════════════════════════════════════════════
@@ -311,27 +309,6 @@ namespace LegoTwin.Character
             if (animator.runtimeAnimatorController == animatorController) return;
 
             animator.runtimeAnimatorController = animatorController;
-        }
-
-        private Avatar GetReferenceAvatar()
-        {
-            if (mockCharacterPrefab == null) return null;
-
-            var animator = mockCharacterPrefab.GetComponentInChildren<Animator>(true);
-            if (animator == null)
-            {
-                Debug.LogWarning("[CharacterSpawner] mockCharacterPrefab에 Animator가 없어 referenceAvatar를 못 찾음");
-                return null;
-            }
-
-            var avatar = animator.avatar;
-            if (avatar == null || !avatar.isValid || !avatar.isHuman)
-            {
-                Debug.LogWarning("[CharacterSpawner] mockCharacterPrefab Animator.avatar가 유효한 Humanoid가 아님");
-                return null;
-            }
-
-            return avatar;
         }
 
         private static T GetOrAdd<T>(GameObject go) where T : Component

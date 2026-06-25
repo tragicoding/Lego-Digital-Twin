@@ -93,8 +93,7 @@ namespace LegoTwin.Character
         /// <param name="onLoaded">로드·머티리얼 적용 완료 시 호출</param>
         /// <param name="onError">실패·미지원 시 메시지와 함께 호출</param>
         public static void Load(string url, GameObject wrapper,
-                                Action onLoaded, Action<string> onError,
-                                Avatar referenceAvatar = null)
+                                Action onLoaded, Action<string> onError)
         {
 #if TRILIB
             var request = AssetDownloader.CreateWebRequest(url);
@@ -104,7 +103,7 @@ namespace LegoTwin.Character
                 onMaterialsLoad: _ =>
                 {
                     PostProcessLoadedHierarchy(wrapper);
-                    EnsureHumanoidAvatar(wrapper, referenceAvatar);
+                    EnsureHumanoidAvatar(wrapper);
                     onLoaded?.Invoke();
                 },
                 onProgress: null,
@@ -236,7 +235,10 @@ namespace LegoTwin.Character
             return denominator > 0f ? numerator / denominator : 0f;
         }
 
-        private static void EnsureHumanoidAvatar(GameObject wrapper, Avatar referenceAvatar)
+        // Mock Mode(CharacterRigImporter)와 동일하게 로드된 FBX 자체 본 구조로 Avatar를 구성한다.
+        // 1순위: HumanoidAvatarBuilder — 현재 모델 본 계층 기반 (CreateFromThisModel 동일 방식)
+        // 2순위: TriLib이 이미 생성한 Avatar 유지 (TriLib도 CreateFromThisModel 옵션 사용)
+        private static void EnsureHumanoidAvatar(GameObject wrapper)
         {
             var animator = FindOrCreateAnimator(wrapper);
             if (animator == null)
@@ -245,39 +247,19 @@ namespace LegoTwin.Character
                 return;
             }
 
-            if (TryApplyReferenceAvatar(animator, referenceAvatar))
+            if (HumanoidAvatarBuilder.Build(animator.gameObject))
                 return;
 
             var avatar = animator.avatar;
-            bool hadValidTriLibAvatar = avatar != null && avatar.isValid && avatar.isHuman;
-            if (HumanoidAvatarBuilder.Build(animator.gameObject))
+            if (avatar != null && avatar.isValid && avatar.isHuman)
             {
-                Debug.LogWarning(hadValidTriLibAvatar
-                    ? $"[TripoFbxLoader] TriLib Avatar를 HumanoidAvatarBuilder로 교체: {animator.gameObject.name}"
-                    : $"[TripoFbxLoader] TriLib Avatar 비정상 → HumanoidAvatarBuilder fallback 적용: {animator.gameObject.name}");
+                Debug.LogWarning(
+                    $"[TripoFbxLoader] HumanoidAvatarBuilder 실패, TriLib Avatar 유지: {animator.gameObject.name}");
                 return;
             }
 
             Debug.LogWarning(
-                $"[TripoFbxLoader] HumanoidAvatarBuilder 적용 실패, TriLib Avatar 유지: {animator.gameObject.name}");
-        }
-
-        private static bool TryApplyReferenceAvatar(Animator animator, Avatar referenceAvatar)
-        {
-            if (animator == null || referenceAvatar == null) return false;
-            if (!referenceAvatar.isValid || !referenceAvatar.isHuman)
-            {
-                Debug.LogWarning("[TripoFbxLoader] referenceAvatar가 유효한 Humanoid가 아님");
-                return false;
-            }
-
-            animator.avatar = referenceAvatar;
-            var applied = animator.avatar;
-            bool ok = applied != null && applied.isValid && applied.isHuman;
-            Debug.LogWarning(ok
-                ? $"[TripoFbxLoader] mockCharacterPrefab의 검증 Avatar 재사용: {animator.gameObject.name}"
-                : $"[TripoFbxLoader] referenceAvatar 적용 후에도 Humanoid 아님: {animator.gameObject.name}");
-            return ok;
+                $"[TripoFbxLoader] Avatar 구성 실패 — Humanoid 애니메이션 재생 불가: {animator.gameObject.name}");
         }
 
         private static Animator FindOrCreateAnimator(GameObject wrapper)
