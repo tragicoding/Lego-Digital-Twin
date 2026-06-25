@@ -73,11 +73,11 @@ namespace LegoTwin.UI
         [Tooltip("텔레포트 후 지도를 자동으로 닫는다")]
         [SerializeField] private bool _closeAfterTeleport = true;
 
-        [Tooltip("VR에서 오른손 컨트롤러 B 버튼으로 지도 열기/닫기 토글(데스크톱은 영향 없음).")]
+        [Tooltip("VR에서 왼손 컨트롤러 Y 버튼으로 지도 열기/닫기 토글(데스크톱은 영향 없음).")]
         [SerializeField] private bool _vrBButtonToggle = true;
 
         private bool _open;
-        private bool _bPressedLast;   // B 버튼 edge 감지(눌리는 순간 1회만 토글)
+        private bool _yPressedLast;   // Y 버튼 edge 감지(눌리는 순간 1회만 토글)
 
         // MapButton 색 토글용 — Awake 에서 원래 ColorBlock 을 캡처해 열림/닫힘 두 벌을 만든다.
         private ColorBlock _closedColors;
@@ -107,15 +107,15 @@ namespace LegoTwin.UI
         }
 
         // 활성화(자유 모드 진입 등) 시 현재 버튼 상태로 동기화 → 켜질 때 눌려 있어도 즉시 토글되지 않게.
-        // 또한 모드에 맞춰 MapButton 표시 여부를 적용한다(VR=숨김, B 버튼 전용).
+        // 또한 모드에 맞춰 MapButton 표시 여부를 적용한다(VR=숨김, Y 버튼 전용).
         private void OnEnable()
         {
-            _bPressedLast = ReadVrToggleButton();
+            _yPressedLast = ReadVrToggleButton();
             ApplyMapButtonVisibility();
         }
 
-        // VR + B 버튼 토글 사용 시 화면의 MapButton 을 숨긴다(B 버튼으로만 조작). 데스크톱은 버튼 표시.
-        // 단 B 토글이 꺼져 있으면 VR에서도 버튼을 남겨(조작 수단이 사라지지 않게) 둔다.
+        // VR + Y 버튼 토글 사용 시 화면의 MapButton 을 숨긴다(Y 버튼으로만 조작). 데스크톱은 버튼 표시.
+        // 단 Y 토글이 꺼져 있으면 VR에서도 버튼을 남겨(조작 수단이 사라지지 않게) 둔다.
         private void ApplyMapButtonVisibility()
         {
             if (_mapButton == null) return;
@@ -124,7 +124,7 @@ namespace LegoTwin.UI
         }
 
         // ════════════════════════════════════════════════════════════
-        // VR 컨트롤러 B 버튼 토글 (오른손 secondaryButton) — VR 모드 전용
+        // VR 컨트롤러 Y 버튼 토글 (왼손 secondaryButton) — VR 모드 전용
         // ════════════════════════════════════════════════════════════
 
         private void Update()
@@ -133,14 +133,14 @@ namespace LegoTwin.UI
             if (XRModeManager.Mode != AppMode.VR) return;   // VR 전용(데스크톱은 MapButton 클릭 그대로)
 
             bool pressed = ReadVrToggleButton();
-            if (pressed && !_bPressedLast) ToggleMap();      // 눌리는 순간 1회만(열림↔닫힘)
-            _bPressedLast = pressed;
+            if (pressed && !_yPressedLast) ToggleMap();      // 눌리는 순간 1회만(열림↔닫힘)
+            _yPressedLast = pressed;
         }
 
-        // 오른손 컨트롤러 B 버튼(= secondaryButton). 기기 미연결/미지원이면 false.
+        // 왼손 컨트롤러 Y 버튼(= secondaryButton). 기기 미연결/미지원이면 false.
         private static bool ReadVrToggleButton()
         {
-            var device = InputDevices.GetDeviceAtXRNode(XRNode.RightHand);
+            var device = InputDevices.GetDeviceAtXRNode(XRNode.LeftHand);
             return device.isValid
                 && device.TryGetFeatureValue(CommonUsages.secondaryButton, out bool v)
                 && v;

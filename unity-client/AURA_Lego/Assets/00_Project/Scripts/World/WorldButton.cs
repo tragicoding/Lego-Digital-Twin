@@ -1,6 +1,8 @@
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.InputSystem;   // 키보드는 IME 영향 없는 새 Input System으로 읽음
+using UnityEngine.XR;
+using LegoTwin.Core;
 
 namespace LegoTwin.World
 {
@@ -41,6 +43,7 @@ namespace LegoTwin.World
         [SerializeField] private UnityEvent _onPress;
 
         private bool _inRange;
+        private bool _bPressedLast;   // VR B 버튼 edge 감지
 
         // 인스펙터에서 컴포넌트 추가 시 Collider를 자동으로 트리거로 설정
         private void Reset()
@@ -61,12 +64,26 @@ namespace LegoTwin.World
             var kb = Keyboard.current;
             if (kb != null && kb[_pressKey].wasPressedThisFrame)
                 _onPress?.Invoke();
+
+            // VR 모드: 오른손 컨트롤러 B 버튼(secondaryButton)으로도 발동
+            bool bNow = XRModeManager.Mode == AppMode.VR && ReadVrBButton();
+            if (bNow && !_bPressedLast) _onPress?.Invoke();
+            _bPressedLast = bNow;
+        }
+
+        private static bool ReadVrBButton()
+        {
+            var device = InputDevices.GetDeviceAtXRNode(XRNode.RightHand);
+            return device.isValid
+                && device.TryGetFeatureValue(UnityEngine.XR.CommonUsages.secondaryButton, out bool v)
+                && v;
         }
 
         private void OnTriggerEnter(Collider other)
         {
             if (!other.CompareTag(_playerTag)) return;
             _inRange = true;
+            _bPressedLast = ReadVrBButton();   // 진입 직전 상태 동기화 — 즉시 발동 방지
             if (_hint != null) _hint.SetActive(true);
         }
 
