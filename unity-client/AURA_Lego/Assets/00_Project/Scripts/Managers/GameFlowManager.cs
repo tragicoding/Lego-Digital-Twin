@@ -98,6 +98,10 @@ namespace LegoTwin.Managers
         private string      _enteredCharName;  // 대기화면에서 입력한 캐릭터 이름
         private string      _enteredObjName;   // 대기화면에서 입력한 오브제 이름
 
+        // ── 입장 게이트 (가이드 캐릭터 + 오브제 둘 다 준비돼야 ReadyToEnter) ──
+        private bool _guideSpawnReady;         // 가이드 NPC 스폰 완료
+        private bool _objectSpawnReady;        // 오브제 스폰 완료(또는 오브제 없음)
+
         // ════════════════════════════════════════════════════════════
         // Unity 생명주기
         // ════════════════════════════════════════════════════════════
@@ -212,11 +216,10 @@ namespace LegoTwin.Managers
             SpawnSession(_pendingSession);
         }
 
-        // 스폰은 콜백 기반(Mock=동기, Server=TriLib 비동기). 어느 모드든 동일하게 동작한다.
+        // 스폰은 콜백 기반(Mock=동기, Server=비동기). 어느 모드든 동일하게 동작한다.
         private void SpawnSession(SessionData session)
         {
             // 대기화면에서 입력받은 이름을 스폰 '이전'에 적용한다(빈 값이면 기존 이름 유지).
-            // 이름은 Unity가 단일 출처 → 가이드 NPC 대사·배치 캐릭터/오브제 이름표에 처음부터 반영된다.
             SessionManager.Instance.SetNames(_enteredCharName, _enteredObjName);
 
             _currentNpcName = session.character_npc_name;
@@ -228,11 +231,19 @@ namespace LegoTwin.Managers
                 return;
             }
 
-            // ① 오브제 스폰 (Server 모드는 비동기 → 완료 참조는 OnGuideFinished 시점에 회수)
+            // 입장 게이트 초기화: 가이드 캐릭터 + 오브제 둘 다 준비돼야 ReadyToEnter() 호출
+            _guideSpawnReady  = false;
+            _objectSpawnReady = (_objectSpawner == null || session.assets?.@object == null);
+
+            // ① 오브제 스폰 — 완료 콜백으로 게이트 해제 (Server=GLB 비동기, Mock=즉시)
             if (_objectSpawner != null && session.assets?.@object != null)
             {
-                _objectSpawner.Spawn(session.assets.@object);
-                _spawnedObjectGO = _objectSpawner.GetSpawnedObject();
+                _objectSpawner.Spawn(session.assets.@object, objectGO =>
+                {
+                    _spawnedObjectGO  = objectGO;
+                    _objectSpawnReady = true;
+                    TryReadyToEnter();
+                });
             }
 
             // ② 배치 캐릭터 스폰 — 준비되면 참조 저장(+가이드가 이미 있으면 늦은 연결 보정)
@@ -243,7 +254,7 @@ namespace LegoTwin.Managers
                 if (_currentNPC != null) _currentNPC.placedCharacter = placed;
             });
 
-            // ③ 가이드 NPC 스폰 — 준비되면 연결·구독·시나리오 시작
+            // ③ 가이드 NPC 스폰 — 준비되면 연결·구독 후 입장 게이트 해제 시도
             _characterSpawner.SpawnGuide(session, npc =>
             {
                 if (npc == null)
@@ -253,19 +264,22 @@ namespace LegoTwin.Managers
                     return;
                 }
 
-                // 배치 캐릭터 연결 (Mock=이미 set, Server=②의 늦은 연결이 보완)
                 npc.placedCharacter = _placedCharacter;
-
-                // 말풍선 UI가 NPC 머리 위를 따라다니도록 타겟 주입
                 _dialogueUI?.SetFollowTarget(npc.transform);
-
                 _currentNPC = npc;
                 SubscribeNPCEvents(npc);
 
-                // 세션·캐릭터 준비 완료 → 가이드 시작은 '입장' 버튼 클릭까지 보류.
-                // (대기화면 뒤에서 가이드 대사가 미리 진행되지 않도록 시작 시점을 게이트)
-                ReadyToEnter();
+                _guideSpawnReady = true;
+                TryReadyToEnter();
             });
+        }
+
+        // 가이드 캐릭터 + 오브제 둘 다 준비됐을 때만 입장 버튼을 띄운다.
+        // 어느 쪽이 먼저 완료되든 마지막에 도착한 쪽이 ReadyToEnter를 트리거한다.
+        private void TryReadyToEnter()
+        {
+            if (_guideSpawnReady && _objectSpawnReady)
+                ReadyToEnter();
         }
 
         /// <summary>

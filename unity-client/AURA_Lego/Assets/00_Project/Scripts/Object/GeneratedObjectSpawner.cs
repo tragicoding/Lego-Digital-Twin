@@ -51,14 +51,16 @@ namespace LegoTwin.Object
 
         /// <summary>
         /// ObjectAssetData 로 오브제를 스폰합니다.
-        /// model_url 없음 → Mock Mode (즉시 스폰)
-        /// model_url 있음 → Server Mode (glTFast 비동기 로드, 완료 후 스폰)
+        /// model_url 없음 → Mock Mode (즉시 스폰 후 onReady 호출)
+        /// model_url 있음 → Server Mode (glTFast 비동기 로드, 완료 후 onReady 호출)
+        /// 실패 시 onReady(null).
         /// </summary>
-        public void Spawn(ObjectAssetData data)
+        public void Spawn(ObjectAssetData data, System.Action<GameObject> onReady = null)
         {
             if (data == null)
             {
                 Debug.LogWarning("[GeneratedObjectSpawner] ObjectAssetData 없음");
+                onReady?.Invoke(null);
                 return;
             }
 
@@ -66,9 +68,12 @@ namespace LegoTwin.Object
                 Destroy(_spawnedObject);
 
             if (string.IsNullOrEmpty(data.model_url))
+            {
                 SpawnMock(data);
+                onReady?.Invoke(_spawnedObject);
+            }
             else
-                StartCoroutine(SpawnFromServerCoroutine(data));
+                StartCoroutine(SpawnFromServerCoroutine(data, onReady));
         }
 
         // ════════════════════════════════════════════════════════════
@@ -102,13 +107,15 @@ namespace LegoTwin.Object
         // Server Mode — glTFast GLB 비동기 로드
         // ════════════════════════════════════════════════════════════
 
-        private IEnumerator SpawnFromServerCoroutine(ObjectAssetData data)
+        private IEnumerator SpawnFromServerCoroutine(ObjectAssetData data, System.Action<GameObject> onReady)
         {
             var task = SpawnFromServerAsync(data);
             yield return new WaitUntil(() => task.IsCompleted);
 
             if (task.IsFaulted)
                 Debug.LogError($"[GeneratedObjectSpawner] GLB 로드 실패: {task.Exception?.InnerException?.Message}");
+
+            onReady?.Invoke(_spawnedObject);
         }
 
         private async System.Threading.Tasks.Task SpawnFromServerAsync(ObjectAssetData data)

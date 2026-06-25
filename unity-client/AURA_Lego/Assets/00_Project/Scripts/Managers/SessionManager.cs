@@ -294,5 +294,22 @@ namespace LegoTwin.Managers
 
         private static void ReloadScene() =>
             SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+
+        // ════════════════════════════════════════════════════════════
+        // 앱 강제 종료 대응 — 스테일 세션 방지 (best-effort)
+        // ════════════════════════════════════════════════════════════
+
+        private void OnApplicationQuit()
+        {
+            // 강제 종료 시 AdvanceQueue를 best-effort로 시도한다.
+            // 코루틴 완료 보장은 없으며, 실패 시 서버 /sessions/active 엔드포인트가
+            // "runtime" 상태 세션을 자동 advance하여 스테일 세션을 해소한다.
+            if (dataSourceMode == DataSourceMode.Server
+                && _apiClient != null
+                && !string.IsNullOrEmpty(sessionId))
+            {
+                StartCoroutine(_apiClient.AdvanceQueue(_ => { }));
+            }
+        }
     }
 }

@@ -140,8 +140,13 @@ namespace LegoTwin.UI
 
         [Header("Mock 시뮬레이션")]
         [Tooltip("Mock 모드 전용: 스폰이 즉시 끝나도 이 시간(초)만큼 연동 로딩 영상을 더 보여준 뒤\n" +
-                 "시작 영상·입장 버튼을 노출한다. Server 모드에서는 무시(실제 준비 시점에 노출).")]
+                 "시작 영상·입장 버튼을 노출한다.")]
         [SerializeField] private float _mockPrepSeconds = 5f;
+
+        [Tooltip("Server 모드 최소 로딩 영상 표시 시간(초).\n" +
+                 "prebuilt 캐릭터처럼 스폰이 동기(같은 프레임)로 끝나도 최소 이 시간은 연동 영상을 보여준 뒤 입장 버튼을 노출한다.\n" +
+                 "실제 FBX 다운로드가 더 오래 걸리면 그 시점에 노출.")]
+        [SerializeField] private float _serverMinLoadSeconds = 3f;
 
         private Coroutine   _fade;
         private Coroutine   _reveal;
@@ -257,7 +262,9 @@ namespace LegoTwin.UI
 
         /// <summary>
         /// 세션·캐릭터 준비 완료 시 호출(GameFlowManager).
-        /// Mock: _mockPrepSeconds 경과까지 로딩 영상 유지 후 노출. Server: 즉시 노출.
+        /// Mock   : _mockPrepSeconds 경과까지 로딩 영상 유지 후 노출.
+        /// Server : _serverMinLoadSeconds 최소 대기 후 노출(prebuilt 캐릭터처럼 스폰이 동기로 끝나도
+        ///          연동 영상이 재생될 시간을 보장). 실제 FBX 로드가 더 오래 걸리면 그 시점에 노출.
         /// 입장 버튼이 미연결이면 게이트 없이 즉시 onEnter 실행(폴백).
         /// </summary>
         public void ShowEnterButton(Action onEnter)
@@ -266,9 +273,8 @@ namespace LegoTwin.UI
 
             bool isMock = SessionManager.Instance != null
                        && SessionManager.Instance.dataSourceMode == DataSourceMode.Mock;
-            float remaining = isMock
-                ? Mathf.Max(0f, _mockPrepSeconds - (Time.unscaledTime - _loadingStartTime))
-                : 0f;
+            float minSeconds = isMock ? _mockPrepSeconds : _serverMinLoadSeconds;
+            float remaining  = Mathf.Max(0f, minSeconds - (Time.unscaledTime - _loadingStartTime));
 
             if (_reveal != null) StopCoroutine(_reveal);
             if (remaining > 0f)

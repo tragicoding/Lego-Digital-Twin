@@ -174,13 +174,22 @@ def update_names(
 
 @router.get("/active")
 def get_active_session(db: DBSession = Depends(get_db)):
-    """Unity 게임 시작 시 unity_queue 맨 앞을 runtime으로 pop한다."""
+    """Unity 게임 시작 시 unity_queue 맨 앞을 runtime으로 pop한다.
+
+    active 세션이 "runtime" 상태면 Unity 강제 종료로 남은 스테일 세션이므로
+    자동으로 history로 보내고 다음 큐를 팝한다.
+    """
     active_id = uq.get_active_session_id()
     if active_id:
         active_session = db.get(Session, active_id)
-        if active_session and active_session.status not in ("cancelled", "completed"):
+        if active_session and active_session.status not in ("cancelled", "completed", "runtime"):
+            # 아직 시작 안 된 유효한 세션 → 그대로 반환
             return {"session_id": active_id}
-        uq.remove_from_all_queues(active_id)
+        # 스테일 세션 처리: runtime(강제 종료) / cancelled / completed → history로 이동
+        if active_session and active_session.status == "runtime":
+            active_session.status = "completed"
+            db.commit()
+        uq.move_active_to_history(active_id)
 
     session_id = uq.pop_unity_for_runtime()
     if session_id:
