@@ -1,0 +1,233 @@
+================================================================
+Claude Code 작업 기록
+날짜: 2026-06-26
+브랜치: develop (이번 세션 전체)
+================================================================
+
+주제: ① FPS 14 원인 확인 (VR 모드)
+      ② develop → feature/unity 머지·커밋·푸시
+      ③ Server 모드 빌드 연동영상 스킵 버그 수정
+      ④ 캐릭터·오브제 로드 전 게임 시작 버그 수정
+      ⑤ 스테일 세션 버그 수정 (이전 세션 캐릭터·오브제 표시)
+
+공통 원칙: Mock/Server 동일 동작, 비동기 완료 게이트, 서버·클라 양쪽 방어.
+
+
+────────────────────────────────────────────────────────────────
+[세션 1] FPS 14 원인 확인 (VR 모드)
+────────────────────────────────────────────────────────────────
+
+## 증상
+  VR 모드에서 FPS가 14까지 떨어짐. 오디오 관련 코드 revert 후에도 지속.
+
+## 원인 분석
+  - 오디오 코드 작성 중 XR Input subsystem만 Start하는 코드가 있었음
+    → revert했으나 Unity Editor XR 런타임 상태가 오염됨
+  - Main.unity 직렬화에 stale 필드 잔존:
+      _reacquireXrWhileGated: 0  (기본값 1에서 변경됨)
+      _keepDesktopAudioInVR: 1   (오디오 코드 잔재)
+  - 코드 자체는 HEAD와 동일하게 복구됨 — 에디터 상태 문제
+
+## 해결 방법 (사용자 수동)
+  Unity Editor 완전 재시작 + Inspector에서 _reacquireXrWhileGated = true 수동 확인
+  → 코드 변경 불필요, 에디터 재시작으로 해소
+
+
+────────────────────────────────────────────────────────────────
+[세션 2] develop → feature/unity 머지 · 커밋 · 푸시
+────────────────────────────────────────────────────────────────
+
+## 작업
+  - feature/unity에서 develop 내용 git merge origin/develop
+  - 미커밋 파일 확인 후 커밋 (Audio 파일 포함)
+  - feature/unity push
+  - develop 브랜치로 이동 후 미커밋 확인·커밋·push (CLAUDE.md 경고 후 사용자 승인)
+
+## 관련 커밋
+  6d73782  feat(unity): QuitButton VR X 버튼 토글 추가 · VR 시 화면 버튼 숨김
+  6648e7f  chore(unity): 전시 BGM 추가 · Main 씬·폰트 드리프트 반영
+
+
+────────────────────────────────────────────────────────────────
+[세션 3] Server 모드 빌드 연동영상 스킵 버그 수정
+────────────────────────────────────────────────────────────────
+
+## 파일
+  Scripts/UI/WaitingScreenUI.cs
+
+## 증상
+  Server 모드 빌드에서 연동영상(③ 로딩 영상)이 표시되지 않고 바로 입장 버튼이 노출됨.
+  Unity 에디터에서는 정상.
+
+## 원인
+  prebuilt 캐릭터(character_number > 0) 스폰이 동기(같은 프레임) 완료
+  → EnterLoadingPhase() 내 FadeIn 코루틴 시작 직후 콜백 실행
+  → ShowEnterButton(remaining=0) 호출
+  → RevealReady() → FadeIn 코루틴 StopCoroutine → 영상 비활성화 상태 유지
+
+## 수정
+  - 새 Inspector 필드 추가:
+      [SerializeField] private float _serverMinLoadSeconds = 3f;
+  - ShowEnterButton() 내 분기 수정:
+      bool isMock = (SessionManager.dataSourceMode == DataSourceMode.Mock)
+      float minSeconds = isMock ? _mockPrepSeconds : _serverMinLoadSeconds;
+      float remaining  = Mathf.Max(0f, minSeconds - (Time.unscaledTime - _loadingStartTime));
+  - 효과: prebuilt 스폰이 동기로 끝나도 최소 3초는 연동영상을 표시한 뒤 입장 버튼 노출
+
+
+────────────────────────────────────────────────────────────────
+[세션 4] 캐릭터·오브제 로드 전 게임 시작 버그 수정
+────────────────────────────────────────────────────────────────
+
+## 파일
+  Scripts/Object/GeneratedObjectSpawner.cs
+  Scripts/Managers/GameFlowManager.cs
+
+## 증상
+  Server 모드 빌드에서 에셋이 로드되기 전에 게임이 시작되고
+  이전 세션의 캐릭터·오브제가 표시됨. 에디터에서는 정상.
+
+## 원인
+  GeneratedObjectSpawner.Spawn()에 완료 콜백이 없어 GameFlowManager가
+  GLB 로드 완료를 기다리지 않고 ReadyToEnter()를 즉시 호출함.
+
+## 수정 — GeneratedObjectSpawner.cs
+  Spawn() 시그니처에 onReady 콜백 추가:
+    public void Spawn(ObjectAssetData data, System.Action<GameObject> onReady = null)
+  - model_url 없음(Mock) → SpawnMock() 후 onReady?.Invoke() 동기 호출
+  - model_url 있음(Server) → SpawnFromServerCoroutine() 비동기, 완료 후 onReady?.Invoke()
+    private IEnumerator SpawnFromServerCoroutine(ObjectAssetData data, Action<GameObject> onReady)
+    {
+        var task = SpawnFromServerAsync(data);
+        yield return new WaitUntil(() => task.IsCompleted);
+        onReady?.Invoke(_spawnedObject);
+    }
+
+## 수정 — GameFlowManager.cs : TryReadyToEnter 게이트 패턴
+  새 필드:
+    private bool _guideSpawnReady;
+    private bool _objectSpawnReady;
+
+  SpawnSession() 진입 시:
+    _guideSpawnReady  = false;
+    _objectSpawnReady = (_objectSpawner == null || session.assets?.@object == null);
+
+  오브제 스폰에 콜백 추가:
+    _objectSpawner.Spawn(session.assets.@object, objectGO => {
+        _spawnedObjectGO  = objectGO;
+        _objectSpawnReady = true;
+        TryReadyToEnter();
+    });
+
+  가이드 스폰 콜백에서:
+    _guideSpawnReady = true;
+    TryReadyToEnter();
+
+  새 메서드:
+    private void TryReadyToEnter()
+    {
+        if (_guideSpawnReady && _objectSpawnReady)
+            ReadyToEnter();
+    }
+
+  효과: 가이드 NPC + 오브제 양쪽 모두 스폰 완료 시에만 게임 진행
+
+
+────────────────────────────────────────────────────────────────
+[세션 5] 스테일 세션 버그 수정
+────────────────────────────────────────────────────────────────
+
+## 파일
+  apps/backend/api/routers/sessions.py
+  Scripts/Managers/SessionManager.cs
+
+## 증상
+  Unity 강제 종료 후 재시작 시, 다음 세션 대신 이전 세션의 캐릭터·오브제가 표시됨.
+
+## 근본 원인
+  1. Unity 강제 종료 시 AdvanceQueue 미호출 → Redis lego:active_session 키 잔존
+  2. /sessions/active 엔드포인트가 "runtime" 상태 세션도 그대로 반환:
+       if active_session.status not in ("cancelled", "completed"):
+           return {"session_id": active_id}   ← "runtime"도 반환 (버그)
+
+## 수정 — sessions.py : /sessions/active 엔드포인트
+  "runtime" = Unity 강제 종료로 남은 스테일 세션으로 판단, 자동 advance:
+    if active_session.status not in ("cancelled", "completed", "runtime"):
+        return {"session_id": active_id}   # 아직 시작 안 된 유효 세션
+    # runtime / cancelled / completed → 스테일 처리
+    if active_session.status == "runtime":
+        active_session.status = "completed"
+        db.commit()
+    uq.move_active_to_history(active_id)
+    # 다음 큐 팝
+    session_id = uq.pop_unity_for_runtime()
+    ...
+
+  근거:
+  - FetchActiveSession은 Start(첫 실행) 또는 AdvanceQueue 이후에만 호출됨
+  - 두 경우 모두 "runtime" 세션이 남아있으면 반드시 스테일임
+  - AdvanceQueue 정상 호출 시 이미 lego:active_session 삭제됨
+
+## 수정 — SessionManager.cs : OnApplicationQuit() 추가
+  private void OnApplicationQuit()
+  {
+      // best-effort: 완료 보장 없음 — 실패 시 서버 /sessions/active가 자동 advance
+      if (dataSourceMode == DataSourceMode.Server
+          && _apiClient != null
+          && !string.IsNullOrEmpty(sessionId))
+      {
+          StartCoroutine(_apiClient.AdvanceQueue(_ => { }));
+      }
+  }
+
+  역할: 정상 종료 시 서버에 advance 신호 전달. 강제 종료 시엔 서버 수정이 주 방어선.
+
+
+════════════════════════════════════════════════════════════════
+[2026-06-26 커밋 내역]
+════════════════════════════════════════════════════════════════
+
+  해시      │ 브랜치  │ 메시지
+  ──────────┼─────────┼──────────────────────────────────────────────────────
+  ce24a8b   │ develop │ fix: 스테일 세션으로 이전 캐릭터·오브제가 표시되는 버그 수정
+            │         │   - sessions.py /active: "runtime" 상태 자동 advance
+            │         │   - SessionManager: OnApplicationQuit() 추가
+            │         │   - GameFlowManager: TryReadyToEnter 게이트
+            │         │   - GeneratedObjectSpawner: GLB onReady 콜백
+            │         │   - WaitingScreenUI: _serverMinLoadSeconds=3s
+            │         │   - StreamingAssets GLB 10종 추가 · 씬·설정 드리프트 반영
+
+
+────────────────────────────────────────────────────────────────
+[변경된 파일 목록]
+────────────────────────────────────────────────────────────────
+
+  수정(백엔드):
+    apps/backend/api/routers/sessions.py    /active 스테일 세션 자동 advance
+
+  수정(Unity 스크립트):
+    Scripts/Managers/SessionManager.cs      OnApplicationQuit() 추가
+    Scripts/Managers/GameFlowManager.cs     TryReadyToEnter 게이트 (_guideSpawnReady·_objectSpawnReady)
+    Scripts/Object/GeneratedObjectSpawner.cs  Spawn() onReady 콜백 + SpawnFromServerCoroutine()
+    Scripts/UI/WaitingScreenUI.cs           _serverMinLoadSeconds=3f (Server 최소 표시 시간)
+
+  신규(에셋):
+    StreamingAssets/GeneratedModels/ GLB 10종 + meta  테스트용 생성 오브제 모델
+
+  Unity 드리프트:
+    Scenes/Main.unity
+    Settings/MyParkURP.asset
+    ProjectSettings/ProjectSettings.asset
+
+
+────────────────────────────────────────────────────────────────
+[미해결 / 다음 작업 (이월)]
+────────────────────────────────────────────────────────────────
+
+  [ ] FPS 14 (VR): Unity Editor 재시작 + _reacquireXrWhileGated Inspector 확인 (사용자 수동)
+  [ ] develop 직접 push → 다음 세션에서 feature/unity 머지 or PR 정리 필요
+  [ ] Server 모드 빌드 통합 테스트 (연동영상·캐릭터·오브제 로드 순서 확인)
+  [ ] 전시 빌드 전 디버그 비활성화(_enableGuideSkip·FreeCameraController·PerfHud·SessionDebugHud)
+  [ ] (백엔드) /names 저장 + plaza 응답 이름 포함 (TODO_ForServer.txt)
+
+================================================================

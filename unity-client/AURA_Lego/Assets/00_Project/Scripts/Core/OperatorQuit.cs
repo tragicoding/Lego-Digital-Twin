@@ -11,16 +11,15 @@ namespace LegoTwin.Core
     ///                                                         씬 리로드 → 대기화면 복귀(다음 관람객).
     ///   - OperatorQuit → Application.Quit()                : 큐/세션을 건드리지 않고 앱만 종료.
     ///
-    /// 재시작 시 이어가기(핵심):
-    ///   운영자 종료는 '완료 처리(advance)'를 하지 않으므로 큐가 그대로 남는다.
-    ///   재빌드된 앱을 다시 켜면 마지막 큐의 '같은 세션'부터 이어진다.
-    ///     - Mock  : MockSessionLoader 인덱스(PlayerPrefs) 유지 → Load()가 같은 세션 반환
-    ///     - Server: 백엔드 큐 그대로 → GET /sessions/active 가 같은 세션 반환
-    ///   (크래시/정전 등 비정상 종료에도 동일하게 같은 세션부터 이어진다 — 완료 시에만 advance하므로.)
-    ///   ※ 세션은 '대기화면부터' 다시 시작된다(체험 중간 지점 복원은 아님 — 큐/세션 단위 이어가기).
+    /// 재시작 시 동작(Server 모드):
+    ///   OperatorQuit / 크래시 / 정전 등 어떤 방식으로 종료해도 재시작하면 '다음 세션'으로 넘어간다.
+    ///   - SessionManager.OnApplicationQuit()이 best-effort로 AdvanceQueue를 시도한다.
+    ///   - 실패하더라도 서버 GET /sessions/active 가 "runtime" 상태 세션을 스테일로 판단해
+    ///     자동 advance 후 다음 큐를 팝한다.
+    ///   (Mock 모드는 큐/세션을 건드리지 않으므로 재시작해도 영향 없음.)
     ///
     /// 기본 종료 키는 Esc. 관람객 오발이 걱정되면 보조키(Ctrl/Shift) 요구를 켤 수 있다.
-    /// 의존성 0 — SessionManager/큐를 참조하지 않는다(advance를 '안 하는' 것이 이어가기의 핵심이라 추가 작업 불필요).
+    /// 의존성 0 — SessionManager/큐를 직접 참조하지 않는다.
     /// Mock·Server 어느 모드든 동일하게 동작한다.
     ///
     /// 유니티 개발자 체크리스트:
@@ -46,7 +45,7 @@ namespace LegoTwin.Core
             if (Input.GetKeyDown(_quitKey)) QuitApp();
         }
 
-        /// <summary>큐/세션을 advance 하지 않고 앱만 종료(운영자용). 재시작 시 같은 세션부터 이어진다.</summary>
+        /// <summary>앱 종료(운영자용). 재시작 시 다음 세션으로 넘어간다.</summary>
         public void QuitApp()
         {
             Debug.Log("[OperatorQuit] 운영자 종료 — 큐/세션 보존(재시작 시 같은 세션부터 이어짐)");
