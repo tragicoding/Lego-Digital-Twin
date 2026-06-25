@@ -12,6 +12,7 @@ DELETE /sessions/unity-queue/{id}     — 대기 큐에서 특정 세션 제거 
 """
 from fastapi import APIRouter, Depends, HTTPException
 import httpx
+import uuid
 from sqlalchemy.orm import Session as DBSession
 
 from ...core.config import BACKEND_HOST, WINDOWS_CAMERA_URL
@@ -108,10 +109,12 @@ def capture_object_from_windows_camera(session_id: str, db: DBSession = Depends(
         raise HTTPException(409, "취소된 세션입니다.")
 
     url = f"{WINDOWS_CAMERA_URL.rstrip('/')}/capture-and-upload"
+    capture_id = f"{session_id}_{uuid.uuid4().hex[:12]}"
     payload = {
         "backend_url": BACKEND_HOST,
         "session_id": session_id,
         "asset_type": "object",
+        "capture_id": capture_id,
     }
     try:
         response = httpx.post(url, json=payload, timeout=30)
@@ -172,6 +175,13 @@ def update_names(
 @router.get("/active")
 def get_active_session(db: DBSession = Depends(get_db)):
     """Unity 게임 시작 시 unity_queue 맨 앞을 runtime으로 pop한다."""
+    active_id = uq.get_active_session_id()
+    if active_id:
+        active_session = db.get(Session, active_id)
+        if active_session and active_session.status not in ("cancelled", "completed"):
+            return {"session_id": active_id}
+        uq.remove_from_all_queues(active_id)
+
     session_id = uq.pop_unity_for_runtime()
     if session_id:
         session = db.get(Session, session_id)

@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import os
 import time
+import uuid
 from dataclasses import dataclass
 from threading import Lock
 
@@ -42,6 +43,7 @@ class CaptureRequest(BaseModel):
     backend_url: str
     session_id: str
     asset_type: str = "object"
+    capture_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -81,6 +83,7 @@ class CameraManager:
             for spec in _camera_specs():
                 state = CameraState(spec=spec)
                 cap = cv2.VideoCapture(spec.index, cv2.CAP_DSHOW)
+                cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
                 cap.set(cv2.CAP_PROP_FRAME_WIDTH, int(os.getenv("CAMERA_WIDTH", "1280")))
                 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, int(os.getenv("CAMERA_HEIGHT", "720")))
                 if not cap.isOpened():
@@ -126,27 +129,46 @@ class CameraManager:
             ready = len(cameras) == 4 and all(camera["opened"] for camera in cameras)
             return {"status": "ok" if ready else "not_ready", "ready": ready, "cameras": cameras}
 
-    def capture_jpeg(self, view: str) -> bytes:
+    def _encode_jpeg(self, view: str, frame) -> bytes:
+        ok, encoded = cv2.imencode(".jpg", frame, [int(cv2.IMWRITE_JPEG_QUALITY), 94])
+        if not ok:
+            raise RuntimeError(f"{view} camera JPEG encode failed")
+        return encoded.tobytes()
+
+    def capture_jpegs(self) -> dict[str, bytes]:
         with self._lock:
-            cap = self._caps.get(view)
-            state = self._states.get(view)
-            if cap is None or state is None or not cap.isOpened():
-                raise RuntimeError(f"{view} camera is not open")
+            specs = _camera_specs()
+            for spec in specs:
+                cap = self._caps.get(spec.view)
+                state = self._states.get(spec.view)
+                if cap is None or state is None or not cap.isOpened():
+                    raise RuntimeError(f"{spec.view} camera is not open")
 
-            frame = None
-            for _ in range(3):
-                ok, frame = cap.read()
-                if ok and frame is not None:
-                    break
-                time.sleep(0.03)
+            frames: dict[str, object] = {}
+            flush_frames = int(os.getenv("CAMERA_CAPTURE_FLUSH_FRAMES", "18"))
+            frame_delay = float(os.getenv("CAMERA_CAPTURE_FRAME_DELAY", "0.03"))
+            for _ in range(max(1, flush_frames)):
+                for spec in specs:
+                    cap = self._caps[spec.view]
+                    ok, frame = cap.read()
+                    if ok and frame is not None:
+                        frames[spec.view] = frame
+                    else:
+                        self._states[spec.view].opened = False
+                        self._states[spec.view].error = "capture frame read failed"
+                time.sleep(frame_delay)
 
-            if frame is None:
-                raise RuntimeError(f"{view} camera did not return a frame")
+            missing = [spec.view for spec in specs if spec.view not in frames]
+            if missing:
+                raise RuntimeError(f"camera(s) did not return a frame: {', '.join(missing)}")
 
-            ok, encoded = cv2.imencode(".jpg", frame, [int(cv2.IMWRITE_JPEG_QUALITY), 94])
-            if not ok:
-                raise RuntimeError(f"{view} camera JPEG encode failed")
-            return encoded.tobytes()
+            return {
+                spec.view: self._encode_jpeg(spec.view, frames[spec.view])
+                for spec in specs
+            }
+
+    def capture_jpeg(self, view: str) -> bytes:
+        return self.capture_jpegs()[view]
 
 
 manager = CameraManager()
@@ -177,18 +199,27 @@ def reload_cameras():
 def capture_and_upload(body: CaptureRequest):
     backend = body.backend_url.rstrip("/")
     upload_url = f"{backend}/sessions/{body.session_id}/assets"
+    capture_id = body.capture_id or f"{body.session_id}_{uuid.uuid4().hex[:12]}"
 
     uploaded = []
     health_payload = manager.health()
     if not health_payload["ready"]:
         raise HTTPException(status_code=503, detail=health_payload)
 
+    try:
+        images = manager.capture_jpegs()
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"camera capture failed: {exc}",
+        ) from exc
+
     for spec in _camera_specs():
         try:
-            image = manager.capture_jpeg(spec.view)
+            image = images[spec.view]
             response = requests.post(
                 upload_url,
-                data={"asset_type": body.asset_type, "view": spec.view},
+                data={"asset_type": body.asset_type, "view": spec.view, "capture_id": capture_id},
                 files={"file": (f"{body.asset_type}_{spec.view}.jpg", image, "image/jpeg")},
                 timeout=120,
             )
@@ -200,7 +231,7 @@ def capture_and_upload(body: CaptureRequest):
                 detail=f"{spec.view} camera/upload failed: {exc}",
             ) from exc
 
-    return {"status": "ok", "session_id": body.session_id, "uploaded": uploaded}
+    return {"status": "ok", "session_id": body.session_id, "capture_id": capture_id, "uploaded": uploaded}
 
 
 if __name__ == "__main__":

@@ -61,6 +61,16 @@ def check_and_notify(session_id: str):
     from ..core.database import SessionLocal
     from ..models.session import Session
 
+    def latest_status(session, *asset_types: str) -> str | None:
+        candidates = [
+            asset for asset in session.assets
+            if asset.asset_type in asset_types and asset.status != "superseded"
+        ]
+        if not candidates:
+            return None
+        latest = max(candidates, key=lambda asset: (asset.created_at is not None, asset.created_at, asset.id))
+        return latest.status
+
     db = SessionLocal()
     try:
         session = db.get(Session, session_id)
@@ -70,9 +80,8 @@ def check_and_notify(session_id: str):
             return
         if not session.assets:
             return
-        completed_types = {a.asset_type for a in session.assets if a.status == "completed"}
-        has_character = "character" in completed_types
-        has_object = bool({"object", "building"} & completed_types)
+        has_character = latest_status(session, "character") == "completed"
+        has_object = latest_status(session, "object", "building") == "completed"
         if has_character and has_object:
             enqueued = enqueue_unity_session(session_id)
             if session.status != "unity_queue":
