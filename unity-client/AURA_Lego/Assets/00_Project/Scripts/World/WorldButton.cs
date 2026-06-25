@@ -76,5 +76,15 @@ namespace LegoTwin.World
             _inRange = false;
             if (_hint != null) _hint.SetActive(false);
         }
+
+        /// <summary>
+        /// 텔레포트 등 물리 트리거가 발생하지 않는 이동 후 강제로 힌트를 숨긴다.
+        /// BalloonRide.OnBoarded / OnLeft 이벤트에 Inspector에서 연결한다.
+        /// </summary>
+        public void ForceHide()
+        {
+            _inRange = false;
+            if (_hint != null) _hint.SetActive(false);
+        }
     }
 }
