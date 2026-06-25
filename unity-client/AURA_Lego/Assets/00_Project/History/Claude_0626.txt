@@ -184,18 +184,88 @@ Claude Code 작업 기록
 
 
 ════════════════════════════════════════════════════════════════
+[세션 6] 열기구 탑승 추가 구현 (BalloonRide 버그 3종 수정)
+════════════════════════════════════════════════════════════════
+
+## 파일
+  Scripts/World/BalloonRide.cs
+
+## 버그 3종
+  ① 탑승 시 캐릭터 떨림: SetParent 방식 → LateUpdate 델타 방식으로 교체
+  ② 열기구 미작동: Hot Air Balloon.fbx Rigidbody Is Kinematic 체크 (사용자 수동)
+  ③ E키 하차 후 즉시 재탑승: _exitFrame 가드 추가 (같은 프레임 재진입 방지)
+
+## 핵심 변경
+  - SetParent(_ridePoint) 제거 → CharacterController-BasketFloor 충돌로 떨림 발생하므로
+  - LateUpdate에서 ridePoint 이동 델타를 플레이어에 직접 적용
+  - Exit()에서 _exitFrame = Time.frameCount → Enter()에서 같은 프레임 차단
+
+## 키 변경
+  - WorldButton._pressKey: E → B (사용자 요청)
+
+
+════════════════════════════════════════════════════════════════
+[세션 7] 힌트 UI 구현 (BoardingZone · ExitZone)
+════════════════════════════════════════════════════════════════
+
+## 파일
+  Scripts/UI/HintBillboard.cs  (신규)
+  Scripts/World/WorldButton.cs
+
+## 구현 내용
+
+### HintBillboard.cs — 카메라 추종형 빌보드
+  - LateUpdate마다 카메라 앞 _distance(2m)에 Canvas 위치 고정
+  - transform.forward = 카메라 forward 동기화
+  - Inspector 필드: Distance(2f), VerticalOffset(-0.3f)
+  - 플레이어 눈앞에서 힌트가 따라다님
+
+### WorldButton.ForceHide() 추가
+  - 텔레포트 후 OnTriggerExit 미발생 시 힌트 강제 숨김
+  - BalloonRide.OnBoarded → BoardingZone.WorldButton.ForceHide()
+  - BalloonRide.OnLeft   → ExitZone.WorldButton.ForceHide()
+  - Inspector에서 BalloonRide 이벤트에 연결 필요 (사용자 수동)
+
+## 에디터 설정 (사용자 수동)
+  - BoardingZone 힌트 Canvas: WorldButton._hint 연결, 기본 비활성
+  - ExitZone 힌트 Canvas: 동일 + 텍스트 "내리기: Press B"
+  - HintBillboard 컴포넌트를 각 Canvas에 추가
+  - BalloonRide.OnBoarded / OnLeft 이벤트에 ForceHide 연결
+
+
+════════════════════════════════════════════════════════════════
+[세션 8] 우는 이모지 파티클 (미완료 · 보류)
+════════════════════════════════════════════════════════════════
+
+## 목표
+  미인식 동작 프롬프트 입력 시 캐릭터 주변에 😢 이모지 파티클 표시
+
+## 시도한 방법
+  - HeartEffect 재사용 + CryParticle 프리팹(Image 기반) 생성
+  - GeneratedCharacterSpawner.SetupAsPlaced()에서 런타임 주입
+  - HeartEffect.Setup() / PlacedCharacterController.SetCryEffect() 추가
+
+## 결과
+  - _cryEffect 주입 자체는 성공 (런타임 연결 확인)
+  - CryParticle 프리팹 렌더링 문제 해결 못함
+    (HeartParticle은 뜨나 CryParticle은 미표시)
+
+## 결론
+  - 코드 전량 롤백 (HeartEffect / GeneratedCharacterSpawner / PlacedCharacterController 원복)
+  - CryParticle.prefab, 이미지 파일은 Unity 프로젝트에 잔존 (필요 시 삭제)
+  - 추후 재시도 시 World Space Canvas Render Mode 및 Image 설정 재확인 필요
+
+
+════════════════════════════════════════════════════════════════
 [2026-06-26 커밋 내역]
 ════════════════════════════════════════════════════════════════
 
   해시      │ 브랜치  │ 메시지
   ──────────┼─────────┼──────────────────────────────────────────────────────
   ce24a8b   │ develop │ fix: 스테일 세션으로 이전 캐릭터·오브제가 표시되는 버그 수정
-            │         │   - sessions.py /active: "runtime" 상태 자동 advance
-            │         │   - SessionManager: OnApplicationQuit() 추가
-            │         │   - GameFlowManager: TryReadyToEnter 게이트
-            │         │   - GeneratedObjectSpawner: GLB onReady 콜백
-            │         │   - WaitingScreenUI: _serverMinLoadSeconds=3s
-            │         │   - StreamingAssets GLB 10종 추가 · 씬·설정 드리프트 반영
+  3604ae0   │ develop │ fix(unity): 열기구 탑승 3종 버그 수정 (BalloonRide)
+  5d9c9a7   │ develop │ docs(unity): OperatorQuit 재시작 동작 주석 갱신
+  8e2738a   │ develop │ feat(unity): 열기구 힌트 UI 카메라 추종 · 탑승/하차 시 힌트 강제 숨김
 
 
 ────────────────────────────────────────────────────────────────
@@ -207,16 +277,16 @@ Claude Code 작업 기록
 
   수정(Unity 스크립트):
     Scripts/Managers/SessionManager.cs      OnApplicationQuit() 추가
-    Scripts/Managers/GameFlowManager.cs     TryReadyToEnter 게이트 (_guideSpawnReady·_objectSpawnReady)
-    Scripts/Object/GeneratedObjectSpawner.cs  Spawn() onReady 콜백 + SpawnFromServerCoroutine()
-    Scripts/UI/WaitingScreenUI.cs           _serverMinLoadSeconds=3f (Server 최소 표시 시간)
-
-  신규(에셋):
-    StreamingAssets/GeneratedModels/ GLB 10종 + meta  테스트용 생성 오브제 모델
+    Scripts/Managers/GameFlowManager.cs     TryReadyToEnter 게이트
+    Scripts/Object/GeneratedObjectSpawner.cs  Spawn() onReady 콜백
+    Scripts/UI/WaitingScreenUI.cs           _serverMinLoadSeconds=3f
+    Scripts/World/BalloonRide.cs            LateUpdate 델타 방식 + exitFrame 가드
+    Scripts/World/WorldButton.cs            ForceHide() 추가 + pressKey B 변경
+    Scripts/UI/HintBillboard.cs             신규 (카메라 추종 힌트)
+    Scripts/Core/OperatorQuit.cs            주석 갱신
 
   Unity 드리프트:
     Scenes/Main.unity
-    Settings/MyParkURP.asset
     ProjectSettings/ProjectSettings.asset
 
 
@@ -224,10 +294,13 @@ Claude Code 작업 기록
 [미해결 / 다음 작업 (이월)]
 ────────────────────────────────────────────────────────────────
 
-  [ ] FPS 14 (VR): Unity Editor 재시작 + _reacquireXrWhileGated Inspector 확인 (사용자 수동)
-  [ ] develop 직접 push → 다음 세션에서 feature/unity 머지 or PR 정리 필요
-  [ ] Server 모드 빌드 통합 테스트 (연동영상·캐릭터·오브제 로드 순서 확인)
-  [ ] 전시 빌드 전 디버그 비활성화(_enableGuideSkip·FreeCameraController·PerfHud·SessionDebugHud)
-  [ ] (백엔드) /names 저장 + plaza 응답 이름 포함 (TODO_ForServer.txt)
+  [ ] 힌트 UI Inspector 연결 (사용자 수동):
+        BoardingZone / ExitZone Canvas → WorldButton._hint
+        BalloonRide.OnBoarded/OnLeft  → ForceHide 이벤트 연결
+  [ ] 열기구 Rigidbody Is Kinematic 체크 (사용자 수동)
+  [ ] 우는 이모지 파티클 재시도 (CryParticle World Space Canvas 설정 재확인)
+  [ ] Server 모드 빌드 통합 테스트
+  [ ] 전시 빌드 전 디버그 비활성화
+  [ ] (백엔드) /names 저장 + plaza 응답 이름 포함
 
 ================================================================
