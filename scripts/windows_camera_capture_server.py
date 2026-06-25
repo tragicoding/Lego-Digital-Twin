@@ -145,6 +145,7 @@ class CameraManager:
                     raise RuntimeError(f"{spec.view} camera is not open")
 
             frames: dict[str, object] = {}
+            read_errors: dict[str, str] = {}
             flush_frames = int(os.getenv("CAMERA_CAPTURE_FLUSH_FRAMES", "18"))
             frame_delay = float(os.getenv("CAMERA_CAPTURE_FRAME_DELAY", "0.03"))
             for _ in range(max(1, flush_frames)):
@@ -153,14 +154,19 @@ class CameraManager:
                     ok, frame = cap.read()
                     if ok and frame is not None:
                         frames[spec.view] = frame
+                        read_errors.pop(spec.view, None)
                     else:
                         self._states[spec.view].opened = False
                         self._states[spec.view].error = "capture frame read failed"
+                        read_errors[spec.view] = "capture frame read failed"
                 time.sleep(frame_delay)
 
             missing = [spec.view for spec in specs if spec.view not in frames]
             if missing:
                 raise RuntimeError(f"camera(s) did not return a frame: {', '.join(missing)}")
+            if read_errors:
+                failed = ", ".join(f"{view}: {error}" for view, error in read_errors.items())
+                raise RuntimeError(f"camera frame read failed: {failed}")
 
             return {
                 spec.view: self._encode_jpeg(spec.view, frames[spec.view])
