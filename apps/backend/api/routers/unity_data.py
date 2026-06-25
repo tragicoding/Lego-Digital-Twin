@@ -21,6 +21,22 @@ MAX_PLAZA_SESSIONS = 31
 PROTECTED_SESSIONS_COUNT = 8
 
 
+def _asset_sort_key(asset: Asset):
+    return (asset.created_at is not None, asset.created_at, asset.id)
+
+
+def _latest_completed_asset(session: Session, *asset_types: str) -> Asset | None:
+    candidates = [
+        asset
+        for asset in session.assets
+        if asset.asset_type in asset_types
+        and asset.status == "completed"
+    ]
+    if not candidates:
+        return None
+    return max(candidates, key=_asset_sort_key)
+
+
 def _cleanup_plaza_sessions(db: DBSession, plaza_list: list) -> None:
     """광장 세션 수가 MAX_PLAZA_SESSIONS(31)를 초과하면 오래된 세션을 삭제한다.
     좋아요 상위 PROTECTED_SESSIONS_COUNT(8)개는 삭제 대상에서 제외된다."""
@@ -56,29 +72,26 @@ def _cleanup_plaza_sessions(db: DBSession, plaza_list: list) -> None:
 def _build_assets(session: Session) -> dict:
     """Session 모델에서 Unity용 assets dict를 만든다."""
     assets_out = {}
-    for asset in session.assets:
-        if asset.status != "completed":
-            continue
-        if asset.asset_type == "character":
-            if session.character_number is None:
-                continue
-            assets_out["character"] = {
-                "asset_id": asset.id,
-                "model_url": asset.model_url,
-                "texture_url": asset.thumbnail_url,   # pbr_model GLB
-                "character_number": session.character_number,
-                "role": "guide_npc",
-                "npc_name": session.nickname,
-            }
-        elif asset.asset_type in ("object", "building"):
-            if not asset.model_url:
-                continue
-            assets_out["object"] = {
-                "asset_id": asset.id,
-                "model_url": asset.model_url,
-                "role": "static_object",
-                "object_name": session.object_name,
-            }
+    character_asset = _latest_completed_asset(session, "character")
+    object_asset = _latest_completed_asset(session, "object", "building")
+
+    if character_asset and session.character_number is not None:
+        assets_out["character"] = {
+            "asset_id": character_asset.id,
+            "model_url": character_asset.model_url,
+            "texture_url": character_asset.thumbnail_url,   # pbr_model GLB
+            "character_number": session.character_number,
+            "role": "guide_npc",
+            "npc_name": session.nickname,
+        }
+
+    if object_asset and object_asset.model_url:
+        assets_out["object"] = {
+            "asset_id": object_asset.id,
+            "model_url": object_asset.model_url,
+            "role": "static_object",
+            "object_name": session.object_name,
+        }
     return assets_out
 
 

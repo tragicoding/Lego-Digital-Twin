@@ -124,23 +124,36 @@ def _front_file_exists(session_id: str, asset_prefix: str) -> bool:
     img_dir = STORAGE_IMAGES / session_id
     if not img_dir.exists():
         return False
-    excluded = (f"{asset_prefix}_left_", f"{asset_prefix}_back_", f"{asset_prefix}_right_")
+    legacy_excluded = (f"{asset_prefix}_left_", f"{asset_prefix}_back_", f"{asset_prefix}_right_")
     for path in img_dir.iterdir():
         if not path.is_file():
             continue
+        stem = path.stem
+        if stem.endswith("_front") and stem.startswith(f"{asset_prefix}_"):
+            return True
         if not path.name.startswith(f"{asset_prefix}_"):
             continue
-        if path.name.startswith(excluded):
+        if path.name.startswith(legacy_excluded):
+            continue
+        if any(stem.endswith(f"_{view}") for view in ("left", "back", "right")):
             continue
         return True
     return False
 
 
-def _view_checks(session_id: str, asset_prefix: str) -> dict:
+def _has_view_file(session_id: str, asset_prefix: str, view: str) -> bool:
     img_dir = STORAGE_IMAGES / session_id
-    left = bool(list(img_dir.glob(f"{asset_prefix}_left_*"))) if img_dir.exists() else False
-    back = bool(list(img_dir.glob(f"{asset_prefix}_back_*"))) if img_dir.exists() else False
-    right = bool(list(img_dir.glob(f"{asset_prefix}_right_*"))) if img_dir.exists() else False
+    if not img_dir.exists():
+        return False
+    legacy = list(img_dir.glob(f"{asset_prefix}_{view}_*"))
+    captured = list(img_dir.glob(f"{asset_prefix}_*_{view}.*"))
+    return bool(legacy or captured)
+
+
+def _view_checks(session_id: str, asset_prefix: str) -> dict:
+    left = _has_view_file(session_id, asset_prefix, "left")
+    back = _has_view_file(session_id, asset_prefix, "back")
+    right = _has_view_file(session_id, asset_prefix, "right")
     front = _front_file_exists(session_id, asset_prefix)
     return {
         "front": front,
@@ -161,11 +174,14 @@ def _file_exists_from_url(url: str | None) -> bool:
 
 
 def _asset_by_type(session: Session, *asset_types: str) -> Asset | None:
-    for asset_type in asset_types:
-        for asset in session.assets:
-            if asset.asset_type == asset_type:
-                return asset
-    return None
+    candidates = [
+        asset
+        for asset in session.assets
+        if asset.asset_type in asset_types and asset.status != "superseded"
+    ]
+    if not candidates:
+        return None
+    return max(candidates, key=lambda asset: (asset.created_at is not None, asset.created_at, asset.id))
 
 
 def _session_summary(session: Session, queue_position: int | None = None) -> dict:

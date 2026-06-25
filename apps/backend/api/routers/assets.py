@@ -34,7 +34,9 @@ ready_for_unity = true
 POST /sessions/{id}/assets   — 이미지 업로드 → Queue 등록
 GET  /sessions/{id}/status   — 처리 상태 조회
 """
+import re
 import shutil
+from pathlib import Path
 from typing import Literal
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
@@ -60,6 +62,36 @@ getStatus(sessionId)
 router = APIRouter(prefix="/sessions", tags=["assets"])
 
 ASSET_TYPES = {"character", "building", "vehicle"}
+SIDE_VIEWS = {"back", "left", "right"}
+
+
+def _safe_capture_id(capture_id: str | None) -> str | None:
+    if not capture_id:
+        return None
+    safe = re.sub(r"[^A-Za-z0-9_.-]+", "_", capture_id).strip("._-")
+    return safe[:80] or None
+
+
+def _upload_filename(asset_type: str, view: str, filename: str, capture_id: str | None) -> str:
+    suffix = "".join(Path(filename).suffixes) or ".jpg"
+    if capture_id:
+        return f"{asset_type}_{capture_id}_{view}{suffix}"
+    if view in SIDE_VIEWS:
+        return f"{asset_type}_{view}_{filename}"
+    return f"{asset_type}_{filename}"
+
+
+def _asset_sort_key(asset: Asset):
+    return (asset.created_at is not None, asset.created_at, asset.id)
+
+
+def _latest_assets_by_type(assets: list[Asset]) -> dict[str, Asset]:
+    latest: dict[str, Asset] = {}
+    for asset in sorted(assets, key=_asset_sort_key):
+        if asset.status == "superseded":
+            continue
+        latest[asset.asset_type] = asset
+    return latest
 
 #이미지 업로드 API
 #프론트엔드에서 FormData로 보낸 데이터가 여기로 들어온다.
@@ -74,6 +106,9 @@ async def upload_asset(
     file: UploadFile = File(...),
     # view: front(기본, 파이프라인 시작) | left/back/right(파일 저장만, 큐 미등록)
     view: Literal["front", "back", "left", "right"] = Form("front"),
+    # Windows camera relay가 같은 셔터의 4방향 이미지를 묶어주는 값.
+    # 없으면 기존 업로드 파일명과 호환한다.
+    capture_id: str | None = Form(None),
     db: DBSession = Depends(get_db),
 ):
     session = db.get(Session, session_id)
@@ -84,10 +119,11 @@ async def upload_asset(
 
     save_dir = STORAGE_IMAGES / session_id
     save_dir.mkdir(parents=True, exist_ok=True)
+    capture_key = _safe_capture_id(capture_id)
 
     # left/back/right 이미지: 파일 저장만, DB/큐 등록 없음 (worker가 polling으로 감지)
     if view in ("back", "left", "right") and asset_type in ("character", "object"):
-        save_path = save_dir / f"{asset_type}_{view}_{file.filename}"
+        save_path = save_dir / _upload_filename(asset_type, view, file.filename, capture_key)
         with open(save_path, "wb") as f:
             shutil.copyfileobj(file.file, f)
         return AssetUploadResponse(
@@ -97,7 +133,7 @@ async def upload_asset(
         )
 
     # front 이미지가 들어오면 Asset을 만들고 worker를 시작한다.
-    save_path = save_dir / f"{asset_type}_{file.filename}"
+    save_path = save_dir / _upload_filename(asset_type, view, file.filename, capture_key)
     with open(save_path, "wb") as f:
         shutil.copyfileobj(file.file, f)
 
@@ -110,6 +146,26 @@ async def upload_asset(
         stage="waiting",
     )
     db.add(asset)
+    db.flush()
+
+    # 같은 세션에서 오브제를 다시 찍은 경우, 이전 오브제가 Unity로 올라가지 않게
+    # 최신 front 업로드만 대표 오브제로 남긴다.
+    if asset_type in ("object", "building"):
+        previous_assets = (
+            db.query(Asset)
+            .filter(
+                Asset.session_id == session_id,
+                Asset.asset_type == asset_type,
+                Asset.id != asset.id,
+            )
+            .all()
+        )
+        for previous in previous_assets:
+            if previous.status != "cancelled":
+                previous.status = "superseded"
+                previous.stage = "superseded"
+                previous.error_message = f"superseded by {asset.id}"
+
     db.commit()
     db.refresh(asset)
 
@@ -179,7 +235,8 @@ def get_session_status(session_id: str, db: DBSession = Depends(get_db)):
     #해당 세션에 연결된 모든 asset을 반복.
     #각 asset의 상태를 프론트엔드가 읽기 좋은 형태로 정리
     #Session 모델과 Asset 모델이 연결되어 있는 구조
-    for asset in session.assets:
+    latest_assets = _latest_assets_by_type(list(session.assets))
+    for asset in latest_assets.values():
         assets_status[asset.asset_type] = AssetStatusItem(
             status=asset.status,
             stage=asset.stage,
