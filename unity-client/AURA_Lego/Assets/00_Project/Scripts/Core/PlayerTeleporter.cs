@@ -36,6 +36,8 @@ namespace LegoTwin.Core
 
             // CC 비활성 이동은 OnTriggerExit 를 발생시키지 않으므로 모든 WorldButton 힌트를 강제 숨김
             WorldButton.ForceHideAll();
+            // 탑승 중 외부 텔레포트 시 열기구 추종(LateUpdate 델타)을 즉시 중단
+            BalloonRide.ForceAbortAll();
         }
     }
 }

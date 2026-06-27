@@ -127,6 +127,25 @@ namespace LegoTwin.World
                 rig.position += delta;
         }
 
+        /// <summary>
+        /// 텔레포트 등 외부 이동으로 열기구를 이탈했을 때 추종을 즉시 중단한다.
+        /// 복귀 이동 없음 — 이미 외부에서 위치가 변경된 상태이므로.
+        /// </summary>
+        public void ForceAbort()
+        {
+            _onBoard = false;
+        }
+
+        /// <summary>
+        /// 씬의 모든 BalloonRide 추종을 강제 중단한다.
+        /// PlayerTeleporter 등 Exit()를 거치지 않는 이동 직후 호출한다.
+        /// </summary>
+        public static void ForceAbortAll()
+        {
+            foreach (var br in FindObjectsByType<BalloonRide>(FindObjectsSortMode.None))
+                br.ForceAbort();
+        }
+
         // _playerRig 미연결 시 "Player" 태그 오브젝트의 루트로 1회 자동 해석 (MapTeleportUI와 동일 패턴)
         private Transform ResolveRig()
         {
