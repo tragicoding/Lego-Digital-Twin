@@ -1,4 +1,5 @@
 using UnityEngine;
+using LegoTwin.World;
 
 namespace LegoTwin.Core
 {
@@ -32,6 +33,9 @@ namespace LegoTwin.Core
             if (rotation.HasValue) rig.rotation = rotation.Value;
 
             if (reenable) cc.enabled = true;
+
+            // CC 비활성 이동은 OnTriggerExit 를 발생시키지 않으므로 모든 WorldButton 힌트를 강제 숨김
+            WorldButton.ForceHideAll();
         }
     }
 }

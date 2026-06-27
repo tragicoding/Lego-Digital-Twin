@@ -103,5 +103,15 @@ namespace LegoTwin.World
             _inRange = false;
             if (_hint != null) _hint.SetActive(false);
         }
+
+        /// <summary>
+        /// 씬의 모든 WorldButton 힌트를 강제로 숨긴다.
+        /// PlayerTeleporter 등 OnTriggerExit 를 발생시키지 않는 이동 직후 호출한다.
+        /// </summary>
+        public static void ForceHideAll()
+        {
+            foreach (var wb in FindObjectsByType<WorldButton>(FindObjectsSortMode.None))
+                wb.ForceHide();
+        }
     }
 }
