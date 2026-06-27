@@ -56,6 +56,7 @@ namespace LegoTwin.World
         private Quaternion _returnRot;
         private Vector3    _lastRidePointWorld;   // 이전 프레임 ridePoint 월드 위치 (델타 계산용)
         private int        _exitFrame = -1;        // Exit()가 실행된 프레임 번호 (같은 프레임 재진입 방지)
+        private PlayerAudio _playerAudio;          // 탑승 중 발소리 억제용
 
         public bool OnBoard => _onBoard;
 
@@ -85,6 +86,10 @@ namespace LegoTwin.World
             // ridePoint 이동 델타 추종 초기화 (SetParent 대신 LateUpdate에서 적용)
             _lastRidePointWorld = _ridePoint.position;
 
+            // 탑승 중 열기구 이동 델타가 발소리를 유발하지 않도록 PlayerAudio 억제
+            _playerAudio = rig.GetComponentInChildren<PlayerAudio>();
+            if (_playerAudio != null) _playerAudio.enabled = false;
+
             _onBoard = true;
             OnBoarded?.Invoke();
         }
@@ -98,6 +103,7 @@ namespace LegoTwin.World
 
             PlayerTeleporter.Teleport(rig, _returnPos, _returnRot);
 
+            if (_playerAudio != null) _playerAudio.enabled = true;
             _exitFrame = Time.frameCount;   // 이 프레임에 Enter()가 호출되지 않도록 잠금
             _onBoard = false;
             OnLeft?.Invoke();
@@ -133,6 +139,7 @@ namespace LegoTwin.World
         /// </summary>
         public void ForceAbort()
         {
+            if (_playerAudio != null) _playerAudio.enabled = true;
             _onBoard = false;
         }
 
