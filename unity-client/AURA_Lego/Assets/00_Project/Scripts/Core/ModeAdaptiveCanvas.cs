@@ -85,35 +85,42 @@ namespace LegoTwin.Core
         {
             if (mode != AppMode.VR) return;   // 데스크톱: 손대지 않음(기존 Overlay 그대로)
 
-            EnsureTrackedRaycaster();          // 두 배치 모두 VR 컨트롤러 레이 클릭이 필요
+            if (_placement == Placement.KeepInPlace)
+            {
+                // 월드 고정 캔버스: 위치/렌더모드는 그대로, VR 레이 클릭만 보장.
+                // worldCamera 가 null 인 채로 TrackedDeviceGraphicRaycaster 를 등록하면
+                // 이후 worldCamera 가 설정될 때 OnDisable 키 불일치로 KeyNotFoundException 발생.
+                // → 등록 전에 worldCamera 를 확정한다.
+                if (_canvas.renderMode == RenderMode.WorldSpace && _canvas.worldCamera == null)
+                    _canvas.worldCamera = ResolveCamera();
+                EnsureTrackedRaycaster();
+                return;
+            }
 
-            if (_placement == Placement.KeepInPlace) return;   // 월드 고정 캔버스: 위치/렌더모드 그대로
-
-            // HeadFollowing: Overlay → World Space 전환 + 카메라 앞 배치
+            // HeadFollowing: Overlay → World Space 전환 + 카메라 앞 배치.
+            // ★ 캔버스 속성(renderMode·worldCamera·sizeDelta)을 모두 바꾼 뒤에 raycaster 를 추가한다.
+            //   AddComponent 시점의 OnEnable 등록 키와 OnDisable 해제 키가 일치하려면
+            //   등록 전에 캔버스 상태가 최종 확정되어 있어야 한다.
             Camera cam = ResolveCamera();
 
-            // ★ 변환 '전에' Overlay 상태의 실제 rect 크기를 캡처한다.
-            //   이 크기를 그대로 World sizeDelta 로 쓰면 캔버스 rect 가 변하지 않아
-            //   자식(가장자리 앵커·Constant Pixel Size 포함)이 데스크톱 Overlay 와 동일하게 보존된다.
-            //   (임의 고정 크기를 넣으면 가장자리 앵커가 재배치돼 레이아웃이 깨짐)
+            // 변환 전에 Overlay 상태의 실제 rect 크기를 캡처 → World sizeDelta 에 그대로 써서
+            // 가장자리 앵커·Constant Pixel Size 레이아웃이 데스크톱과 동일하게 보존되도록.
             var rt = (RectTransform)_canvas.transform;
             Vector2 sourceSize = rt.rect.size;
 
             _canvas.renderMode = RenderMode.WorldSpace;
             _canvas.worldCamera = cam;
 
-            // 캡처 성공 시 동일 크기 유지, 실패(0) 시에만 CanvasScaler/_worldSize 폴백.
             rt.sizeDelta = (sourceSize.x > 1f && sourceSize.y > 1f) ? sourceSize : ResolveWorldSize();
 
-            // 물리 크기: _worldWidthMeters>0 이면 캡처 폭에 맞춰 스케일 자동 산출(해상도 무관 일정 크기),
-            //            아니면 기존 _scale 사용.
             float scale = (_worldWidthMeters > 0f && rt.sizeDelta.x > 1f)
                 ? _worldWidthMeters / rt.sizeDelta.x
                 : _scale;
             rt.localScale = Vector3.one * scale;
 
-            SnapInFront(cam);                  // 첫 프레임 튐 방지로 즉시 1회 배치
-            _follow = _followLerp > 0f;        // 추적 사용 시 Update 유지
+            EnsureTrackedRaycaster();          // 캔버스 상태 확정 후 raycaster 등록
+            SnapInFront(cam);
+            _follow = _followLerp > 0f;
         }
 
         private void FollowHead()
