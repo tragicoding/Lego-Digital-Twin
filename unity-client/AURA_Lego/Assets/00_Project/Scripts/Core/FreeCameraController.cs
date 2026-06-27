@@ -171,7 +171,7 @@ namespace LegoTwin.Core
                 if (HeldKey(Key.A, KeyCode.A)) input += Vector3.left;
                 if (HeldKey(Key.D, KeyCode.D)) input += Vector3.right;
 
-                horizontal = Quaternion.Euler(0f, _yaw, 0f) * input.normalized * speed;
+                horizontal = Quaternion.Euler(0f, _rig.eulerAngles.y, 0f) * input.normalized * speed;
             }
 
             if (_cc == null)
