@@ -29,5 +29,7 @@ namespace LegoTwin.Character
         Handstand,  // 물구나무, 핸드스탠드, 헤드스핀
         Hiphop,     // 힙합, 비보잉
         Lie,        // 누워, 눕기
+        Tumbling,      // 텀블링, 공중돌기, 재주넘기
+        BackTumbling,  // 백덤블링, 뒤공중돌기, 뒤재주넘기
     }
 }

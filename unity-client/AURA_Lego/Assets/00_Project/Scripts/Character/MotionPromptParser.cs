@@ -116,6 +116,24 @@ namespace LegoTwin.Character
             ("cry",    MotionType.Cry),
             ("sad",    MotionType.Cry),
 
+            // ── 백덤블링 / 뒤공중돌기 ────────────────────────────────────
+            ("백덤블링",     MotionType.BackTumbling),
+            ("뒤공중돌기",   MotionType.BackTumbling),
+            ("뒤재주넘기",   MotionType.BackTumbling),
+            ("뒤공중제비",   MotionType.BackTumbling),
+            ("backtumbling", MotionType.BackTumbling),
+            ("back tumbling",MotionType.BackTumbling),
+            ("backflip",     MotionType.BackTumbling),
+
+            // ── 텀블링 / 공중돌기 ────────────────────────────────────────
+            ("텀블링",   MotionType.Tumbling),
+            ("덤블링",   MotionType.Tumbling),
+            ("공중돌기", MotionType.Tumbling),
+            ("재주넘기", MotionType.Tumbling),
+            ("공중제비", MotionType.Tumbling),
+            ("tumbling", MotionType.Tumbling),
+            ("tumble",   MotionType.Tumbling),
+
             // ── 짧은 키워드(부분 문자열 주의) — 맨 아래에 두어 최저 우선순위 ──
             // "hi"는 "hiphop" 등 다른 키워드에 포함되므로, 다른 매칭이 모두 실패한 뒤에만 Wave로.
             ("hi",     MotionType.Wave),

@@ -89,6 +89,12 @@ namespace LegoTwin.UI
             {
                 if (!XRModeManager.Resolved) return;
                 if (XRModeManager.Mode != AppMode.VR) { enabled = false; return; }   // 데스크톱: 불필요
+                // World Space 캔버스에 eventCamera 가 없으면 XRI TrackedDeviceGraphicRaycaster 가
+                // s_PokeHoverRaycasters 딕셔너리 키를 찾지 못해 KeyNotFoundException 를 발생시킨다.
+                // VR 모드 확정 시점에 worldCamera 를 설정해 XRI 등록 상태를 안정화한다.
+                var canvas = GetComponent<Canvas>();
+                if (canvas != null && canvas.worldCamera == null)
+                    canvas.worldCamera = Camera.main;
                 Rebuild();
                 _active = true;
             }
