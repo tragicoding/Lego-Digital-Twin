@@ -57,6 +57,7 @@ namespace LegoTwin.World
         private Vector3    _lastRidePointWorld;   // 이전 프레임 ridePoint 월드 위치 (델타 계산용)
         private int        _exitFrame = -1;        // Exit()가 실행된 프레임 번호 (같은 프레임 재진입 방지)
         private PlayerAudio _playerAudio;          // 탑승 중 발소리 억제용
+        private FreeCameraController _freeCam;    // 탑승 중 중력 정지용 (데스크톱 모드)
 
         public bool OnBoard => _onBoard;
 
@@ -90,6 +91,10 @@ namespace LegoTwin.World
             _playerAudio = rig.GetComponentInChildren<PlayerAudio>();
             if (_playerAudio != null) _playerAudio.enabled = false;
 
+            // 데스크톱 모드: FreeCameraController 중력이 LateUpdate 델타와 충돌해 떨림 발생 → 정지
+            _freeCam = rig.GetComponentInChildren<FreeCameraController>();
+            if (_freeCam != null) _freeCam.OnBalloon = true;
+
             _onBoard = true;
             OnBoarded?.Invoke();
         }
@@ -104,6 +109,7 @@ namespace LegoTwin.World
             PlayerTeleporter.Teleport(rig, _returnPos, _returnRot);
 
             if (_playerAudio != null) _playerAudio.enabled = true;
+            if (_freeCam != null) { _freeCam.OnBalloon = false; _freeCam = null; }
             _exitFrame = Time.frameCount;   // 이 프레임에 Enter()가 호출되지 않도록 잠금
             _onBoard = false;
             OnLeft?.Invoke();
@@ -140,6 +146,7 @@ namespace LegoTwin.World
         public void ForceAbort()
         {
             if (_playerAudio != null) _playerAudio.enabled = true;
+            if (_freeCam != null) { _freeCam.OnBalloon = false; _freeCam = null; }
             _onBoard = false;
         }
 

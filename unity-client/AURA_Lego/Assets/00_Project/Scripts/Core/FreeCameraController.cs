@@ -58,6 +58,9 @@ namespace LegoTwin.Core
         private float _pitch;
         private float _verticalVelocity;
 
+        // 탑승(열기구 등) 중에는 중력·이동을 정지해 외부 위치 제어와 충돌하는 떨림을 방지한다.
+        public bool OnBalloon { get; set; }
+
         // 실행 모드(VR/데스크톱) 적용 상태 — XRModeManager 확정 전엔 카메라 조작을 보류한다.
         private bool _modeApplied;
         private AppMode _appliedMode;
@@ -158,6 +161,9 @@ namespace LegoTwin.Core
         // allowInput=false면 중력/지면 안착만 적용하고 WASD·점프는 무시한다.
         private void HandleMove(bool allowInput)
         {
+            // 열기구 등 외부 시스템이 위치를 제어하는 동안에는 중력·이동을 완전히 정지한다.
+            // (BalloonRide.LateUpdate의 delta 이동과 CC 중력이 충돌해 떨림 발생을 방지)
+            if (OnBalloon) return;
             // Yaw 기준 수평 입력 방향 (입력 허용 시에만)
             Vector3 horizontal = Vector3.zero;
             if (allowInput)
