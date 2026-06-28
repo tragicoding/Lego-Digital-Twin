@@ -1,0 +1,306 @@
+================================================================
+Claude Code 작업 기록
+날짜: 2026-06-26
+브랜치: develop (이번 세션 전체)
+================================================================
+
+주제: ① FPS 14 원인 확인 (VR 모드)
+      ② develop → feature/unity 머지·커밋·푸시
+      ③ Server 모드 빌드 연동영상 스킵 버그 수정
+      ④ 캐릭터·오브제 로드 전 게임 시작 버그 수정
+      ⑤ 스테일 세션 버그 수정 (이전 세션 캐릭터·오브제 표시)
+
+공통 원칙: Mock/Server 동일 동작, 비동기 완료 게이트, 서버·클라 양쪽 방어.
+
+
+────────────────────────────────────────────────────────────────
+[세션 1] FPS 14 원인 확인 (VR 모드)
+────────────────────────────────────────────────────────────────
+
+## 증상
+  VR 모드에서 FPS가 14까지 떨어짐. 오디오 관련 코드 revert 후에도 지속.
+
+## 원인 분석
+  - 오디오 코드 작성 중 XR Input subsystem만 Start하는 코드가 있었음
+    → revert했으나 Unity Editor XR 런타임 상태가 오염됨
+  - Main.unity 직렬화에 stale 필드 잔존:
+      _reacquireXrWhileGated: 0  (기본값 1에서 변경됨)
+      _keepDesktopAudioInVR: 1   (오디오 코드 잔재)
+  - 코드 자체는 HEAD와 동일하게 복구됨 — 에디터 상태 문제
+
+## 해결 방법 (사용자 수동)
+  Unity Editor 완전 재시작 + Inspector에서 _reacquireXrWhileGated = true 수동 확인
+  → 코드 변경 불필요, 에디터 재시작으로 해소
+
+
+────────────────────────────────────────────────────────────────
+[세션 2] develop → feature/unity 머지 · 커밋 · 푸시
+────────────────────────────────────────────────────────────────
+
+## 작업
+  - feature/unity에서 develop 내용 git merge origin/develop
+  - 미커밋 파일 확인 후 커밋 (Audio 파일 포함)
+  - feature/unity push
+  - develop 브랜치로 이동 후 미커밋 확인·커밋·push (CLAUDE.md 경고 후 사용자 승인)
+
+## 관련 커밋
+  6d73782  feat(unity): QuitButton VR X 버튼 토글 추가 · VR 시 화면 버튼 숨김
+  6648e7f  chore(unity): 전시 BGM 추가 · Main 씬·폰트 드리프트 반영
+
+
+────────────────────────────────────────────────────────────────
+[세션 3] Server 모드 빌드 연동영상 스킵 버그 수정
+────────────────────────────────────────────────────────────────
+
+## 파일
+  Scripts/UI/WaitingScreenUI.cs
+
+## 증상
+  Server 모드 빌드에서 연동영상(③ 로딩 영상)이 표시되지 않고 바로 입장 버튼이 노출됨.
+  Unity 에디터에서는 정상.
+
+## 원인
+  prebuilt 캐릭터(character_number > 0) 스폰이 동기(같은 프레임) 완료
+  → EnterLoadingPhase() 내 FadeIn 코루틴 시작 직후 콜백 실행
+  → ShowEnterButton(remaining=0) 호출
+  → RevealReady() → FadeIn 코루틴 StopCoroutine → 영상 비활성화 상태 유지
+
+## 수정
+  - 새 Inspector 필드 추가:
+      [SerializeField] private float _serverMinLoadSeconds = 3f;
+  - ShowEnterButton() 내 분기 수정:
+      bool isMock = (SessionManager.dataSourceMode == DataSourceMode.Mock)
+      float minSeconds = isMock ? _mockPrepSeconds : _serverMinLoadSeconds;
+      float remaining  = Mathf.Max(0f, minSeconds - (Time.unscaledTime - _loadingStartTime));
+  - 효과: prebuilt 스폰이 동기로 끝나도 최소 3초는 연동영상을 표시한 뒤 입장 버튼 노출
+
+
+────────────────────────────────────────────────────────────────
+[세션 4] 캐릭터·오브제 로드 전 게임 시작 버그 수정
+────────────────────────────────────────────────────────────────
+
+## 파일
+  Scripts/Object/GeneratedObjectSpawner.cs
+  Scripts/Managers/GameFlowManager.cs
+
+## 증상
+  Server 모드 빌드에서 에셋이 로드되기 전에 게임이 시작되고
+  이전 세션의 캐릭터·오브제가 표시됨. 에디터에서는 정상.
+
+## 원인
+  GeneratedObjectSpawner.Spawn()에 완료 콜백이 없어 GameFlowManager가
+  GLB 로드 완료를 기다리지 않고 ReadyToEnter()를 즉시 호출함.
+
+## 수정 — GeneratedObjectSpawner.cs
+  Spawn() 시그니처에 onReady 콜백 추가:
+    public void Spawn(ObjectAssetData data, System.Action<GameObject> onReady = null)
+  - model_url 없음(Mock) → SpawnMock() 후 onReady?.Invoke() 동기 호출
+  - model_url 있음(Server) → SpawnFromServerCoroutine() 비동기, 완료 후 onReady?.Invoke()
+    private IEnumerator SpawnFromServerCoroutine(ObjectAssetData data, Action<GameObject> onReady)
+    {
+        var task = SpawnFromServerAsync(data);
+        yield return new WaitUntil(() => task.IsCompleted);
+        onReady?.Invoke(_spawnedObject);
+    }
+
+## 수정 — GameFlowManager.cs : TryReadyToEnter 게이트 패턴
+  새 필드:
+    private bool _guideSpawnReady;
+    private bool _objectSpawnReady;
+
+  SpawnSession() 진입 시:
+    _guideSpawnReady  = false;
+    _objectSpawnReady = (_objectSpawner == null || session.assets?.@object == null);
+
+  오브제 스폰에 콜백 추가:
+    _objectSpawner.Spawn(session.assets.@object, objectGO => {
+        _spawnedObjectGO  = objectGO;
+        _objectSpawnReady = true;
+        TryReadyToEnter();
+    });
+
+  가이드 스폰 콜백에서:
+    _guideSpawnReady = true;
+    TryReadyToEnter();
+
+  새 메서드:
+    private void TryReadyToEnter()
+    {
+        if (_guideSpawnReady && _objectSpawnReady)
+            ReadyToEnter();
+    }
+
+  효과: 가이드 NPC + 오브제 양쪽 모두 스폰 완료 시에만 게임 진행
+
+
+────────────────────────────────────────────────────────────────
+[세션 5] 스테일 세션 버그 수정
+────────────────────────────────────────────────────────────────
+
+## 파일
+  apps/backend/api/routers/sessions.py
+  Scripts/Managers/SessionManager.cs
+
+## 증상
+  Unity 강제 종료 후 재시작 시, 다음 세션 대신 이전 세션의 캐릭터·오브제가 표시됨.
+
+## 근본 원인
+  1. Unity 강제 종료 시 AdvanceQueue 미호출 → Redis lego:active_session 키 잔존
+  2. /sessions/active 엔드포인트가 "runtime" 상태 세션도 그대로 반환:
+       if active_session.status not in ("cancelled", "completed"):
+           return {"session_id": active_id}   ← "runtime"도 반환 (버그)
+
+## 수정 — sessions.py : /sessions/active 엔드포인트
+  "runtime" = Unity 강제 종료로 남은 스테일 세션으로 판단, 자동 advance:
+    if active_session.status not in ("cancelled", "completed", "runtime"):
+        return {"session_id": active_id}   # 아직 시작 안 된 유효 세션
+    # runtime / cancelled / completed → 스테일 처리
+    if active_session.status == "runtime":
+        active_session.status = "completed"
+        db.commit()
+    uq.move_active_to_history(active_id)
+    # 다음 큐 팝
+    session_id = uq.pop_unity_for_runtime()
+    ...
+
+  근거:
+  - FetchActiveSession은 Start(첫 실행) 또는 AdvanceQueue 이후에만 호출됨
+  - 두 경우 모두 "runtime" 세션이 남아있으면 반드시 스테일임
+  - AdvanceQueue 정상 호출 시 이미 lego:active_session 삭제됨
+
+## 수정 — SessionManager.cs : OnApplicationQuit() 추가
+  private void OnApplicationQuit()
+  {
+      // best-effort: 완료 보장 없음 — 실패 시 서버 /sessions/active가 자동 advance
+      if (dataSourceMode == DataSourceMode.Server
+          && _apiClient != null
+          && !string.IsNullOrEmpty(sessionId))
+      {
+          StartCoroutine(_apiClient.AdvanceQueue(_ => { }));
+      }
+  }
+
+  역할: 정상 종료 시 서버에 advance 신호 전달. 강제 종료 시엔 서버 수정이 주 방어선.
+
+
+════════════════════════════════════════════════════════════════
+[세션 6] 열기구 탑승 추가 구현 (BalloonRide 버그 3종 수정)
+════════════════════════════════════════════════════════════════
+
+## 파일
+  Scripts/World/BalloonRide.cs
+
+## 버그 3종
+  ① 탑승 시 캐릭터 떨림: SetParent 방식 → LateUpdate 델타 방식으로 교체
+  ② 열기구 미작동: Hot Air Balloon.fbx Rigidbody Is Kinematic 체크 (사용자 수동)
+  ③ E키 하차 후 즉시 재탑승: _exitFrame 가드 추가 (같은 프레임 재진입 방지)
+
+## 핵심 변경
+  - SetParent(_ridePoint) 제거 → CharacterController-BasketFloor 충돌로 떨림 발생하므로
+  - LateUpdate에서 ridePoint 이동 델타를 플레이어에 직접 적용
+  - Exit()에서 _exitFrame = Time.frameCount → Enter()에서 같은 프레임 차단
+
+## 키 변경
+  - WorldButton._pressKey: E → B (사용자 요청)
+
+
+════════════════════════════════════════════════════════════════
+[세션 7] 힌트 UI 구현 (BoardingZone · ExitZone)
+════════════════════════════════════════════════════════════════
+
+## 파일
+  Scripts/UI/HintBillboard.cs  (신규)
+  Scripts/World/WorldButton.cs
+
+## 구현 내용
+
+### HintBillboard.cs — 카메라 추종형 빌보드
+  - LateUpdate마다 카메라 앞 _distance(2m)에 Canvas 위치 고정
+  - transform.forward = 카메라 forward 동기화
+  - Inspector 필드: Distance(2f), VerticalOffset(-0.3f)
+  - 플레이어 눈앞에서 힌트가 따라다님
+
+### WorldButton.ForceHide() 추가
+  - 텔레포트 후 OnTriggerExit 미발생 시 힌트 강제 숨김
+  - BalloonRide.OnBoarded → BoardingZone.WorldButton.ForceHide()
+  - BalloonRide.OnLeft   → ExitZone.WorldButton.ForceHide()
+  - Inspector에서 BalloonRide 이벤트에 연결 필요 (사용자 수동)
+
+## 에디터 설정 (사용자 수동)
+  - BoardingZone 힌트 Canvas: WorldButton._hint 연결, 기본 비활성
+  - ExitZone 힌트 Canvas: 동일 + 텍스트 "내리기: Press B"
+  - HintBillboard 컴포넌트를 각 Canvas에 추가
+  - BalloonRide.OnBoarded / OnLeft 이벤트에 ForceHide 연결
+
+
+════════════════════════════════════════════════════════════════
+[세션 8] 우는 이모지 파티클 (미완료 · 보류)
+════════════════════════════════════════════════════════════════
+
+## 목표
+  미인식 동작 프롬프트 입력 시 캐릭터 주변에 😢 이모지 파티클 표시
+
+## 시도한 방법
+  - HeartEffect 재사용 + CryParticle 프리팹(Image 기반) 생성
+  - GeneratedCharacterSpawner.SetupAsPlaced()에서 런타임 주입
+  - HeartEffect.Setup() / PlacedCharacterController.SetCryEffect() 추가
+
+## 결과
+  - _cryEffect 주입 자체는 성공 (런타임 연결 확인)
+  - CryParticle 프리팹 렌더링 문제 해결 못함
+    (HeartParticle은 뜨나 CryParticle은 미표시)
+
+## 결론
+  - 코드 전량 롤백 (HeartEffect / GeneratedCharacterSpawner / PlacedCharacterController 원복)
+  - CryParticle.prefab, 이미지 파일은 Unity 프로젝트에 잔존 (필요 시 삭제)
+  - 추후 재시도 시 World Space Canvas Render Mode 및 Image 설정 재확인 필요
+
+
+════════════════════════════════════════════════════════════════
+[2026-06-26 커밋 내역]
+════════════════════════════════════════════════════════════════
+
+  해시      │ 브랜치  │ 메시지
+  ──────────┼─────────┼──────────────────────────────────────────────────────
+  ce24a8b   │ develop │ fix: 스테일 세션으로 이전 캐릭터·오브제가 표시되는 버그 수정
+  3604ae0   │ develop │ fix(unity): 열기구 탑승 3종 버그 수정 (BalloonRide)
+  5d9c9a7   │ develop │ docs(unity): OperatorQuit 재시작 동작 주석 갱신
+  8e2738a   │ develop │ feat(unity): 열기구 힌트 UI 카메라 추종 · 탑승/하차 시 힌트 강제 숨김
+
+
+────────────────────────────────────────────────────────────────
+[변경된 파일 목록]
+────────────────────────────────────────────────────────────────
+
+  수정(백엔드):
+    apps/backend/api/routers/sessions.py    /active 스테일 세션 자동 advance
+
+  수정(Unity 스크립트):
+    Scripts/Managers/SessionManager.cs      OnApplicationQuit() 추가
+    Scripts/Managers/GameFlowManager.cs     TryReadyToEnter 게이트
+    Scripts/Object/GeneratedObjectSpawner.cs  Spawn() onReady 콜백
+    Scripts/UI/WaitingScreenUI.cs           _serverMinLoadSeconds=3f
+    Scripts/World/BalloonRide.cs            LateUpdate 델타 방식 + exitFrame 가드
+    Scripts/World/WorldButton.cs            ForceHide() 추가 + pressKey B 변경
+    Scripts/UI/HintBillboard.cs             신규 (카메라 추종 힌트)
+    Scripts/Core/OperatorQuit.cs            주석 갱신
+
+  Unity 드리프트:
+    Scenes/Main.unity
+    ProjectSettings/ProjectSettings.asset
+
+
+────────────────────────────────────────────────────────────────
+[미해결 / 다음 작업 (이월)]
+────────────────────────────────────────────────────────────────
+
+  [ ] 힌트 UI Inspector 연결 (사용자 수동):
+        BoardingZone / ExitZone Canvas → WorldButton._hint
+        BalloonRide.OnBoarded/OnLeft  → ForceHide 이벤트 연결
+  [ ] 열기구 Rigidbody Is Kinematic 체크 (사용자 수동)
+  [ ] 우는 이모지 파티클 재시도 (CryParticle World Space Canvas 설정 재확인)
+  [ ] Server 모드 빌드 통합 테스트
+  [ ] 전시 빌드 전 디버그 비활성화
+  [ ] (백엔드) /names 저장 + plaza 응답 이름 포함
+
+================================================================

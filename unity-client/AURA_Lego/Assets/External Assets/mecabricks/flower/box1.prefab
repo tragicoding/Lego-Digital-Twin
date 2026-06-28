@@ -698,7 +698,7 @@ PrefabInstance:
       objectReference: {fileID: 2100000, guid: 7209c29aaccbb6f4690c16df82991e1a, type: 2}
     - target: {fileID: 919132149155446097, guid: f3d4f2b1b9612404e8be2d37dd0efbe0, type: 3}
       propertyPath: m_Name
-      value: flower_box
+      value: box1
       objectReference: {fileID: 0}
     - target: {fileID: 993047375683658054, guid: f3d4f2b1b9612404e8be2d37dd0efbe0, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'

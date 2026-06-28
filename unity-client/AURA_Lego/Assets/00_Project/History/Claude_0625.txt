@@ -1,0 +1,264 @@
+================================================================
+Claude Code 작업 기록
+날짜: 2026-06-25
+브랜치: feature/unity
+================================================================
+
+주제: ① History 전체 복기·브랜치 확인
+      ② _Recovery/0.unity(크래시 복구본) 분석 후 삭제
+      ③ Main 씬 BoxCollider 추가 커밋·푸시 (원격 분기 → pull 통합)
+      ④ develop 머지 — 충돌 14개 해결·푸시
+      ⑤ PrebuiltCharacters 로딩 정적 검증
+      ⑥ VR 가상 키보드 레이아웃 수정(키 넘침·세로 빈공간)
+      ⑦ VR 대기 단계 흰 화면(WaitingWorldBlanker) — 카메라 컬링 방식
+      ⑧ VR 지도 토글을 컨트롤러 B 버튼으로 + VR 시 MapButton 숨김
+      ⑨ 전시 관람자용 조작 가이드 정리(KBM vs VR)
+
+공통 원칙: 저결합·중복 제거·확장성·Mock/Server 동일 동작.
+
+
+────────────────────────────────────────────────────────────────
+[세션 1] History 전체 복기 · 브랜치 확인
+
+────────────────────────────────────────────────────────────────
+
+## 복기 문서
+  Claude_0528 ~ 0624.txt 전체 통독.
+
+## 현재 브랜치
+  feature/unity (허용 브랜치, 정상)
+
+
+────────────────────────────────────────────────────────────────
+[세션 2] _Recovery/0.unity 분석 → 삭제
+────────────────────────────────────────────────────────────────
+
+## 배경
+  0623 오디오 네이티브 플러그인 크래시로 생긴 Assets/_Recovery/0.unity(33.5MB) 잔재.
+
+## 비교 (마지막 커밋 Main.unity 기준)
+  - 0.unity: GameObject 711 / BoxCollider 274
+  - 커밋본 Main.unity: GameObject 792 / BoxCollider 355
+  → 0.unity 는 BoxCollider GameObject 81개가 빠진 "구버전" + 프리팹 인스턴스 1개 위치만 다름.
+  → 복원 가치 없음(되레 작업 유실 위험). 0623 기록의 "삭제 가능"과 일치.
+
+## 처리
+  _Recovery/ 폴더 + _Recovery.meta 삭제(둘 다 untracked → git 이력 영향 없음).
+
+
+────────────────────────────────────────────────────────────────
+[세션 3] Main 씬 BoxCollider 추가 커밋·푸시 (원격 분기 통합)
+────────────────────────────────────────────────────────────────
+
+## 커밋
+  Main.unity 변경 = mecabricks 모델 3종(Wild West Store / Lynn's Table /
+  Medieval Blacksmith 1) 프리팹 인스턴스에 BoxCollider GameObject 추가
+  (기존 "BoxCollider 추가" 커밋 시리즈 연장). +171/-3.
+
+## 푸시 — non-fast-forward
+  원격 feature/unity 에 팀원 커밋 6개 선행 → push 거부.
+  규칙(§2 merge/rebase 승인)에 따라 사용자 선택 "일단 pull만" →
+  git merge origin/feature/unity (ort, 충돌 0, Main.unity auto-merge) → 사용자 승인 후 push.
+
+
+────────────────────────────────────────────────────────────────
+[세션 4] develop 머지 — 충돌 14개 해결
+────────────────────────────────────────────────────────────────
+
+## 충돌 분류
+  - 양쪽수정(UU) 4: windows_camera_capture_server.py / Main.unity /
+    Pretendard-Bold·ExtraBold SDF.asset
+  - 양쪽추가(AA) 10: PrebuiltCharacters .meta ×7 / object_1·object_2.glb / object_2.glb.meta
+
+## 해결 결정 (사용자)
+  - Main.unity: 자동 머지 내용 보존(BoxCollider 358 등), 충돌 2곳(prebuiltCharacterResourcePrefix
+    대소문자)만 develop=`character_`(실제 파일명 일치)로 외과적 해결(awk take-theirs).
+  - camera 스크립트: develop 채택(프레임 70% 축소+흰 여백 기능 제거).
+  - .meta guid 7개·glb·glb.meta·폰트 2종: develop 채택(경로 로드라 guid 참조 0건 → 무위험).
+
+## 검증·커밋
+  unmerged 0·충돌 마커 0·ProjectSettings 미스테이징(TRILIB 규칙) 확인 후
+  머지 커밋 → 사용자 승인 후 push.
+
+
+────────────────────────────────────────────────────────────────
+[세션 5] PrebuiltCharacters 로딩 정적 검증
+────────────────────────────────────────────────────────────────
+
+## 점검 (GeneratedCharacterSpawner / PlazaManager.LoadPrebuiltPrefab)
+  - 실제 파일: Resources/PrebuiltCharacters/character_1.fbx (소문자, 현재 1개).
+  - 로딩: prebuiltCharacterResourcePrefix + N → 1순위, 실패 시 소문자/대문자 폴백 내장.
+  - 결론: develop=`character_`(소문자) 해결이 파일명과 일치 → 1순위 적중. 게다가
+    대/소문자 폴백이 있어 어느 쪽이었어도 무위험. character_2 이상은 없으니
+    그 경우 mock/TriLib 폴백(기능 한계, 충돌과 무관).
+  ※ 에디터 Play 검증은 사용자 몫(에디터 GUI 직접 실행 불가).
+
+
+────────────────────────────────────────────────────────────────
+[세션 6] VR 가상 키보드 레이아웃 수정 (VrKeyboard.cs)
+────────────────────────────────────────────────────────────────
+
+## 증상
+  ① 키 버튼이 키보드 폭 밖으로 넘침. ② 버튼이 위로 몰리고 아래는 빈 공간.
+
+## 원인
+  Rebuild() 가 키를 폭/높이에 맞추는 로직 없이 HorizontalLayoutGroup 에 나열만 함.
+  라벨 TMP 가 키보다 넓어(160px) 삐져나옴. VerticalLayoutGroup UpperCenter +
+  고정 행높이 → 위 몰림·아래 공백.
+
+## 수정
+  - 키 너비 = (행 컨테이너 안쪽 폭 − 간격합) ÷ 최대 열수 로 역산, 각 키 LayoutElement 로 강제.
+    짧은 행 MiddleCenter 가운데 정렬, 공백/완료는 여러 셀 폭으로 넓게.
+  - 행 높이 = (안쪽 높이 − 간격) ÷ 행수 로 역산(_fillHeight) → 세로도 꽉 채움.
+  - 라벨을 키에 꽉 채우고(anchor 0~1) enableAutoSizing → 긴 라벨도 안 넘침.
+  - EnsureRowsLayout(): rowsParent 에 VerticalLayoutGroup 보장 + 안쪽 여백(_padLeft/Right/Top/Bottom).
+  - 인스펙터 노출: _rowSpacing·_keyMinWidth·_fallbackWidth/Height·_rowMinHeight·_fillHeight·여백 4개.
+
+## 트러블슈팅
+  UnityException: "set_left ... not allowed from MonoBehaviour constructor/field initializer"
+  원인: `[SerializeField] RectOffset _padding = new RectOffset(...)` 필드 초기화 금지.
+  해결: int 4개(_padLeft/Right/Top/Bottom)로 분리, RectOffset 은 EnsureRowsLayout() 런타임 생성.
+
+## 커밋 (선택 스테이징)
+  VrKeyboard.cs 전체 + Main.unity 의 VrKeyboard 필드 hunk만 스테이징.
+  무관 드리프트(dataSourceMode:0 테스트 토글·mockCharacterPrefab guid·Image 색/스프라이트·폰트)
+  는 제외(§2 git status 확인 규칙·관례).
+
+
+────────────────────────────────────────────────────────────────
+[세션 7] VR 대기 단계 흰 화면 — WaitingWorldBlanker (신규)
+────────────────────────────────────────────────────────────────
+
+## 요구
+  VR에서 START(가이드 시작) 전 대기영상·이름입력 단계 동안 주변 월드를 가리고
+  흰 공간만 보이게 해 영상에 집중.
+
+## 방식 결정: 카메라 컬링
+  대기 중 Main Camera → clearFlags=SolidColor(흰색) + cullingMask=지정 레이어(UI)만.
+  월드 지오메트리(Default/Ground/Props/…) 전부 컬링 → 확실히 흰색. START 시 원복.
+
+## 신규: Scripts/Core/WaitingWorldBlanker.cs
+  - 게이트: GameFlowManager.GuideStarted(=START) 전 && XRModeManager.Mode==VR 이면 블랭크,
+    GuideStarted true 되면 캡처해 둔 clearFlags/color/cullingMask 로 복구. (FastSkyDayNight 와 동일 패턴)
+  - 정적 플래그 1회 읽기 저결합(EventSystemModeBinder/ModeAdaptiveCanvas 와 동급). 데스크톱·Mock/Server 무영향.
+  - 씬 리로드(전시 루프) 시 GuideStarted=false → 자동 재적용.
+  - 인스펙터: _visibleLayers(기본 UI)·_blankColor(흰)·_onlyInVR·_camera(비우면 Camera.main).
+
+## 주의 (컨트롤러 조작)
+  UI만 렌더하면 컨트롤러 레이/리티클이 안 보일 수 있음(레이는 Default 레이어).
+  → Default 에는 월드도 있어 마스크에 추가 불가 → 레이 LineVisual 을 UI 레이어로 옮겨야 함(세션 8).
+
+## 커밋
+  WaitingWorldBlanker.cs + .meta 만 커밋(스크립트 = 구현 산출물).
+  씬 배치(컴포넌트 부착)·XR 리그 레이어 변경은 무관 드리프트와 섞여 미커밋(추후 정리).
+
+
+────────────────────────────────────────────────────────────────
+[세션 8] VR 컨트롤러 레이를 UI 레이어로 (안내, 코드 변경 없음)
+────────────────────────────────────────────────────────────────
+
+## 발견
+  XR 리그(Prefabs/Object/XR Origin (XR Rig).prefab) 의 "LineVisual"(좌·우 Near-Far
+  Interactor 하위, LineRenderer 포함)이 m_Layer:0(Default). UI-only 컬링 시 레이 사라짐.
+  reticle 참조는 텔레포트용(Directional/Blocking Teleport Reticle)이라 대기 단계 무관.
+
+## 안내 (에디터)
+  프리팹 열기 → Hierarchy 검색 "LineVisual" → 좌·우 둘 다 Layer=UI(+children) → 저장.
+  대안: XR 리그 시작 시 레이 LineRenderer 레이어를 UI 로 바꾸는 소형 컴포넌트(미구현, 제안만).
+
+
+────────────────────────────────────────────────────────────────
+[세션 9] VR 지도 토글 = 오른손 B 버튼 + VR 시 MapButton 숨김 (MapTeleportUI.cs)
+────────────────────────────────────────────────────────────────
+
+## 요구
+  VR에서 화면 지도 버튼 대신 컨트롤러 B 버튼으로 지도 패널 열기/닫기 토글. 버튼은 숨김.
+
+## 구현
+  - Update(): VR 모드 한정, 오른손 secondaryButton(=B) edge 감지 → 기존 ToggleMap() 호출.
+    InputDevices + CommonUsages.secondaryButton 폴링(인스펙터 배선 0, XRModeManager 착용감지와 동일 방식).
+  - OnEnable(): _bPressedLast 동기화(활성 순간 오작동 방지) + ApplyMapButtonVisibility().
+  - ApplyMapButtonVisibility(): VR && _vrBButtonToggle 이면 MapButton 숨김(B 전용),
+    데스크톱은 표시(마우스 클릭 유지). B 토글 OFF면 VR에서도 버튼 남김(조작 수단 보존).
+  - 자유 모드에서만 컴포넌트 활성 → 가이드/대기 단계엔 B가 지도에 영향 없음.
+
+## 커밋
+  MapTeleportUI.cs 단일 파일.
+
+
+────────────────────────────────────────────────────────────────
+[세션 10] 전시 관람자용 조작 가이드 정리 (문서, 코드 변경 없음)
+────────────────────────────────────────────────────────────────
+
+  모드 자동 결정(대기영상 중 착용 감지) + 공통 흐름(대기→이름→START→가이드→자유) +
+  KBM vs VR 조작(이동/텍스트입력/투표/지도/대기화면) 비교표 정리.
+  KBM: 우클릭+드래그 시선·WASD·마우스 클릭·물리 키보드·화면 지도버튼.
+  VR : 고개 시선·스틱+텔레포트·레이저 클릭·VR 가상 키보드·B 버튼 지도·대기 흰 화면.
+
+
+================================================================
+[2026-06-25 커밋 내역 — 시간순]
+================================================================
+
+  시각(KST) │ 해시      │ 타입  │ 메시지
+  ──────────┼──────────┼───────┼──────────────────────────────────────────────────────
+  01:24     │ 74664b49 │ fix   │ sync exhibition queues and plaza sessions          (develop, 타 개발자)
+  01:31     │ f66e390a │ chore │ develop 동기화 — 씬·폰트·리소스·GLB 샘플 반영        (develop)
+  01:32     │ 21d51197 │ merge │ Merge branch 'develop' ... into develop             (develop)
+  04:00     │ 4edff51d │ chore │ Main 씬 BoxCollider 추가 - Wild West Store·Lynn's Table·Medieval Blacksmith 1
+  04:05     │ 1f6ec301 │ merge │ Merge remote-tracking 'origin/feature/unity'        (원격 분기 pull 통합)
+  04:25     │ beb5e99a │ merge │ Merge branch 'develop' into feature/unity           (충돌 14개 해결)
+  05:06     │ acebd799 │ fix   │ VR 가상 키보드 키 넘침 수정 — 폭·높이 자동 맞춤 + 라벨 자동 축소
+  05:29     │ 08f5258d │ feat  │ VR 대기 단계 월드 블랭크(흰 화면) 컴포넌트 추가
+  05:46     │ c6e6ccd4 │ feat  │ VR에서 지도 토글을 오른손 B 버튼으로 + VR 시 MapButton 숨김
+
+  ※ 01:24~01:32 3건은 develop 브랜치(타 개발자) 작업이 beb5e99a 머지로 그래프에 포함된 것.
+    이번 세션(Claude)의 직접 작업·머지는 04:00 이후 6건.
+  ※ ProjectSettings.asset(로컬 TRILIB define)은 0606/0613 규칙상 커밋 제외(머신별 자동 토글).
+
+
+────────────────────────────────────────────────────────────────
+[변경된 파일 목록]
+────────────────────────────────────────────────────────────────
+
+  신규(스크립트):
+    Scripts/Core/WaitingWorldBlanker.cs (+.meta)   VR 대기 단계 흰 화면(카메라 컬링)
+
+  수정(스크립트):
+    Scripts/UI/VrKeyboard.cs        키 폭·높이 자동 맞춤·라벨 자동축소·여백/RectOffset 수정
+    Scripts/UI/MapTeleportUI.cs     VR B 버튼 토글 + VR 시 MapButton 숨김
+
+  머지/충돌 해결 반영:
+    Scenes/Main.unity                            prebuiltCharacterResourcePrefix=character_(develop), VrKeyboard 필드
+    scripts/windows_camera_capture_server.py     develop 채택
+    Resources/PrebuiltCharacters/* .meta ×7      develop guid
+    StreamingAssets/GeneratedModels/object_1·2.glb(+meta)  develop
+    TextMesh Pro/Fonts/Pretendard-Bold·ExtraBold SDF.asset develop
+
+  삭제:
+    Assets/_Recovery/ (+ _Recovery.meta)         크래시 복구 잔재(0.unity 구버전)
+
+  신규(기록):
+    History/Claude_0625.txt
+
+
+────────────────────────────────────────────────────────────────
+[미커밋 / 추후 정리 — 워킹트리 드리프트(여러 세션 혼재)]
+────────────────────────────────────────────────────────────────
+
+  [ ] WaitingWorldBlanker 씬 배치(컴포넌트 부착) + _visibleLayers=UI 확정 후 커밋
+  [ ] XR 리그 프리팹: 레이 LineVisual UI 레이어 변경 + CameraCullDistances 등 분리 커밋
+  [ ] Main.unity: dataSourceMode(테스트 토글)·sprite/color·VR UI 프리팹 3종·폰트 드리프트 정리
+  [ ] 로컬 미푸시 커밋(acebd799·08f5258d·c6e6ccd4) push 여부 결정
+
+
+────────────────────────────────────────────────────────────────
+[미해결 / 다음 작업 (이월)]
+────────────────────────────────────────────────────────────────
+
+  [ ] (보류) mecabricks 고폴리 → 저폴리(재익스포트/LOD) — 성능 최대 레버
+  [ ] Server 모드 통합 테스트 — 이름/bubble_text PATCH·plaza 라운드트립, VRAM 관찰
+  [ ] (백엔드) TODO_ForServer.txt — /names 저장 + plaza 응답 이름 포함
+  [ ] 전시 빌드 전 디버그 비활성화(_enableGuideSkip·FreeCameraController·PerfHud·SessionDebugHud)
+
+================================================================

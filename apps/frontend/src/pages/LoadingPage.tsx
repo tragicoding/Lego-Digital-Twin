@@ -1,118 +1,97 @@
 import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 import { getStatus } from "../api/client";
 import { useSessionStore } from "../store/sessionStore";
+import PrimaryButton from "../components/PrimaryButton";
 
-const STAGE_MESSAGES: Record<string, string> = {
-  waiting:    "디지털 변환을 준비하고 있어요",
-  queued:     "디지털 변환을 준비하고 있어요",
-  generating: "레고 모형을 3D 모델로 만들고 있어요",
-  rigging:    "캐릭터에 움직임을 부여하고 있어요",
-  animating:  "캐릭터에 움직임을 부여하고 있어요",
-  downloading:"MINIVERSE 월드로 이동 중이에요",
-  ready:      "준비가 완료되었어요",
-  completed:  "준비가 완료되었어요",
-};
-
-interface AssetStatus { status: string; stage: string; progress: number }
-
-const ITEMS = [
-  { key: "character", label: "캐릭터", emoji: "🧍" },
-  { key: "object",    label: "오브제", emoji: "🧱" },
-];
-
-function ProgressCard({ label, emoji, asset }: { label: string; emoji: string; asset?: AssetStatus }) {
-  const progress = asset?.progress ?? 0;
-  return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-      <div className="flex items-center gap-3 mb-3">
-        <span className="text-2xl">{emoji}</span>
-        <span className="font-bold text-gray-800">{label}</span>
-        {asset?.status === "completed" && <span className="ml-auto text-green-500 text-sm font-semibold">완료 ✓</span>}
-        {asset?.status === "failed"    && <span className="ml-auto text-red-400 text-sm font-semibold">오류</span>}
-      </div>
-      <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
-        <motion.div
-          className="h-2 rounded-full"
-          style={{ background: "linear-gradient(90deg, #7C3AED, #38BDF8)" }}
-          initial={{ width: 0 }}
-          animate={{ width: `${progress}%` }}
-          transition={{ duration: 0.6 }}
-        />
-      </div>
-      <p className="text-xs text-gray-400 mt-2">
-        {STAGE_MESSAGES[asset?.stage ?? "waiting"] ?? "대기 중"}
-      </p>
-    </div>
-  );
+interface LoadingPageProps {
+  testMode?: boolean;
 }
 
-export default function LoadingPage() {
-  const { sessionId, characterNpcName, objectName } = useSessionStore();
-  const [assets, setAssets] = useState<Record<string, AssetStatus>>({});
-  const [readyForUnity, setReadyForUnity] = useState(false);
+export default function LoadingPage({ testMode = false }: LoadingPageProps) {
+  const { sessionId, reset } = useSessionStore();
+  const navigate = useNavigate();
+  const [ready, setReady] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [moving, setMoving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!sessionId) return;
-    const poll = setInterval(async () => {
-      const res = await getStatus(sessionId);
-      setAssets(res.data.assets);
-      setReadyForUnity(res.data.ready_for_unity);
-      if (res.data.ready_for_unity) clearInterval(poll);
-    }, 3000);
-    return () => clearInterval(poll);
-  }, [sessionId]);
+    if (testMode) {
+      const timer = setTimeout(() => setReady(true), 1200);
+      return () => clearTimeout(timer);
+    }
 
-  const charName = characterNpcName || "캐릭터";
-  const objName  = objectName || "오브제";
-  const getAsset = (key: string) =>
-    assets[key] ?? (key === "object" ? assets["building"] : undefined);
+    if (!sessionId) return;
+
+    let cancelled = false;
+    const poll = async () => {
+      try {
+        const res = await getStatus(sessionId);
+        if (cancelled) return;
+
+        const assets = Object.values(res.data.assets ?? {}) as Array<{ progress?: number }>;
+        const avg = assets.length
+          ? Math.round(assets.reduce((sum, item) => sum + (item.progress ?? 0), 0) / assets.length)
+          : 0;
+        setProgress(avg);
+
+        if (res.data.ready_for_unity) {
+          setReady(true);
+          setError(null);
+        }
+      } catch {
+        if (!cancelled) setError("처리 상태를 불러오지 못했습니다.");
+      }
+    };
+
+    void poll();
+    const timer = setInterval(() => void poll(), 3000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [sessionId, testMode]);
+
+  const handleMove = async () => {
+    if (moving) return;
+    setMoving(true);
+    setError(null);
+
+    if (testMode) {
+      reset();
+      navigate("/test/start");
+      return;
+    }
+
+    reset();
+    navigate("/start");
+  };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-6 py-10">
-      <div className="w-full flex flex-col gap-5">
-        <AnimatePresence mode="wait">
-          {!readyForUnity ? (
-            <motion.div key="loading" className="flex flex-col gap-5">
-              <div className="text-center">
-                <h2 className="text-xl font-black text-gray-900 leading-snug">
-                  {charName}와 {objName}이<br />3D로 변환 중입니다!
-                </h2>
-                <p className="text-gray-400 text-sm mt-2">잠시만 기다려 주세요</p>
-              </div>
-              {ITEMS.map(({ key, label, emoji }) => (
-                <ProgressCard key={key} label={label} emoji={emoji} asset={getAsset(key)} />
-              ))}
-            </motion.div>
-          ) : (
-            <motion.div
-              key="done"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="flex flex-col items-center gap-8 text-center"
-            >
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", stiffness: 260, damping: 14 }}
-                className="text-7xl"
-              >
-                🎉
-              </motion.div>
-              <div className="space-y-2">
-                <h2 className="text-2xl font-black text-gray-900">완료되었습니다!</h2>
-                <p className="text-gray-500 text-base leading-relaxed">이제 VR World로 이동할게요!</p>
-              </div>
-              <div
-                className="w-full py-5 rounded-2xl text-white font-bold text-base text-center"
-                style={{ background: "linear-gradient(135deg, #7C3AED, #38BDF8)" }}
-              >
-                VR 입장 준비 완료 ✓
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+    <div className="min-h-screen flex flex-col items-center justify-center px-8 bg-white text-center">
+      <motion.div
+        initial={{ opacity: 0, y: 18 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="space-y-8"
+      >
+        <p className="text-3xl font-black leading-snug text-gray-900 whitespace-pre-line">
+          {ready
+            ? "MINIVERSE로 이동할게요\n앞의 부스로 이동하세요"
+            : `3D 모델을 만들고 있어요\n${progress}%`}
+        </p>
+
+        {ready && (
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+            <PrimaryButton onClick={handleMove} disabled={moving}>
+              {moving ? "이동 중..." : "이동하기"}
+            </PrimaryButton>
+          </motion.div>
+        )}
+
+        {error && <p className="text-sm text-red-500">{error}</p>}
+      </motion.div>
     </div>
   );
 }

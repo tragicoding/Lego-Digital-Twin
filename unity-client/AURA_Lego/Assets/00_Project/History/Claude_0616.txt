@@ -1,0 +1,261 @@
+================================================================
+Claude Code 작업 기록
+날짜: 2026-06-16
+브랜치: feature/unity
+================================================================
+
+주제: 광장 좋아요 패널(LikePanel)을 오브제 '앞'(플레이어 눈높이)에 배치.
+      말풍선(BubblePanel) 배치 로직과 공통화하여 중복 제거.
+      공통 원칙: 저결합·중복 제거·확장성·Mock/Server 동일 동작.
+
+
+────────────────────────────────────────────────────────────────
+[세션 1] LikePanel 오브제 앞 배치
+────────────────────────────────────────────────────────────────
+
+## 배경
+  LikeSystem.likePanel(근접 시 뜨는 좋아요 버튼 UI)이 세션 뷰(스폰 포인트 고정)의
+  자식이라, 오브제가 objectBackOffset 만큼 뒤로 가면 패널이 오브제와 멀어져 보임.
+
+## 요구 변화 (사용자 요청 순서)
+  1) 오브제에 붙게 → 처음엔 '위'에 배치
+  2) '위'가 아니라 '앞'(플레이어/카메라 쪽)에 배치
+  3) 오브제 크기에 따라 앞 거리 자동 조정
+  4) 큰 오브제가 너무 멀다 → 더 가까이
+  5) 높이를 플레이어 눈높이로
+
+## 구현 (NameTag 확장 — 말풍선/이름표와 공유)
+  NameTag.Bind 에 옵션 추가(기본값이라 이름표·말풍선엔 영향 없음):
+    - forwardOffset       : 카메라 쪽(앞)으로 당기는 고정 여유(m)
+    - forwardSizeFactor   : 오브제 반(半)깊이(카메라 방향) × 배율 → 크기 자동 조정
+                            HalfDepthAlongCamera = |extents·cameraForward| (AABB 투영)
+    - eyeLevel            : 높이를 플레이어(카메라) Y에 맞춤(오브제 높이 무시)
+  전진 거리 = forwardOffset + halfDepth × forwardSizeFactor
+  높이 기준 = eyeLevel ? 카메라Y : 바운즈 상단(머리 위)
+
+## 공통화 (중복 제거)
+  PlazaSessionView.ReparentPanelToObject(...) 로 패널 재배치 로직 단일화.
+    - 말풍선/좋아요 패널이 같은 헬퍼 사용(독립 World Space 캔버스 + 카메라 빌보드).
+    - 패널 stretch 앵커가 재부모 시 깨지지 않게 원래 크기·월드 스케일 캡처 후 복원.
+    - 비활성 패널(LikePanel 은 접근 전 비활성)도 정확히 측정하도록 잠시 활성화 후 복원.
+  PlaceBubbleAtObject : 말풍선(상단, 텍스트 크기 독립 조정)
+  PlaceLikePanelAtObject : 좋아요 패널(앞 + 눈높이, 크기 비례 전진)
+
+## 클릭 동작 보장 / 서버 동일
+  - LikeSystem 은 RectTransformUtility 로 카메라 기반 직접 클릭 감지(GraphicRaycaster
+    불필요) → 패널 재배치 후에도 좋아요 정상.
+  - Mock·Server 모두 _lastSpawnedObjectGO 채우는 동일 합류점에서 호출 → 동일 동작.
+  - 자기 창작물은 likePanel=null 이라 PlaceLikePanelAtObject 자연 no-op(투표 불가 유지).
+
+
+────────────────────────────────────────────────────────────────
+[세션 2] 코드 정리 — 미사용 옵션 제거
+────────────────────────────────────────────────────────────────
+
+  인스펙터 확정값(Forward Max=0 미사용)에 맞춰 죽은 코드 제거:
+    - forwardMax(전진 거리 상한, cap) : 전 경로 삭제(NameTag/View/Manager 필드).
+    - anchorAtCenter(바운즈 중앙 높이) : eyeLevel 에 항상 가려져 죽은 코드 → 삭제.
+      높이 기준을 '눈높이 / 상단' 두 가지로 단순화.
+
+
+────────────────────────────────────────────────────────────────
+조정 파라미터 (PlazaManager 인스펙터)
+────────────────────────────────────────────────────────────────
+  likeObjectForwardOffset     = 3     (앞으로 당기는 고정 여유 m)
+  likeObjectForwardSizeFactor = 0.65  (오브제 크기 비례 전진, 낮출수록 큰 오브제 가까이)
+  likeObjectHeightOffset      = 0     (눈높이 기준 오프셋, +면 위)
+  likeObjectScale / likeObjectRightOffset (크기 / 좌우)
+
+
+────────────────────────────────────────────────────────────────
+수정 파일
+────────────────────────────────────────────────────────────────
+  Scripts/UI/NameTag.cs              forward/eyeLevel 옵션 추가, 바운즈 통합, cap/center 제거
+  Scripts/Plaza/PlazaSessionView.cs  ReparentPanelToObject 공통화, PlaceLikePanelAtObject 추가
+  Scripts/Plaza/PlazaManager.cs      likeObject* 파라미터 + 이전 창작물 루프에서 패널 배치 호출
+
+
+────────────────────────────────────────────────────────────────
+참고 (별개 / 미커밋)
+────────────────────────────────────────────────────────────────
+  - 깨진 리그 Character_1(Hip 본 없음, Humanoid 불가) 관련 모킹 데이터 정리,
+    Main.unity(좋아요 패널 인스펙터 값), 폰트, NavMesh, ProjectSettings 변경은
+    별개 드리프트로 이 커밋에 포함하지 않음(사용자 확인 후 별도 처리).
+  - 캐릭터 FBX 하체 관절 꼬임은 원본 리깅 문제 → 백엔드 T-pose 재익스포트 대기.
+
+
+────────────────────────────────────────────────────────────────
+[세션 3] (조사) mp4 색공간 경고 — 코드 변경 없음
+────────────────────────────────────────────────────────────────
+  ## 증상
+    대기화면 영상(0614_1.mp4 등) 재생 시 Color primaries 관련 경고.
+  ## 원인
+    WMF 디코더가 색 메타데이터(color primaries=0)를 못 읽어 기본값으로 폴백하는 무해 경고.
+  ## 결정
+    화질 저하 우려로 인코딩 변경 없이 그대로 둠(경고는 표시·품질 영향 없음).
+
+────────────────────────────────────────────────────────────────
+[세션 4] (조사) skybox 새벽/밤 붉은 하늘 — 코드 변경 없음
+────────────────────────────────────────────────────────────────
+  ## 증상
+    새벽·밤에 하늘이 붉게 보임("원래는 이렇지 않았다").
+  ## 조사 (회귀 아님)
+    스카이 관련 파일·설정 전부 04-29~05-19 마지막 수정 → 최근 작업과 무관(git 확인).
+  ## 원인
+    - 스카이박스 = StylisedSky(절차적). 붉은색은 셰이더가 태양(디렉셔널 라이트) 각도로
+      계산하는 대기 산란 → 태양이 낮을 때(새벽/황혼) 수평선이 붉어지는 정상 동작.
+    - 밤에도 붉은 핵심: FastSkyDayNight 가 밤에 _SunIntensity 만 0(태양 디스크만 제거)으로
+      두고 하늘 밝기(_DayBrightness)는 안 낮춤 → 붉은 산란이 남음.
+      (게다가 _skyMat.SetVector("_SunDir", ...) 는 StylisedSky 에 그 프로퍼티가 없어 no-op.)
+  ## 해결 방향 (미적용)
+    FastSkyDayNight 에서 밤에 _DayBrightness(필요 시 _DayScatterStrength)도 0 근처로 Lerp →
+    하늘 자체를 어둡게. (새벽/황혼 노을은 StylisedSky 설계라 별도 튜닝 필요.)
+
+
+================================================================
+[추가 작업 — 대기화면 이름 입력·연출 / 운영자 종료 / 버그 수정]
+날짜: 2026-06-16 (연속)
+브랜치: feature/unity
+================================================================
+
+공통 원칙: 저결합·중복 제거·확장성·Mock/Server 동일 동작.
+
+────────────────────────────────────────────────────────────────
+[세션 5] 대기화면 이름 입력 + 스폰 게이트 (WaitingScreenUI / GameFlowManager)
+────────────────────────────────────────────────────────────────
+  ## 요구
+    창작물 연동 영상 전에 캐릭터·오브제 이름을 입력받아, 가이드 NPC·내 창작물
+    (캐릭터/오브제 이름표)에 반영.
+  ## 화면 순서 (WaitingScreenUI)
+    ⓪ 대기(attract) 영상 → ① 캐릭터 이름 입력 → ② 오브제 이름 입력
+    → ③ 연동 로딩 영상 → ④ 시작 영상 + START
+  ## 설계 — 스폰 게이팅
+    이름 입력을 '스폰 이전'에 두어 처음부터 올바른 이름으로 생성(사후 갱신 불필요).
+    GameFlowManager 2-신호 게이트: (세션 로드) ∧ (이름 입력 완료) 둘 다 준비 시 1회 스폰(TrySpawn).
+    어느 쪽이 늦게 와도 마지막에 트리거 → Mock(세션 즉시)·Server(세션 지연) 동일.
+    WaitingScreenUI는 순수 뷰 — 콜백 2개(BeginNameEntry/ShowEnterButton)로만 통신.
+  ## SessionManager.SetNames(char,obj)
+    메모리 반영: character_npc_name + assets.character.npc_name + assets.object.object_name.
+    (bubble_text와 공유되는 최상위 object_name은 안 건드림 — 이름 ≠ 한마디)
+
+────────────────────────────────────────────────────────────────
+[세션 6] 이름은 Unity 단일 입력 + 서버 저장(광장 표시용)
+────────────────────────────────────────────────────────────────
+  - 이름 '입력'은 백엔드가 아니라 Unity(대기화면)에서 받기로 결정.
+  - 단, '이전 창작물 이름'을 광장에 띄워야 하므로 영구 저장이 필요:
+      Mock  : 세션 완료 시 mock_plaza.json(assets 포함)에 저장 → plaza가 읽음.
+      Server: PATCH /sessions/{id}/names 로 백엔드 저장 → plaza API가 반환.
+  - 신규: NamesRequest(DTO) / ServerConfig.NamesUrl / ApiClient.SaveNames /
+          SessionManager.SetNames에 Server PATCH 분기.
+  - 백엔드 전달 사항은 History/TODO_ForServer.txt 로 정리(신규).
+
+────────────────────────────────────────────────────────────────
+[세션 7] 이름 입력 UX — Enter 제출 + 자동 포커스 + 대기 영상 게이트
+────────────────────────────────────────────────────────────────
+  - next 버튼 마우스 클릭 + Enter(KeypadEnter) 제출 병행(Update 폴링, MotionPromptUI 패턴).
+  - 패널 표시 시 InputField 자동 ActivateInputField(바로 타이핑).
+  - ⓪ 대기 영상: 클릭/터치/아무 키 입력 시 이름 입력으로 전환(AnyPress). _attractInputGrace
+    (기본 0.4s)로 씬 리로드 직후 잔여 입력 오발 방지.
+
+────────────────────────────────────────────────────────────────
+[세션 8] 전환 페이드 + 타이틀 연출
+────────────────────────────────────────────────────────────────
+  - 오브제 입력 → 로딩 영상: 로딩 영상을 '입력 위로' 페이드 인해 덮은 뒤 패널 끔(스냅 없음).
+    (전제: _videoRoot 가 이름 패널보다 뒤 형제 = 위 렌더)
+  - 타이틀 Text 페이드 인: 캐릭터·오브제·대기·시작 4개 타이틀(패널 아닌 'Text'만).
+  - 대기·시작 타이틀은 '깜빡임'(BlinkTitleRoutine 무한 반복) 지원 — _attractTitleBlink /
+    _enterTitleBlink 토글, 공용 _titleBlinkHold·_titleFadeDuration. ShowTitle()로 공통화.
+
+────────────────────────────────────────────────────────────────
+[세션 9] 동작 입력 패널 위치 전용 필드 (PlazaManager)
+────────────────────────────────────────────────────────────────
+  - 내 창작물 '동작 입력' 패널이 좋아요 패널 파라미터를 공유 + 좌우 0 하드코딩이라 독립 조절 불가였음.
+  - 신규 필드: interactPanelHeightOffset / RightOffset / ForwardOffset / ForwardSizeFactor / Scale.
+    SetupOwnCreationInteractor 가 이 값으로 NameTag.Bind(eyeLevel:true). 기본값=기존 동작과 동일.
+  - 높이는 눈높이 기준 유지하되, 음수 오프셋(기본 -0.5)으로 눈높이보다 낮춤.
+    (eyeLevel 토글을 잠깐 넣었다가 사용자 요청으로 제거 — 눈높이 고정 유지)
+  - 투표(좋아요) 패널은 likeObject* 별도 필드라 독립(확인됨).
+
+────────────────────────────────────────────────────────────────
+[세션 10] 운영자 전용 '진짜 종료' + 재시작 시 큐/세션 이어가기
+────────────────────────────────────────────────────────────────
+  ## 요구
+    전시 중 Unity 수정/재빌드용 진짜 앱 종료를 관람객 종료와 분리. 재시작 시 마지막 큐/세션 이어가기.
+  ## 설계 — "advance는 '세션 완료' 때만"
+    MockSessionLoader: Load()는 인덱스 증가 안 함(peek), AdvanceToNext()만 +1(완료 시).
+      → Server의 GET /sessions/active(peek) + POST /unity-queue/advance(완료)와 대칭.
+    SessionManager.EndCurrentSession(관람객 종료, mock): SaveCurrentSessionToMockPlaza + AdvanceToNext.
+    → 완료 안 하고 종료(운영자/크래시)하면 advance 안 됨 → 재시작 시 같은 세션부터 이어짐.
+  ## 신규: Core/OperatorQuit.cs (컴포넌트)
+    Esc(기본, 보조키 옵션)로 Application.Quit만 호출(큐/세션 미참조, 의존성 0).
+    Mock=PlayerPrefs 인덱스 유지 / Server=백엔드 큐 그대로 → 같은 세션 이어짐.
+    GameFlowManager 오브젝트에 컴포넌트로 부착해서 사용.
+  ## 주의(동작 변화)
+    Editor에서 Play 반복해도 '완료'하지 않으면 같은 mock 세션 유지(= 이어가기의 핵심).
+    다음 세션 보려면 종료(완료) 버튼 또는 Clear All PlayerPrefs.
+
+────────────────────────────────────────────────────────────────
+[세션 11] NPCWander 모델 정면 보정 (옆걸음 버그)
+────────────────────────────────────────────────────────────────
+  ## 증상
+    hermione에 NPCWander 부착 시 옆으로 걸음.
+  ## 원인
+    MoveToward는 Quaternion.LookRotation(dir)로 트랜스폼 +Z를 이동 방향에 맞춤.
+    외부 NPC 모델 정면이 +Z가 아니면(+X/-X/-Z) 얼굴이 90/180° 어긋나 옆/뒤로 걷는 것처럼 보임.
+  ## 수정
+    modelYawOffset(도) 필드 추가 → LookRotation(dir) * Euler(0, modelYawOffset, 0).
+    옆걸음=±90, 뒤=180. 기본 0(기존 NPC 영향 없음). 모델별 개별 보정.
+
+────────────────────────────────────────────────────────────────
+[세션 12] 텔레포트 후 마우스 시선 스냅 버그 (FreeCameraController)
+────────────────────────────────────────────────────────────────
+  ## 증상
+    MapTeleportUI 텔레포트 후 마우스 시선 시작 시 시선이 갑자기 옛 방향으로 돌아감.
+  ## 원인
+    MapTeleportUI가 dest.point.rotation을 넘겨 PlayerTeleporter가 rig.rotation 변경.
+    그러나 FreeCameraController는 _yaw/_pitch를 내부 캐시로만 관리(텔레포트가 안 갱신) →
+    우클릭 시선 첫 프레임에 _rig.rotation=Euler(0,옛 _yaw,0)로 덮어써 스냅.
+  ## 수정
+    HandleLook에서 GetMouseButtonDown(1)(드래그 시작)에 SyncLookFromTransforms()로
+    현재 회전에서 _yaw/_pitch 재동기화 → 외부 회전 변경 흡수, 스냅 제거. Start도 같은 메서드 재사용.
+
+────────────────────────────────────────────────────────────────
+[조사 — 코드 변경 없음]
+────────────────────────────────────────────────────────────────
+  ## VR/키마 자동전환 (대기화면 착용 감지) — 현재 불가
+    XRGeneralSettingsPerBuildTarget: Standalone=로더 없음·InitOnStart 0(키마), Android=Oculus(VR).
+    빌드 타깃별 단일 모드. FreeCameraController가 Awake에서 XR 무조건 비활성화 → 공존 불가.
+    착용 감지 코드 없음. → 사용자가 '나중에'로 미룸(메모리 TODO 저장). 필요 작업: OpenXR Standalone +
+    userPresence 감지 + 모드 매니저 + FreeCameraController 조건부 + EventSystem 모듈 전환.
+
+────────────────────────────────────────────────────────────────
+[변경 파일 목록]
+────────────────────────────────────────────────────────────────
+  신규:
+    Scripts/Core/OperatorQuit.cs                  운영자 종료(Esc), 큐/세션 보존
+    History/TODO_ForServer.txt                    백엔드 전달 사항(/names + plaza 응답)
+  수정(스크립트):
+    Scripts/UI/WaitingScreenUI.cs                 대기영상·이름입력·연동/시작 영상·타이틀 페이드/깜빡임
+    Scripts/Managers/GameFlowManager.cs           스폰 2-신호 게이트(이름+세션)·SetNames 적용
+    Scripts/Managers/SessionManager.cs            SetNames(메모리+Server PATCH), EndCurrentSession AdvanceToNext
+    Scripts/Mock/MockSessionLoader.cs             Load=peek / AdvanceToNext(완료 시만)
+    Scripts/Network/ApiClient.cs                  SaveNames (PATCH /sessions/{id}/names)
+    Scripts/Core/ServerConfig.cs                  NamesUrl
+    Scripts/Data/SessionData.cs                   NamesRequest DTO
+    Scripts/Plaza/PlazaManager.cs                 interactPanel* 위치 전용 필드(좋아요와 독립)
+    Scripts/Character/NPCWander.cs                modelYawOffset(정면 보정)
+    Scripts/Core/FreeCameraController.cs          SyncLookFromTransforms(텔레포트 시선 스냅 수정)
+
+  ※ 에디터 드리프트(Main.unity·RenderTexture·폰트·프리팹·ProjectSettings 등)는 무관/규칙상
+    이 커밋에서 제외(ProjectSettings TRILIB define 등). 씬 구성·RT 연결은 별도 처리.
+
+────────────────────────────────────────────────────────────────
+[미해결 / 추후 작업]
+────────────────────────────────────────────────────────────────
+  [ ] (씬) WaitingScreen 구성: 대기영상/이름패널×2/타이틀×4/로딩영상/시작영상/START + 인스펙터 연결
+  [ ] (씬) OperatorQuit 컴포넌트를 GameFlowManager 오브젝트에 부착
+  [ ] (백엔드) TODO_ForServer.txt — /names 저장 + plaza 응답 이름 포함
+  [ ] Server 모드 통합 테스트 — 이름 PATCH·plaza 라운드트립
+  [ ] VR/키마 자동전환(미룸)
+================================================================
+

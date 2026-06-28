@@ -1,0 +1,300 @@
+================================================================
+Claude Code 작업 기록
+날짜: 2026-05-28
+브랜치: test_app
+================================================================
+
+────────────────────────────────────────────────────────────────
+[세션 1] DevelopmentHelp_0528.md 문서 분석 및 시나리오 파악
+────────────────────────────────────────────────────────────────
+
+## 참고 문서
+  C:\Users\ym167\Desktop\4-1\capstone\scenario\DevelopmentHelp_0528.md
+
+## 파악한 시나리오 흐름
+
+  [가이드 모드]
+    (1) NPC 등장 + 환영 인사
+    (2) 월드 소개 (4개 구역)
+    (3) 광장으로 이동 안내
+    (4) 창작물 확인 + 프롬프트 모션 체험 + 말풍선 설정
+    (5) 투표 설명
+    ↓ OnGuideFinished 이벤트
+  [자유 모드 / Plaza]
+    - 이전 관람객 캐릭터 + 오브제 나열
+    - 좋아요 버튼 (근접 시 표시)
+    - 1위 창작물 별(★) 표시
+    - WebSocket 실시간 좋아요 갱신
+
+## 파악한 Script 구조 (DevelopmentHelp_0528.md 기준)
+
+  Scripts/
+  ├── Character/
+  │   ├── CharacterAnimationController.cs
+  │   ├── GeneratedCharacterSpawner.cs
+  │   ├── GuideNPCController.cs
+  │   ├── MixamoMotionLibrary.cs
+  │   ├── MotionPromptParser.cs
+  │   ├── MotionType.cs
+  │   └── PlacedCharacterController.cs
+  ├── Core/
+  │   └── ServerConfig.cs
+  ├── Data/
+  │   └── SessionData.cs
+  ├── Managers/
+  │   ├── DataSourceMode.cs
+  │   └── SessionManager.cs
+  ├── Mock/
+  │   └── MockSessionLoader.cs
+  ├── Network/
+  │   ├── ApiClient.cs
+  │   └── WebSocketManager.cs
+  ├── Object/
+  │   └── GeneratedObjectSpawner.cs
+  ├── Plaza/
+  │   ├── LikeSystem.cs
+  │   ├── PlazaManager.cs
+  │   └── PlazaSessionView.cs
+  └── World/
+      ├── BalloonTour.cs
+      └── FastSkyDayNight.cs
+
+
+────────────────────────────────────────────────────────────────
+[세션 2] 등장 씬 구현 계획 수립
+────────────────────────────────────────────────────────────────
+
+## 등장 씬 동작별 함수 호출 지도
+
+  앱 시작
+    → SessionManager.Start() → LoadSession()
+    → [Mock] MockSessionLoader.Load() → SessionData
+    → [Server] ApiClient.FetchUnitySession(sid) → SessionData
+    → Apply() → OnSessionLoaded 이벤트 발행
+    → GameFlowManager.OnSessionLoaded(session)
+    → GeneratedCharacterSpawner.SpawnGuide(session)
+    → GuideNPCController.Initialize(session)
+    → GuideNPCController.StartGuideScenario()
+    → GuideScenarioRoutine() 코루틴 시작
+
+## 등장 씬 대사 타이밍
+
+  0.5초 대기
+  Say("안녕하세요, MINIVERSE에 온 걸 환영해요!")        → 3초
+  Say("저는 당신이 만든 캐릭터 {_npcName}이라고 해요.") → 3초
+  Say("먼저 World를 소개할게요.")                       → 2초
+  ... (이후 시나리오 단계별 진행)
+
+## Mock → Server 전환 포인트
+
+  SessionManager.dataSourceMode = Mock → Server 변경만으로 자동 전환
+  GeneratedCharacterSpawner.SpawnFromServer() 내부 TriLib 연동 시 완성
+
+
+────────────────────────────────────────────────────────────────
+[세션 3] GameFlowManager.cs 신규 생성
+────────────────────────────────────────────────────────────────
+
+## 생성 파일
+  Scripts/Managers/GameFlowManager.cs  (신규)
+
+## 주요 역할
+  - SessionManager.OnSessionLoaded 구독
+  - GeneratedCharacterSpawner.SpawnPlaced(session) → 배치 캐릭터 생성
+  - GeneratedObjectSpawner.Spawn() → 오브제 생성
+  - GeneratedCharacterSpawner.SpawnGuide(session) → 가이드 NPC 생성
+  - npc.placedCharacter 연결 (모션 씬에서 사용)
+  - NPC 이벤트 4개 구독:
+      OnDialogueChanged
+      OnGuideFinished
+      OnBubbleTextInputRequested
+      OnMotionPromptRequested
+  - npc.StartGuideScenario() → 시나리오 자동 시작
+
+## 임시 더미 처리 (UI 없이도 시나리오 진행)
+  OnBubbleTextInputRequested → callback("안녕하세요!") 즉시 반환
+  OnMotionPromptRequested    → callback("춤춰줘") 즉시 반환
+
+
+────────────────────────────────────────────────────────────────
+[세션 4] Unity Editor 설정 및 트러블슈팅
+────────────────────────────────────────────────────────────────
+
+## 문제 1: GeneratedCharacterSpawner가 Hierarchy에 없음
+  → 해결: Create Empty → Add Component → GeneratedCharacterSpawner
+
+## 문제 2: mockCharacterPrefab 없음
+  → 임시: Capsule Prefab 사용 후 실제 FBX Prefab으로 교체
+
+## 문제 3: [GameFlowManager] 가이드 NPC 스폰 실패
+  원인: Prefab에 GuideNPCController 컴포넌트가 없거나
+       Animation 필드 미연결 (fileID: 0)
+  → 해결: npc_3_rigged.prefab 열기 → GuideNPCController 확인
+          Animation 필드 → CharacterAnimationController 드래그 연결
+
+## 문제 4: 잘못된 Prefab 연결
+  → npc_3_rigged.prefab으로 교체 후 정상 동작 확인
+
+## 최종 정상 로그 확인
+  [MockSessionLoader]     로드 완료 — character: 몽글이, object: 하늘탑
+  [SessionManager]        로드 완료 — 캐릭터: 몽글이, 오브제: 하늘탑
+  [GameFlowManager]       세션 로드 완료 — 몽글이 / mock_001
+  [CharacterSpawner]      Mock 생성 (Placed): 몽글이
+  [CharacterSpawner]      Mock 생성 (Guide): 몽글이
+  [GuideNPCController]    초기화 완료 — 몽글이
+  [말풍선]                 안녕하세요, MINIVERSE에 온 걸 환영해요!
+  ... (이후 시나리오 대사 순차 출력)
+
+
+────────────────────────────────────────────────────────────────
+[세션 5] 서버 캐릭터 자동화 (컴포넌트 자동 주입)
+────────────────────────────────────────────────────────────────
+
+## 배경
+  서버에서 오는 FBX는 raw 오브젝트 → 수동 컴포넌트 추가 불가
+  → GetOrAdd<T>() 패턴으로 자동 주입
+
+## 수정 파일
+  Scripts/Character/GeneratedCharacterSpawner.cs  (전면 수정)
+  Scripts/Managers/GameFlowManager.cs             (SpawnPlaced 반환 타입 대응)
+
+## 핵심 변경 내용
+
+  추가된 메서드:
+    SetupAsGuide(GameObject go, SessionData session)
+      - GetOrAdd<CharacterAnimationController>
+      - GetOrAdd<GuideNPCController>
+      - npc.Animation 자동 연결 (null 일 때만)
+      - npc.Initialize(session)
+
+    SetupAsPlaced(GameObject go, SessionData session)
+      - GetOrAdd<CharacterAnimationController>
+      - GetOrAdd<PlacedCharacterController>
+      - placed.motionLibrary 자동 연결 (null 일 때만)
+      - anim.Initialize(character, bubble_text)
+
+    GetOrAdd<T>(GameObject go)  [static 유틸]
+      - GetComponent → 있으면 반환
+      - 없으면 AddComponent → 반환
+
+  SpawnGuide()  → CreateCharacterObject() + SetupAsGuide()
+  SpawnPlaced() → CreateCharacterObject() + SetupAsPlaced()
+                  반환 타입 GameObject → PlacedCharacterController 로 변경
+
+  Inspector 추가 필드:
+    [Header("스폰 설정")]
+    spawnScale = 6f
+
+    [Header("컴포넌트 자동 주입")]
+    motionLibrary (MixamoMotionLibrary ScriptableObject)
+
+## 서버 연동 시 흐름 (TODO 완성 후)
+  LoadFromServer()
+    → TriLib: FBX URL → GameObject 생성
+    → SetupAsGuide(go, session)   ← 이 한 줄만 추가하면 자동 완성
+    → ApplyTexture(go, textureUrl) (glTFast: GLB → material)
+
+
+────────────────────────────────────────────────────────────────
+[세션 6] 스폰 스케일 자동 설정
+────────────────────────────────────────────────────────────────
+
+## 배경
+  캐릭터 스폰 시 크기가 너무 작음 → Scale 6 자동 적용 요청
+
+## 수정 파일
+  Scripts/Character/GeneratedCharacterSpawner.cs
+
+## 변경 내용
+  Inspector 필드 추가:
+    [Header("스폰 설정")]
+    public float spawnScale = 6f;
+
+  Instantiate 직후 적용:
+    go.transform.localScale = Vector3.one * spawnScale;
+
+  적용 경로:
+    - Mock Mode (CreateCharacterObject)
+    - Server Fallback (LoadFromServer)
+    - 서버 TriLib 로드 완료 콜백에도 동일하게 한 줄 추가 예정
+
+
+────────────────────────────────────────────────────────────────
+[세션 7] DialogueUI.cs 신규 생성 (말풍선 UI)
+────────────────────────────────────────────────────────────────
+
+## 생성 파일
+  Scripts/UI/DialogueUI.cs  (신규)
+
+## 수정 파일
+  Scripts/Managers/GameFlowManager.cs
+    - using LegoTwin.UI 추가
+    - [SerializeField] private DialogueUI _dialogueUI 필드 추가
+    - private string _currentNpcName 필드 추가
+    - OnSessionLoaded: _currentNpcName = session.character_npc_name
+    - OnDialogueChanged: _dialogueUI?.Show(_currentNpcName, text)
+    - OnGuideFinished: _dialogueUI?.Hide()
+
+## DialogueUI 주요 기능
+  - Show(string speakerName, string text)
+      BubbleRoot 활성화
+      SpeakerNameText = speakerName (NPC 이름)
+      DialogueText    = text (대사)
+      CanvasGroup 페이드 인 (0 → 1)
+
+  - Hide()
+      CanvasGroup 페이드 아웃 (1 → 0)
+      BubbleRoot 비활성화
+
+  - Billboard 모드 (billboardMode = true)
+      LateUpdate에서 transform.forward = Camera.main.forward
+      World Space Canvas 에서 항상 카메라 방향
+
+## Inspector 필드
+  _bubbleRoot       (GameObject)
+  _speakerNameText  (TMP_Text)
+  _dialogueText     (TMP_Text)
+  _canvasGroup      (CanvasGroup)
+  _fadeDuration     (float, 기본 0.25)
+  _billboardMode    (bool, 기본 false)
+
+## Unity Hierarchy 구조
+  DialogueUI (Canvas)
+    └── BubbleRoot (GameObject + CanvasGroup)
+         └── BubblePanel (Image)
+              ├── SpeakerNameText (TMP_Text)
+              └── DialogueText    (TMP_Text)
+
+
+────────────────────────────────────────────────────────────────
+[TODO / 다음 작업]
+────────────────────────────────────────────────────────────────
+
+  [ ] DialogueUI Unity 씬 Hierarchy 실제 구성
+  [ ] GameFlowManager._dialogueUI Inspector 연결
+  [ ] 등장 씬 실제 VR 테스트
+  [ ] 광장 이동 씬 (plazaPathWaypoints 웨이포인트 설정)
+  [ ] 창작물 확인 씬 (myCreationWaypoint 설정)
+  [ ] VR 모션/말풍선 입력 UI 구현
+      OnMotionPromptRequested → VR 키보드
+      OnBubbleTextInputRequested → VR 키보드
+  [ ] PlazaManager 연동 (OnGuideFinished → EnterPlaza())
+  [ ] GeneratedObjectSpawner.objectPrefab 임시 연결
+  [ ] GeneratedCharacterSpawner.motionLibrary 연결
+  [ ] LoadFromServer() TriLib 연동 구현
+  [ ] 서버 모드 전환 테스트 (dataSourceMode = Server)
+
+
+────────────────────────────────────────────────────────────────
+[변경된 파일 목록]
+────────────────────────────────────────────────────────────────
+
+  신규 생성:
+    Scripts/Managers/GameFlowManager.cs
+    Scripts/UI/DialogueUI.cs
+
+  수정:
+    Scripts/Character/GeneratedCharacterSpawner.cs
+    Scripts/Managers/GameFlowManager.cs
+
+================================================================

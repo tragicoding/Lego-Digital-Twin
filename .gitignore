@@ -17,10 +17,12 @@ Thumbs.db
 unity-client/**/[Ll]ibrary/
 unity-client/**/[Tt]emp/
 unity-client/**/[Oo]bj/
-unity-client/**/[Build]/
+unity-client/**/[Bb]uild/
 unity-client/**/[Bb]uilds/
-unity-client/**/[Logs]/
-unity-client/**/[MemoryCaptures]/
+unity-client/**/[Ll]ogs/
+unity-client/**/[Mm]emoryCaptures/
+# UserSettings: 에디터 레이아웃·개인 설정 (사용자별로 달라 충돌만 유발)
+unity-client/**/UserSettings/
 
 # 에러가 났던 샘플 및 스타터 에셋 (필요 없다면 제외 권장)
 # unity-client/**/Assets/Samples/
@@ -92,5 +94,35 @@ apps/engine-vision/Wonder3D/benchmark_log.json
 apps/backend/storage/images/*/
 apps/backend/storage/models/
 
-# --- Frontend build cache ---
+# --- Frontend build cache & dependencies ---
 apps/frontend/.vite/
+apps/frontend/node_modules/
+apps/frontend/dist/
+apps/frontend/dist-admin/
+
+# --- Root level vite cache ---
+.vite/
+
+# --- Local run logs ---
+history/.run_logs/
+
+# --- Windows Zone.Identifier 파일 ---
+*.Zone.Identifier
+*:Zone.Identifier
+
+# --- TriLib 2 (Unity Asset Store 유료 에셋) ---
+# public 저장소라 재배포(EULA 위반) 방지를 위해 커밋 금지.
+# 각 개발자가 본인 Unity 계정으로 Asset Store에서 설치한다.
+# (TripoFbxLoader 는 TRILIB define 으로 가드되어 미설치 시 Mock 폴백)
+# 폴더 제외가 내부 .meta 재포함(위 !*.meta)을 차단하며,
+# 폴더 자체의 .meta 는 아래에서 명시적으로 제외(뒤 규칙이 우선).
+unity-client/**/Assets/TriLib/
+unity-client/**/Assets/TriLib.meta
+unity-client/**/Assets/TriLibInstaller/
+unity-client/**/Assets/TriLibInstaller.meta
+
+# TriLibDefineSetup 이 TriLib 설치 PC 에서 로컬 생성하는 컴파일러 응답 파일.
+# TRILIB define 을 ProjectSettings 가 아닌 여기에만 기록 → 저장소로 새지 않게 제외.
+# (위 39행 !**/Assets/**/*.meta 가 .meta 를 재포함하므로 .meta 도 명시적으로 제외)
+unity-client/**/Assets/csc.rsp
+unity-client/**/Assets/csc.rsp.meta

@@ -22,8 +22,7 @@ DB에 status/progress/model_url 업데이트
 GET /sessions/{session_id}/status를 3초마다 호출
 ↓
 진행률 표시
-↓
-모든 asset 완료 + 프로필 완료
+모든 asset 완료
 ↓
 ready_for_unity = true
 
@@ -35,6 +34,7 @@ ready_for_unity = true
 POST /sessions/{id}/assets   — 이미지 업로드 → Queue 등록
 GET  /sessions/{id}/status   — 처리 상태 조회
 """
+import re
 import shutil
 from pathlib import Path
 from typing import Literal
@@ -62,6 +62,36 @@ getStatus(sessionId)
 router = APIRouter(prefix="/sessions", tags=["assets"])
 
 ASSET_TYPES = {"character", "building", "vehicle"}
+SIDE_VIEWS = {"back", "left", "right"}
+
+
+def _safe_capture_id(capture_id: str | None) -> str | None:
+    if not capture_id:
+        return None
+    safe = re.sub(r"[^A-Za-z0-9_.-]+", "_", capture_id).strip("._-")
+    return safe[:80] or None
+
+
+def _upload_filename(asset_type: str, view: str, filename: str, capture_id: str | None) -> str:
+    suffix = "".join(Path(filename).suffixes) or ".jpg"
+    if capture_id:
+        return f"{asset_type}_{capture_id}_{view}{suffix}"
+    if view in SIDE_VIEWS:
+        return f"{asset_type}_{view}_{filename}"
+    return f"{asset_type}_{filename}"
+
+
+def _asset_sort_key(asset: Asset):
+    return (asset.created_at is not None, asset.created_at, asset.id)
+
+
+def _latest_assets_by_type(assets: list[Asset]) -> dict[str, Asset]:
+    latest: dict[str, Asset] = {}
+    for asset in sorted(assets, key=_asset_sort_key):
+        if asset.status == "superseded":
+            continue
+        latest[asset.asset_type] = asset
+    return latest
 
 #이미지 업로드 API
 #프론트엔드에서 FormData로 보낸 데이터가 여기로 들어온다.
@@ -74,19 +104,36 @@ async def upload_asset(
     session_id: str,
     asset_type: Literal["character", "building", "vehicle", "object"] = Form(...),
     file: UploadFile = File(...),
+    # view: front(기본, 파이프라인 시작) | left/back/right(파일 저장만, 큐 미등록)
+    view: Literal["front", "back", "left", "right"] = Form("front"),
+    # Windows camera relay가 같은 셔터의 4방향 이미지를 묶어주는 값.
+    # 없으면 기존 업로드 파일명과 호환한다.
+    capture_id: str | None = Form(None),
     db: DBSession = Depends(get_db),
-):  
-    #session_id 확인
-    #DB에서 해당 session_id가 있는지 확인.
+):
     session = db.get(Session, session_id)
     if not session:
         raise HTTPException(404, "세션을 찾을 수 없습니다.")
+    if session.status == "cancelled":
+        raise HTTPException(409, "취소된 세션에는 이미지를 업로드할 수 없습니다.")
 
-    # 이미지 저장
-    #예상경로 : storage/images/{session_id}/
     save_dir = STORAGE_IMAGES / session_id
     save_dir.mkdir(parents=True, exist_ok=True)
-    save_path = save_dir / f"{asset_type}_{file.filename}"
+    capture_key = _safe_capture_id(capture_id)
+
+    # left/back/right 이미지: 파일 저장만, DB/큐 등록 없음 (worker가 polling으로 감지)
+    if view in ("back", "left", "right") and asset_type in ("character", "object"):
+        save_path = save_dir / _upload_filename(asset_type, view, file.filename, capture_key)
+        with open(save_path, "wb") as f:
+            shutil.copyfileobj(file.file, f)
+        return AssetUploadResponse(
+            asset_id="",
+            status="saved",
+            asset_type=f"{asset_type}_{view}",
+        )
+
+    # front 이미지가 들어오면 Asset을 만들고 worker를 시작한다.
+    save_path = save_dir / _upload_filename(asset_type, view, file.filename, capture_key)
     with open(save_path, "wb") as f:
         shutil.copyfileobj(file.file, f)
 
@@ -99,6 +146,26 @@ async def upload_asset(
         stage="waiting",
     )
     db.add(asset)
+    db.flush()
+
+    # 같은 세션에서 오브제를 다시 찍은 경우, 이전 오브제가 Unity로 올라가지 않게
+    # 최신 front 업로드만 대표 오브제로 남긴다.
+    if asset_type in ("object", "building"):
+        previous_assets = (
+            db.query(Asset)
+            .filter(
+                Asset.session_id == session_id,
+                Asset.asset_type == asset_type,
+                Asset.id != asset.id,
+            )
+            .all()
+        )
+        for previous in previous_assets:
+            if previous.status != "cancelled":
+                previous.status = "superseded"
+                previous.stage = "superseded"
+                previous.error_message = f"superseded by {asset.id}"
+
     db.commit()
     db.refresh(asset)
 
@@ -168,7 +235,8 @@ def get_session_status(session_id: str, db: DBSession = Depends(get_db)):
     #해당 세션에 연결된 모든 asset을 반복.
     #각 asset의 상태를 프론트엔드가 읽기 좋은 형태로 정리
     #Session 모델과 Asset 모델이 연결되어 있는 구조
-    for asset in session.assets:
+    latest_assets = _latest_assets_by_type(list(session.assets))
+    for asset in latest_assets.values():
         assets_status[asset.asset_type] = AssetStatusItem(
             status=asset.status,
             stage=asset.stage,
@@ -178,15 +246,26 @@ def get_session_status(session_id: str, db: DBSession = Depends(get_db)):
         #하나라도 완료되지 않은 asset이 있으면 전체 완료가 아니라고 판단
         if asset.status != "completed":
             all_completed = False
-    #Unity로 넘길 준비가 되어있는지 판단하는 조건. 
-    #조건은 3개
-    #1. asset이 하나 이상 있어야 함
-    #2. 모든 asset 처리가 completed여야 함
-    #3. nickname이 있어야 함, 즉 프로필 입력 완료
-    #즉, 이미지 변환만 끝났다고 바로 Unity 준비 완료가 아니고,
-    #프로필까지 입력되어야 ready_for_unity = True가 된다.
-    has_assets = len(session.assets) > 0
-    ready_for_unity = has_assets and all_completed and bool(session.nickname)
+    # Unity로 넘길 준비가 되어있는지 판단한다.
+    # 캐릭터는 관리자 페이지에서 조합 번호를 확정해야 완료로 본다.
+    character_item = assets_status.get("character")
+    character_ready = (
+        session.character_number is not None
+        and character_item is not None
+        and character_item.status == "completed"
+    )
+    has_object = "object" in assets_status or "building" in assets_status
+    object_ready = any(
+        item.status == "completed"
+        for asset_type, item in assets_status.items()
+        if asset_type in ("object", "building")
+    )
+    ready_for_unity = (
+        session.status != "cancelled"
+        and character_ready
+        and has_object
+        and object_ready
+    )
 
     return SessionStatusResponse(
         session_id=session_id,

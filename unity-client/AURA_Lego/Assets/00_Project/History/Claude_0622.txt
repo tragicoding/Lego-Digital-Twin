@@ -1,0 +1,498 @@
+================================================================
+Claude Code 작업 기록
+날짜: 2026-06-22
+브랜치: feature/unity
+================================================================
+
+주제: ① 그간 변경분 커밋·푸시(커밋 규칙·TriLib 라이선스 준수)
+      ② History 전체 복기 및 브랜치 확인
+      ③ (진단) MeshCollider Fast Midphase 경고 — 보류
+      ④ VR ↔ 키보드+마우스 자동전환 구현 — 런타임 스크립트 완료, 에디터 단계 안내
+
+공통 원칙: 저결합·중복 제거·확장성·Mock/Server 동일 동작.
+
+
+────────────────────────────────────────────────────────────────
+[세션 1] 변경분 커밋·푸시 (커밋 규칙 + TriLib 라이선스)
+────────────────────────────────────────────────────────────────
+
+## 처리
+  스테이지/워킹트리 변경분을 2개 논리 단위로 커밋 후 feature/unity 푸시.
+    6518c7ba feat(unity): 열기구 탑승·월드 버튼 인터랙션 추가
+             (BalloonRide·WorldButton 신규 + BalloonTour.ResetToStart)
+    dc34658f chore(unity): Main 씬 월드 인터랙션 배치·폰트 갱신, 복구 씬 제거
+             (Main.unity, Pretendard Bold/ExtraBold SDF, _Recovery/0.unity 삭제)
+
+## TriLib 라이선스 규칙 준수 — ProjectSettings.asset 커밋 제외
+  - 변경 내용은 scriptingDefineSymbols Standalone 에 TRILIB 추가뿐.
+  - 이 define 은 TriLibDefineSetup.cs 가 머신별 자동 토글(TriLib 설치 여부 감지).
+  - TriLib 은 유료 에셋이라 .gitignore 제외 → 커밋본에 TRILIB 켜진 채 올리면
+    미설치 환경에서 컴파일 에러. 0606/0613 규칙대로 ProjectSettings 는 스테이징 안 함.
+  - TriLib SDK 경로(Assets/TriLib*, TriLibInstaller*) 추적 0건 확인(EULA 준수).
+
+
+────────────────────────────────────────────────────────────────
+[세션 2] History 전체 복기 · 현재 브랜치 확인
+────────────────────────────────────────────────────────────────
+
+## 현재 브랜치
+  feature/unity (허용 브랜치, 정상). 워킹트리는 ProjectSettings.asset(로컬 TRILIB)만 modified.
+
+## 복기 문서
+  Claude_0528 / 0528_2 / 0529 / 0530 / 0601 / 0602 / 0603 / 0605 / 0606
+  / 0607 / 0608 / 0609 / 0610 / 0613 / 0614 / 0615 / 0616.txt (전체 통독)
+
+## 확인된 최신 미해결(0616 기준)
+  [x] WaitingScreen 구성 + OperatorQuit 부착 — 사용자 "완료" 확인
+  [ ] (백엔드) TODO_ForServer.txt — /names 저장 + plaza 응답 이름 포함
+  [ ] Server 모드 통합 테스트
+  [ ] 전시 빌드 전 디버그 비활성화(_enableGuideSkip·FreeCameraController·PerfHud·SessionDebugHud)
+  [ ] VR/키마 자동전환(미룸) → 이번 세션 착수(세션 4)
+
+
+────────────────────────────────────────────────────────────────
+[세션 3] (진단) MeshCollider Fast Midphase 경고 — 보류
+────────────────────────────────────────────────────────────────
+
+## 증상
+  "Source mesh has over 2,097,152 triangles ... using the Fast Midphase option.
+   ... could be to turn off the Fast Midphase. Source mesh name: TM"
+  (씬 로드 시 Internal_RestoreLastOpenedScenes 시점 1회)
+
+## 의미 (에러 아님, 경고)
+  이름 "TM" 메시(삼각형 210만 초과)를 MeshCollider 가 Fast Midphase(BVH34)로 쿠킹.
+  PhysX 가 이 한계 초과 메시에서 일부 충돌을 놓칠 수 있다는 알려진 제약.
+  씬 MeshCollider 123개 전부 기본 m_CookingOptions: 30 (= UseFastMidphase(16) 포함).
+
+## 해결 방향 (택1, 미적용)
+  ① (권장) 210만 폴리 메시를 콜라이더로 쓰지 않기 — 저폴리 프록시/Box 콜라이더로 교체.
+     이 프로젝트는 이미 Ground 레이어 레이캐스트로 오브제 안착(0613) → 프록시면 충분.
+  ② 해당 MeshCollider Cooking Options 에서 Use Fast Midphase 해제(YAML 30→14).
+     정확도 우선(BVH33) 전환 → 경고 해소, 충돌 정상. 베이크 약간 느려짐.
+  ③ 무시 — 플레이에서 충돌 정상이면 둬도 됨.
+
+## 결정
+  사용자가 보류. "TM" 사용 GameObject 가 특정되면 ② 를 Main.unity 에서 콜라이더 1개만
+  수정(씬 변경 = 사전 확인). ① 은 에디터 작업이라 절차 안내로 처리.
+
+
+────────────────────────────────────────────────────────────────
+[세션 4] VR ↔ 키보드+마우스 자동전환 — 런타임 구현
+────────────────────────────────────────────────────────────────
+
+## 결정사항 (사용자)
+  - 전제 하드웨어: PC 테더드 VR = Meta Quest 3 + Quest Link/Air Link (Windows Standalone 빌드).
+    Android(Quest 단독) 빌드는 항상 착용이라 자동전환 무의미 → 대상 아님(기존 Oculus 설정 유지).
+  - 전환 시점: 시작/대기화면에서 1회 판정 후 세션 동안 고정(라이브 착탈 전환 아님 — 견고).
+  - 작업 분담: 런타임 스크립트는 Claude, ProjectSettings/씬/프리팹은 에디터 단계 안내.
+
+## 시작 상태 (확인)
+  - XRGeneralSettingsPerBuildTarget: Standalone=로더 없음·InitOnStart 0(키마),
+    Android=Oculus 로더·InitOnStart 1(VR). 빌드 타깃별 단일 모드 고정.
+  - EventSystem: InputSystemUIInputModule 사용. activeInputHandler=2(Both).
+  - XR 리그: Assets/Prefabs/Object/XR Origin (XR Rig).prefab (XRI 3.2.1 풀 리그, 씬 인스턴스).
+  - FreeCameraController.Awake() 가 XR 트래킹/이동 컴포넌트를 "무조건" 비활성화 → VR 공존 불가.
+  - 설치 패키지: openxr 1.15.1, xr.interaction.toolkit 3.2.1, xr.management 4.5.1, oculus 4.5.4 등.
+
+## 설계 (저결합·중복 제거·확장성·Mock/Server 동일)
+  - 단일 소스 XRModeManager 가 시작 시 1회 모드 판정 → 정적 Mode/Resolved + ModeResolved 이벤트.
+  - 매니저는 FreeCamera·EventSystem·XR 리그·SessionManager 를 직접 참조하지 않음.
+    각 컴포넌트가 정적 상태를 읽어 "스스로" 구성(새 시스템은 이벤트만 구독하면 확장).
+  - 데이터 소스(Mock/Server) 미참조 → 모드는 하드웨어(착용)로만 결정 → 서버 모드 동일 동작(구조적 보장).
+  - XR 끄는 로직은 FreeCameraController 한 곳에만 유지하되 "데스크톱 확정 시에만"으로 조건화(중복 0).
+
+## 신규: Scripts/Core/AppMode.cs
+  enum { DesktopKBM, VR }. 데이터 소스 무관 — 하드웨어로만 결정.
+
+## 신규: Scripts/Core/XRModeManager.cs (DontDestroyOnLoad 싱글톤)
+  - 정적 Mode/Resolved + event ModeResolved. 인스펙터 _override(Auto/ForceVR/ForceDesktop),
+    _minSettle(0.5), _settleTimeout(2), _stopXrInDesktop(true).
+  - 판정 규칙(Auto):
+      · userPresence=true 감지 → 즉시 VR 확정.
+      · _minSettle 후에도 활성 HMD 없음(XRSettings.isDeviceActive=false) → 즉시 데스크톱(미연결).
+      · HMD 연결됐으나 미착용 → _settleTimeout 까지 착용 대기, 끝나면 데스크톱.
+  - IsHmdWorn(): XRSettings.isDeviceActive + InputDevices.GetDeviceAtXRNode(Head)
+    + CommonUsages.userPresence (미지원 런타임이면 유효 HMD=착용으로 간주).
+  - 데스크톱 확정 시 StopXr(): XRGeneralSettings.Manager.StopSubsystems()+DeinitializeLoader()
+    → 평면 렌더링/VR 오버헤드 제거.
+  - 씬 리로드(A안 전시 루프)에도 한 번 정해진 모드 유지(Resolved 면 재판정 안 함).
+  - ResolveNow(): 외부(대기화면 입장 직전)에서 즉시 확정 강제 옵션.
+
+## 신규: Scripts/Core/EventSystemModeBinder.cs ([RequireComponent(EventSystem)])
+  - _vrModules / _desktopModules (Behaviour[]) 로 UI 입력 모듈을 모드별 1회 토글.
+    특정 모듈 타입 비의존(저결합). 매니저 없으면 아무것도 안 바꿔 씬 기본 모듈 유지(무회귀).
+
+## 수정: Scripts/Core/FreeCameraController.cs
+  - Awake 의 무조건 DisableConflictingXrComponents() 제거.
+  - Update: 모드 확정 전 카메라 조작 보류. 데스크톱이면 동작, VR이면 enabled=false(자유카메라 정지).
+  - TryResolveMode(): XRModeManager.Resolved 면 적용. 매니저 없거나 늦으면
+    modeResolveTimeout(기본 4s) 후 데스크톱으로 폴백 → 현재 키마 흐름 무회귀.
+  - ApplyMode(Desktop): DisableConflictingXrComponents() + SyncLookFromTransforms()(기존 Start 역할).
+  - Start() 제거(SyncLook 호출을 ApplyMode 로 이관).
+
+## 검증
+  IDE 진단(VS Code/OmniSharp): AppMode/XRModeManager/EventSystemModeBinder/
+  FreeCameraController 4파일 오류·경고 0건.
+
+## 남은 에디터 작업 (사용자 — Meta Quest 3 + PC 테더드 기준)
+  1. Project Settings > XR Plug-in Management > PC/Standalone 탭:
+       OpenXR 체크(+ Initialize XR on Startup 체크). PC는 Oculus 대신 OpenXR(Quest Link 경유).
+  2. XR Plug-in Management > OpenXR(Standalone): Interaction Profiles 에
+       Oculus Touch Controller Profile 추가. Render Mode=Single Pass Instanced.
+  3. XR Plug-in Management > Project Validation(Standalone): Fix All(빨간 에러 제거).
+  4. PC Meta Quest Link 앱: 설정 > 일반 > OpenXR 런타임 = "Meta Quest Link 활성" 지정.
+  5. 씬: 빈 GameObject 에 XRModeManager 부착(테스트는 _override=ForceVR/ForceDesktop).
+  6. EventSystem 에 EventSystemModeBinder 부착 + XR UI Input Module 추가,
+       _vrModules=[XR UI Input Module] / _desktopModules=[InputSystemUIInputModule].
+  7. Main Camera 의 FreeCameraController 활성 유지(이제 모드 자동 판단).
+
+## ⚠️ VR UI 이슈 (후속 결정 필요)
+  Screen Space - Overlay 캔버스는 VR 헤드셋에 안 보임(평면 모니터 전용).
+  VR에서 UI 쓰려면 해당 Canvas 를 World Space 로 + GraphicRaycaster 를
+  Tracked Device Graphic Raycaster(XRI)로 교체해야 컨트롤러 ray 로 눌림.
+  → 대기화면 UI 를 "World Space 하나로 통일(VR·데스크톱 공용)" vs "모드별 Canvas 분리"
+    중 어느 방향으로 갈지 사용자 결정 후 후속 작업.
+
+## 메모리 갱신
+  todo_vr_kbm_autoswitch.md: "미룸/불가능" → "스크립트 완료, 에디터 설정 단계 남음"으로 갱신.
+
+
+────────────────────────────────────────────────────────────────
+[변경된 파일 목록 — 미커밋]
+────────────────────────────────────────────────────────────────
+
+  신규(스크립트):
+    Scripts/Core/AppMode.cs                VR/데스크톱 모드 enum
+    Scripts/Core/XRModeManager.cs          모드 판정 단일 소스(착용 감지·XR 라이프사이클)
+    Scripts/Core/EventSystemModeBinder.cs  모드별 UI 입력 모듈 토글
+
+  수정(스크립트):
+    Scripts/Core/FreeCameraController.cs   XR 끄기를 데스크톱 모드일 때만으로 조건화
+
+  신규(기록):
+    History/Claude_0622.txt
+
+  ※ ProjectSettings.asset(로컬 TRILIB define)·OpenXR 설정·씬/프리팹은 규칙상/에디터 작업이라
+    이 단위에서 제외. 위 스크립트는 에디터 설정·Play 테스트 확인 후 커밋 예정(사용자 확인 대기).
+
+
+────────────────────────────────────────────────────────────────
+[커밋 내역]
+────────────────────────────────────────────────────────────────
+
+  6518c7ba feat(unity): 열기구 탑승·월드 버튼 인터랙션 추가
+  dc34658f chore(unity): Main 씬 월드 인터랙션 배치·폰트 갱신, 복구 씬 제거
+  (VR/키마 자동전환 스크립트·0622 기록은 미커밋 — 사용자 확인 대기)
+
+
+────────────────────────────────────────────────────────────────
+[미해결 / 추후 작업]
+────────────────────────────────────────────────────────────────
+
+  [ ] VR/키마 자동전환: 위 에디터 작업 1~7 + VR UI(World Space/Tracked Device Raycaster) 결정
+  [ ] (보류) MeshCollider "TM" Fast Midphase 경고 — 프록시 콜라이더 교체 또는 옵션 해제
+  [ ] (백엔드) TODO_ForServer.txt — /names 저장 + plaza 응답 이름 포함
+  [ ] Server 모드 통합 테스트
+  [ ] 전시 빌드 전 디버그 비활성화(_enableGuideSkip·FreeCameraController·PerfHud·SessionDebugHud)
+
+================================================================
+
+
+================================================================
+[추가 작업] VR↔키마 자동전환 — 대기영상 게이트 연동 + 컨트롤러 이동 진단
+날짜: 2026-06-22 (연속)
+브랜치: feature/unity
+================================================================
+
+공통 원칙: 저결합·중복 제거·확장성·Mock/Server 동일 동작.
+
+
+────────────────────────────────────────────────────────────────
+[세션 5] (진단) 에디터 VR 테스트 — 컨트롤러 이동 안 됨
+────────────────────────────────────────────────────────────────
+
+## 증상
+  에디터 VR(Quest Link) 테스트에서 컨트롤러로 이동이 안 됨.
+
+## 점검 (정적)
+  - XRModeManager 씬 배치됨(_override=Auto, _settleTimeout=2, _stopXrInDesktop=1).
+  - EventSystemModeBinder 씬 배치됨. FreeCameraController = XR Origin 프리팹 카메라에 존재(enabled).
+  - 프리팹 비활성 컴포넌트 4개 = SnapTurn·Gaze 보조뿐(이동 Provider는 활성). 프리팹엔 이동 꺼진 흔적 없음.
+
+## 원인 (사용자 ForceVR 테스트로 확정)
+  ForceVR로 바꾸면 이동 정상 + 로그 "[XRModeManager] 실행 모드 확정: VR".
+  → 스크립트·리그·이동 배선은 정상. 문제는 Auto 판정이 VR이 아니라 DesktopKBM으로 떨어진 것.
+  - Auto는 IsHmdWorn()=userPresence에 의존. 에디터+Link에선 userPresence가 false로 자주 보고됨.
+  - _settleTimeout(2초) 안에 착용 미확인 → DesktopKBM 확정 → StopXr() + FreeCameraController가
+    ConflictingTypes(ContinuousMove/DynamicMove/GrabMove/Turn Provider…)를 비활성화 → 컨트롤러 이동 불가.
+  - 부가 위험: _minSettle(0.5s) 조기 break가 OpenXR 콜드스타트보다 빠르면 빌드에서도 오판 가능.
+
+
+────────────────────────────────────────────────────────────────
+[세션 6] VR/키마 판정 창을 '대기영상 단계' 전체로 확장 (게이트 연동)
+────────────────────────────────────────────────────────────────
+
+## 요구
+  대기영상(AttractVideoRoot: 0614_4.mp4) 재생 중, 이름 입력으로 넘어가기 전이면
+  언제든 헤드셋 착용이 감지되면 VR로 전환.
+
+## 기존 한계
+  판정은 Awake 직후 ~2초 창에서 1회뿐 → 대기영상과 무관하게 이미 고정.
+  ResolveNow()는 정의만 있고 호출처 0(grep 확인). WaitingScreenUI는 XRModeManager 미참조.
+
+## 설계 (저결합 — XRModeManager는 대기화면을 모름)
+  XRModeManager에 범용 게이트 메서드 2개만 노출, WaitingScreenUI가 null-safe 호출만.
+  commit 지점 = 대기영상을 떠나는 순간(AnyPress → AdvanceFromAttract).
+
+## 수정 1: Scripts/Core/XRModeManager.cs
+  - 필드 _gated 추가.
+  - BeginGatedResolve() 신규: 게이트 열기 — 자동 데스크톱 확정 보류, 착용 시에만 즉시 VR.
+  - ResolveRoutine() 재작성: while(true) — 착용은 게이트 무관 즉시 VR. _gated면 _settleTimeout
+    자동 확정 스킵(데스크톱은 ResolveNow()로만). 게이트 안 열리면 기존 타임드 동작 100% 동일(무회귀).
+
+## 수정 2: Scripts/UI/WaitingScreenUI.cs (using LegoTwin.Core 추가)
+  - Start(): _attractActive면 XRModeManager.Instance?.BeginGatedResolve()
+    (Awake 순서 무관하게 Instance 보장. 대기영상 없으면 게이트 안 열어 기본 판정 유지).
+  - AdvanceFromAttract(): XRModeManager.Instance?.ResolveNow() = commit(미착용이면 데스크톱).
+
+## 수정 3: Scripts/Core/FreeCameraController.cs
+  - TryResolveMode(): XRModeManager.Instance 존재 시 확정까지 무한 대기(게이트 중 스스로
+    데스크톱 확정해 이동 Provider 끄는 것 방지). 4초 폴백은 매니저가 아예 없을 때만(무회귀).
+
+## 동작 결과
+  대기영상 중 아무 때나 착용 → 즉시 VR. 클릭/키로 이름 입력 진입 순간 미착용이면 데스크톱 확정·고정.
+  EventSystemModeBinder는 Resolved까지 대기 → 변경 불필요(게이트 중 씬 기본 모듈 유지).
+
+## Mock/Server 동일성
+  XRModeManager는 SessionManager·dataSourceMode 미참조. 게이트는 세션 분기 이전 attract 단계뿐 → 구조적 동일.
+
+## 검증
+  IDE 진단(OmniSharp): XRModeManager / WaitingScreenUI / FreeCameraController 3파일 오류·경고 0건.
+  사용자 Play 테스트: 전환 정상 확인.
+
+## 고정 정책(유지)
+  첫 attract에서 확정 후 씬 리로드(전시 루프)에도 동일 모드 유지(관람객별 재판정 아님 — 필요 시 후속).
+
+
+────────────────────────────────────────────────────────────────
+[세션 7] (구현) 네트워크 끊긴 채 시작 → 대기영상 중 재연결 시 VR 전환 (백스톱)
+────────────────────────────────────────────────────────────────
+
+## 질문
+  VR 기기 네트워크가 끊긴 채 시작해도, 대기영상 중 재연결+착용하면 VR로 전환 가능한가?
+
+## 진단 — 폴링만으론 부분만 됨
+  - 됨: XR이 이미 초기화돼 돌아가는 상태에서 착탈/활성 토글 → 게이트 폴링(IsHmdWorn)이 잡아 VR.
+  - 안 됨: 시작 시 기기 부재로 Unity XR 로더가 초기화 자체를 못 한 경우 → XRSettings.isDeviceActive가
+    계속 false → 폴링이 영영 false. OS/Link 재연결돼도 Unity XR 로더는 스스로 안 올라옴.
+    = "끊긴 채 시작 → 재연결" 케이스가 바로 이 안 되는 경우 → 백스톱 필요.
+
+## 구현 (2026-06-23 — 기기 테스트 통과)
+  Scripts/Core/XRModeManager.cs
+  - 인스펙터: _reacquireXrWhileGated(기본 on), _xrRetryInterval(기본 2s).
+  - ResolveRoutine 게이트 분기: _gated && t>=_minSettle && !isDeviceActive 이면
+    _xrRetryInterval 마다 TryStartXr() 호출.
+  - TryStartXr(): activeLoader==null 일 때만 InitializeLoader()(비동기) → 성공 시 StartSubsystems().
+    → 대기영상 중 재연결되면 XR이 올라오고, 이후 착용 시 IsHmdWorn 이 VR로 확정.
+  - 안전장치: activeLoader!=null이면 skip(중복 init 방지) / t>=_minSettle 이후만(부팅 init과 안 겹침)
+    / Mathf.Max(0.5f, interval) 클램프. 게이트 동안에만 동작(commit 후·데스크톱·Mock/Server 무영향).
+  - 전제: XR Plug-in Management(PC) Initialize XR on Startup = ON. 미연결 동안 init 시도마다 엔진
+    에러 로그 가능(interval로 빈도 낮춤). IDE 진단 0건, 실기기 재연결 테스트 통과(사용자 확인).
+
+## 운영(병행 권장) — 끊김 자체 예방
+  헤드셋 자동 절전 끄기(System>Power>Auto Sleep Headset=Never) + 유선 Link + 상시 급전.
+  ※ 근접센서는 끄지 말 것(끄면 userPresence 항상 true → 자동전환이 VR로 굳음). 절전 타이머만 Never.
+  이 백스톱은 그래도 끊겼을 때의 '복구', 위 설정은 '예방' — 병행이 가장 안정적.
+
+
+────────────────────────────────────────────────────────────────
+[변경된 파일 목록 — 이번 커밋]
+────────────────────────────────────────────────────────────────
+
+  신규(스크립트, 이전 세션분 포함):
+    Scripts/Core/AppMode.cs                VR/데스크톱 모드 enum
+    Scripts/Core/XRModeManager.cs          판정 단일 소스 + 대기영상 게이트(BeginGatedResolve/ResolveNow)
+    Scripts/Core/EventSystemModeBinder.cs  모드별 UI 입력 모듈 토글
+  수정(스크립트):
+    Scripts/Core/FreeCameraController.cs   데스크톱 확정 시에만 XR 끔 + 매니저 존재 시 확정까지 대기
+    Scripts/UI/WaitingScreenUI.cs          대기영상 게이트 열기/commit 연동
+  신규(기록):
+    History/Claude_0622.txt
+
+  ※ 커밋 제외: ProjectSettings.asset(로컬 TRILIB define, 규칙), Main.unity·폰트(에디터 드리프트),
+    OpenXR/XR 설정(에디터 VR 셋업 — 별도 단위, 추후 처리).
+
+
+────────────────────────────────────────────────────────────────
+[미해결 / 추후 작업]
+────────────────────────────────────────────────────────────────
+
+  [x] (세션 7) 네트워크 끊긴 채 시작 → 대기영상 중 XR 재초기화 재시도 — 구현·기기 테스트 완료(2026-06-23)
+  [x] OpenXR/XR 설정·Main 씬 커밋 정리 — 완료(7ddb3ae7)
+  [ ] VR에서 대기영상 advance: AnyPress가 키보드/마우스 기반 → VR 컨트롤러 버튼 매핑 필요(VR UI 후속)
+  [ ] 전시 빌드 전 디버그 비활성화(_enableGuideSkip·FreeCameraController·PerfHud·SessionDebugHud)
+
+
+────────────────────────────────────────────────────────────────
+[2026-06-23 커밋 내역]
+────────────────────────────────────────────────────────────────
+
+  e0367a90 feat(unity): VR↔키마 자동전환 + 대기영상 착용 감지 게이트 (스크립트 5 + 0622 기록)
+  7ddb3ae7 chore(unity): OpenXR Standalone 설정·Main 씬 자동전환 매니저 배치·Pretendard SDF 갱신
+  449c030a feat(unity): 대기 중 XR 재초기화 백스톱(끊긴 채 시작 → 재연결 시 VR) — 세션 7
+
+  ※ ProjectSettings.asset(로컬 TRILIB define)은 0606/0613 규칙상 커밋 제외(머신별 자동 토글).
+
+================================================================
+
+
+================================================================
+[추가 작업] 오디오 모드별 라우팅 시도(보류) + XR 백스톱 제거→복구
+날짜: 2026-06-23 (연속)
+브랜치: feature/unity
+================================================================
+
+────────────────────────────────────────────────────────────────
+[세션 8] (보류) 모드별 오디오 출력 라우팅 — 구현했다가 전부 제거(미커밋)
+────────────────────────────────────────────────────────────────
+
+## 목표
+  VR 모드=헤드셋, 데스크톱 모드=PC 스피커로 오디오 출력.
+
+## 시도와 결과(전부 실패)
+  - HeadsetAudioRouter(신규) + nircmd setdefaultsounddevice(시스템 기본 변경): Unity 출력 안 따라감.
+  - AudioSettings.Reset(새 기본 장치로 재바인딩 시도): 새 기본을 다시 안 고름 + 재생 중 BGM 끊김.
+  - svcl /SetAppDefault(앱별 출력 장치 지정): 믹서엔 DP로 표시되나 실제 출력은 헤드폰 그대로.
+
+## 결론(근본 한계)
+  Unity/FMOD는 '앱 시작 시 열린 오디오 장치'에 스트림을 고정하고 런타임 장치 변경 API가 없음.
+  OS 레벨(시스템 기본/Reset/앱별 출력) 어느 것으로도 이미 열린 스트림을 못 옮김.
+  게다가 전시는 한 프로세스로 씬만 리로드 → 오디오는 프로세스 시작 시 1회 초기화로 고정.
+  → 런타임/세션별 전환 불가. 네이티브 플러그인(FMOD setDriver) 외 방법 없어 보류.
+
+## 네이티브 마지막 시도 → 크래시(폐기)
+  WindowsDefaultAudio(Core Audio IPolicyConfig P/Invoke, 3역할 모두 전환) + HeadsetAudioRouter 재바인딩.
+  → 데스크톱 전환 시 Unity 크래시(손수 짠 COM vtable/마샬링 충돌, 네이티브 메모리 손상).
+  근본 블로커(Unity 재바인딩)도 안 풀리고 크래시 위험만 커 폐기. 두 파일 삭제.
+  ⇒ 최종: Unity/FMOD는 시작 시 연 장치에 고정, 런타임 전환 불가(OS 기본/Reset/앱별출력/네이티브 모두 실패).
+    오디오 장치는 프로세스 시작 시 1회 고정 → 모드별 전환 보류(수용). VR=헤드폰(Link 시작 기본)으로 동작,
+    데스크톱일 때도 헤드폰으로 남음. Link 는 항상 연결 유지(끊으면 무음).
+
+## 처리
+  HeadsetAudioRouter.cs(+meta)·WindowsDefaultAudio.cs(+meta) 삭제, .gitignore svcl/nircmd 규칙 되돌림,
+  StreamingAssets/Tools 삭제. 전부 미커밋이라 git 이력엔 흔적 없음.
+  Main 씬의 Missing Script(컴포넌트) 제거 필요(사용자). 크래시로 생긴 Assets/_Recovery/ 는 삭제 가능.
+
+
+────────────────────────────────────────────────────────────────
+[세션 9] XR 재초기화 백스톱 — 제거했다가 복구(net 변화 없음)
+────────────────────────────────────────────────────────────────
+
+## 경위
+  사용자 요청으로 백스톱(449c030a)을 한 번 제거(미커밋)했다가, 다시 요청으로 복구.
+  → XRModeManager.cs 는 449c030a(백스톱 포함) 상태 그대로 유지. 코드 net 변화 없음.
+  (대기영상 게이트 + 대기 중 XR 로더 재초기화 재시도 모두 살아 있음)
+
+================================================================
+
+
+================================================================
+[추가 작업] VR UI 대응 + VR 한글 키보드 + 자유모드 버그 수정
+날짜: 2026-06-23 (연속)
+브랜치: feature/unity
+================================================================
+
+공통 원칙: 저결합·중복 제거·확장성·Mock/Server 동일. (커밋 54a468e8)
+
+
+────────────────────────────────────────────────────────────────
+[세션 10] VR UI 대응 — ModeAdaptiveCanvas
+────────────────────────────────────────────────────────────────
+
+## 배경
+  0622에서 "후속 결정 필요"로 남긴 VR UI 이슈: Screen Space - Overlay 캔버스는 VR HMD에 안 보이고,
+  World Space 캔버스도 컨트롤러 레이(TrackedDeviceGraphicRaycaster)가 없어 클릭 불가.
+
+## 조사 (인프라는 이미 있음)
+  - XR 리그 컨트롤러에 NearFarInteractor(레이 포함). EventSystem에 InputSystemUIInputModule(데스크톱) +
+    XRUIInputModule(VR) + EventSystemModeBinder(모드별 토글). → 빠진 건 '캔버스 쪽'뿐.
+
+## 결정 (사용자)
+  데스크톱 Overlay 유지 + VR만 World Space 재구성('기존 동작 동일' 보장 최우선). 텍스트 입력은 별도(세션 11).
+
+## 신규: Scripts/Core/ModeAdaptiveCanvas.cs
+  XRModeManager.Mode 1회 읽기(EventSystemModeBinder 동일 패턴, 저결합). 데스크톱=무수정(Overlay 그대로),
+  VR=TrackedDeviceGraphicRaycaster 보장 + 배치:
+    - HeadFollowing : Overlay→World Space 전환 후 카메라 앞 부드럽게 추적(모달/HUD)
+    - KeepInPlace   : 이미 월드 배치된 캔버스(좋아요 패널 등)는 위치 유지, 레이만 활성
+  매니저 없으면 무동작(무회귀). SessionManager 미참조 → Mock/Server 동일.
+
+## 부착 (에디터)
+  HeadFollowing: WaitingScreenUI·QuitUI·MapTeleportUI(씬) + FreeModePopupUI·MotionPromptUI·
+                 SignatureMotionConfirmUI(프리팹).
+  KeepInPlace  : OwnCreationInteractPanel·PlazaSessionView LikePanel(프리팹).
+  표시 전용(부착 불필요): DialogueUI·NPC 말풍선·LogoUI(이미 World Space).
+
+
+────────────────────────────────────────────────────────────────
+[세션 11] VR 한글 키보드 (자체 제작)
+────────────────────────────────────────────────────────────────
+
+## 방식 결정
+  Meta XR Core SDK 미설치 + 리그가 XRI(OVRVirtualKeyboard는 OVR 스택 기반이라 부적합) →
+  '자체 World Space 한글 키보드'(의존성 0) 채택. (Meta SDK는 설치·브리징 부담·PC Link 불확실)
+
+## 신규: Scripts/Core/HangulComposer.cs
+  두벌식 조합 오토마타(순수 C#, Unity 의존 0). 초/중/종성 조합, 겹받침, 복합모음, 도깨비불, 백스페이스 분해.
+
+## 신규: Scripts/UI/VrKeyboard.cs
+  VR 전용. 포커스된 TMP_InputField 자동 감지(EventSystem) → 조합기 경유 입력 → 필드 갱신.
+  자판은 레이아웃 문자열에서 자동 생성(Key 프리팹 1개만 제공). 한/영·시프트·공백·⌫·완료 특수키.
+  데스크톱은 스스로 꺼짐(물리 키보드+OS IME 그대로). UI 로직 스크립트 무수정. 제출은 각 UI 기존 버튼(VR 레이).
+  ※ 작업량 이슈로 Meta SDK 방향을 잠깐 검토했으나, XRI 불일치·설치부담으로 자체 방식으로 회귀(사용자 결정).
+
+## 신규 에셋: Prefabs/UI/Key.prefab (키 버튼 템플릿)
+## 검증: 사용자 — VR 키보드 입력 정상. 심미성은 에디터에서 조정 예정.
+
+
+────────────────────────────────────────────────────────────────
+[세션 12] (버그) 자유모드 전환 실패 — 비활성 프리팹
+────────────────────────────────────────────────────────────────
+
+## 증상
+  "Coroutine couldn't be started because ... 'PlazaSessionView(Clone)' is inactive!"
+  PlazaSessionView.SetTopLiked → PlazaManager.LoadAndSpawnPlaza 중단 → 자유모드로 안 넘어감.
+
+## 원인
+  PlazaSessionView.prefab 루트 m_IsActive=0(VR용 프리팹 편집 중 루트 활성이 꺼짐).
+  → 클론도 비활성 상속 → Initialize→SetTopLiked의 StartCoroutine(비활성 오브젝트) 예외 → 스폰 루프 중단.
+
+## 처리
+  - 프리팹 루트 다시 활성(☑) 저장(사용자). (LikePanel·AlreadyLikedText·StarObject는 비활성 시작이 정상)
+  - 방어선: PlazaManager 의 sessionViewPrefab Instantiate 2곳(이전 창작물·현재 창작물)에서
+    Initialize 전에 if(!view.gameObject.activeSelf) SetActive(true). 향후 비활성 프리팹이 와도 무중단.
+
+
+────────────────────────────────────────────────────────────────
+[2026-06-22 ~ 06-23 커밋 내역 — 시간순]
+────────────────────────────────────────────────────────────────
+
+  날짜·시각       │ 해시      │ 타입  │ 메시지
+  ───────────────┼──────────┼───────┼──────────────────────────────────────────────────────
+  06-22 01:41    │ 6518c7ba │ feat  │ 열기구 탑승·월드 버튼 인터랙션 추가
+  06-22 01:42    │ dc34658f │ chore │ Main 씬 월드 인터랙션 배치·폰트 갱신, 복구 씬 제거
+  06-22 23:20    │ e0367a90 │ feat  │ VR↔키마 자동전환 + 대기영상 착용 감지 게이트
+  06-22 23:22    │ 7ddb3ae7 │ chore │ OpenXR Standalone 설정·Main 씬 매니저 배치·Pretendard SDF
+  06-23 00:29    │ 449c030a │ feat  │ 대기 중 XR 재초기화 백스톱(끊긴 채 시작→재연결 시 VR)
+  06-23 03:17    │ babea79b │ docs  │ 0622 기록 — 오디오 라우팅 보류 결론·XR 백스톱 유지
+  06-23 03:18    │ b460e67c │ chore │ Main 씬 갱신(오디오 컴포넌트 잔재 제거)·Pretendard SDF
+  06-23 16:48    │ 54a468e8 │ feat  │ VR UI 대응(ModeAdaptiveCanvas)·VR 한글 키보드·광장 뷰 방어선
+  (이 커밋)       │ —        │ docs  │ 0622 기록 — VR UI·VR 키보드·자유모드 버그 정리 + 커밋 이력 표
+
+  ※ 주제별:
+    ① VR↔키마 자동전환·게이트·백스톱 : e0367a90, 7ddb3ae7, 449c030a
+    ② 오디오 라우팅(보류·전량 미커밋)  : 코드 흔적 없음(세션 8) / 결론만 babea79b·b460e67c
+    ③ VR UI·한글 키보드·광장 버그     : 54a468e8 (세션 10~12)
+  ※ ProjectSettings.asset(로컬 TRILIB define)은 0606/0613 규칙상 커밋 제외(머신별 자동 토글).
+
+================================================================

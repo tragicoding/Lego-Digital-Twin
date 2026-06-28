@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# git-workflow.sh — git.md 전략 기반 워크플로우 자동화
+# git-workflow.sh — Git 전략 기반 워크플로우 자동화
 # 사용법: ./scripts/git-workflow.sh <command> [args]
 #
 # Commands:
@@ -57,7 +57,7 @@ cmd_sync() {
   if git merge origin/develop --no-edit; then
     ok "'${branch}' 브랜치가 origin/develop과 동기화되었습니다."
   else
-    warn "충돌이 발생했습니다. 파일을 수동으로 해결한 후 'git add <파일> && git commit' 하세요."
+    warn "Merge conflict detected. Resolve conflicts, then commit the resolved state."
     git status
     exit 1
   fi
@@ -70,10 +70,12 @@ cmd_commit() {
   fi
   validate_commit_msg "$msg"
 
+  git add -A
+
   local staged
   staged="$(git diff --cached --name-only)"
   if [[ -z "$staged" ]]; then
-    warn "스테이징된 파일이 없습니다. 'git add <파일>' 후 다시 실행하세요."
+    warn "No changes to commit."
     exit 1
   fi
 
@@ -145,7 +147,7 @@ cmd_install_hooks() {
   info ".git/hooks/commit-msg 설치 중..."
   cat > "$commit_msg_hook" <<'HOOK'
 #!/usr/bin/env bash
-# commit-msg hook: git.md RULE-02 커밋 메시지 형식 검증
+# commit-msg hook: Git RULE-02 커밋 메시지 형식 검증
 MSG="$(cat "$1")"
 PATTERN='^(feat|fix|refactor|docs|chore|test|style)\([a-zA-Z0-9_/-]+\): .+'
 
@@ -156,7 +158,7 @@ fi
 
 if ! echo "$MSG" | grep -qE "$PATTERN"; then
   echo ""
-  echo "[commit-msg hook] 커밋 메시지 형식 오류 (git.md RULE-02)"
+  echo "[commit-msg hook] 커밋 메시지 형식 오류 (Git RULE-02)"
   echo "  올바른 형식: <type>(<scope>): <subject>"
   echo "  허용 type: feat, fix, refactor, docs, chore, test, style"
   echo "  예시: feat(backend): Tripo3D 업로드 엔드포인트 추가"
@@ -173,13 +175,13 @@ HOOK
   info ".git/hooks/pre-push 설치 중..."
   cat > "$prepush_hook" <<'HOOK'
 #!/usr/bin/env bash
-# pre-push hook: git.md RULE-04 main·develop 직접 push 방지
+# pre-push hook: Git RULE-04 main·develop 직접 push 방지
 REMOTE="$1"
 BRANCH="$(git rev-parse --abbrev-ref HEAD)"
 
 if [[ "$BRANCH" == "main" || "$BRANCH" == "develop" ]]; then
   echo ""
-  echo "[pre-push hook] '${BRANCH}' 브랜치에 직접 push는 금지입니다. (git.md RULE-04)"
+  echo "[pre-push hook] '${BRANCH}' 브랜치에 직접 push는 금지입니다. (Git RULE-04)"
   echo "  feature/* 브랜치에서 push 후 PR을 통해 develop에 병합하세요."
   echo ""
   exit 1

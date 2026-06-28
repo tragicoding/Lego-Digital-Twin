@@ -1,0 +1,114 @@
+TODO_retest_codex - handoff for next Codex
+
+Current branch
+- develop
+- Last pushed commits:
+  c585ef8 Add Unity retest handoff notes
+  cb5cb8f Prepare review session queue flow
+
+User / environment notes
+- The user is jskim.
+- Do not attribute commits to the other Windows user.
+- Use git author:
+  user.name=jskim
+  user.email=jskim@users.noreply.github.com
+- The terminal tool may run through Windows PowerShell even though the repo is in WSL.
+- Reliable command pattern:
+  wsl.exe -d Ubuntu --cd /home/jskim/capstone/Lego-Digital-Twin --exec bash -lc '...'
+- WSL GitHub network timed out during the last push.
+- Windows Git push worked:
+  git.exe -c safe.directory=//wsl.localhost/Ubuntu/home/jskim/capstone/Lego-Digital-Twin -C "\\wsl.localhost\Ubuntu\home\jskim\capstone\Lego-Digital-Twin" push origin develop
+
+Project summary
+- MINIVERSE / Lego Digital Twin exhibition project.
+- Frontend app runs on port 3000.
+- Admin page runs on port 3001.
+- Backend FastAPI runs on port 8000.
+- Redis/RQ workers handle object generation.
+- Unity client consumes backend session and plaza APIs.
+
+Review/demo flow now implemented
+- App start creates a Redis-only session in session_queue.
+- Session IDs are auto-incremented as 000, 001, 002, ...
+- Profile page is removed from routing.
+- Character is not sent to Tripo anymore.
+- Admin assigns prepared character number 1-5 to a session_queue item.
+- Prepared character files are under:
+  apps/backend/storage/models/Character_1
+  apps/backend/storage/models/Character_2
+  apps/backend/storage/models/Character_3
+  apps/backend/storage/models/Character_4
+  apps/backend/storage/models/Character_5
+- Object still goes through Tripo from four views:
+  front, left, back, right
+- Loading page only shows:
+  이제 MINIVERSE로 이동할게요!
+  옆의 부스로 이동하세요!
+- Loading page button "이동하기" moves the session from session_queue to unity_queue and returns to start.
+- Unity calls GET /sessions/active to pop the first unity_queue item into runtime.
+- DB Session is created only when Unity runtime starts.
+- Unity completion calls POST /sessions/unity-queue/advance, moving active runtime session to history_queue.
+- Admin rejecting a history_queue item sets DB sessions.is_true = false.
+- Unity plaza endpoint filters out is_true=false sessions.
+
+Important backend files
+- apps/backend/services/session_queue_service.py
+  New Redis session_queue/unity_queue/history_queue state manager.
+- apps/backend/api/routers/sessions.py
+  Session creation, Unity active pop, finalize, advance, cancel.
+- apps/backend/api/routers/assets.py
+  New Redis queued object upload path and character no-Tripo behavior.
+- apps/backend/worker/tasks/object_task.py
+  Added process_object_session(session_id) for four fixed object views.
+- apps/backend/api/routers/admin.py
+  Added review dashboard APIs for session_queue, unity_queue, history_queue.
+- apps/backend/api/routers/unity_data.py
+  Unity data creation at runtime and plaza is_true filtering.
+- apps/backend/models/session.py
+  Added is_true column.
+- apps/backend/main.py
+  Adds is_true column on startup for Postgres.
+
+Important frontend files
+- apps/frontend/src/App.tsx
+  Profile route removed.
+- apps/frontend/src/pages/CapturePage.tsx
+  Simplified character/object capture flow.
+- apps/frontend/src/pages/LoadingPage.tsx
+  Simplified final move message and "이동하기" behavior.
+- apps/frontend/src/admin/AdminApp.tsx
+  Replaced old dashboard with three review queues.
+- apps/frontend/src/api/client.ts
+  Added review/admin queue APIs.
+
+Unity notes
+- Unity handoff file was added here:
+  unity-client/AURA_Lego/Assets/00_Project/History/TODO_retest.txt
+- Recommended intro video path:
+  unity-client/AURA_Lego/Assets/StreamingAssets/Videos/intro.mp4
+- CharacterAnimationController now supports texture_url as jpg/jpeg/png.
+
+Verification already done
+- Backend py_compile passed for changed backend routers/services/tasks/main.
+- Frontend app build passed with Linux nvm environment:
+  source ~/.nvm/nvm.sh 2>/dev/null; npm run build
+- Admin build passed:
+  source ~/.nvm/nvm.sh 2>/dev/null; npm run build:admin
+
+Things to be careful about
+- Do not reintroduce app ProfilePage routing unless the plan changes.
+- Do not send character images to Tripo in the review/demo flow.
+- Do not assume unity_queue[0] is currently running. It is only waiting until Unity calls /sessions/active.
+- If touching queue deletion/cancel behavior, clean both Redis queue entries and Redis session hash.
+- If touching plaza/free mode, keep is_true filtering.
+- If pushing from WSL times out, use Windows git.exe with safe.directory as shown above.
+
+Likely next tasks
+- Run the full exhibition stack and manually test:
+  start -> capture -> loading -> move -> admin queue -> Unity active pop.
+- Coordinate with Unity developer on:
+  intro video playback,
+  /sessions/active polling/call timing,
+  guide mode name input,
+  runtime completion advance call.
+- If real four-camera capture hardware is integrated, replace the temporary frontend multi-file selection with the real camera trigger/upload path.

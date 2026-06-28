@@ -13,7 +13,7 @@ MINIVERSE 전시 시스템의 백엔드 서버.
         │
         ▼
 [FastAPI]
-  - 세션 생성 / 프로필 저장
+  - DB 세션 생성 / 프로필 저장
   - 이미지 저장 → Redis Queue 등록
         │
         ▼
@@ -124,9 +124,10 @@ Worker 2개가 병렬 실행됩니다:
 
 | Method | URL | 설명 |
 |---|---|---|
-| POST | `/sessions` | 세션 생성 |
-| PATCH | `/sessions/{id}/profile` | 이름 입력 (character_npc_name, object_name) |
-| POST | `/sessions/{id}/assets` | 이미지 업로드 (character / object) |
+| POST | `/sessions` | DB 세션 생성 |
+| PATCH | `/sessions/{id}/profile` | 프로필 / 말풍선 저장 |
+| PATCH | `/sessions/{id}/names` | Unity 대기화면에서 입력한 캐릭터/오브제 이름 저장 |
+| POST | `/sessions/{id}/assets` | 이미지 업로드 (character / object, front/left/back/right) |
 | GET | `/sessions/{id}/status` | 처리 상태 polling |
 | GET | `/unity/sessions/{id}` | Unity용 완성 데이터 |
 | WS | `/ws/unity` | session_ready 이벤트 수신 |
@@ -139,7 +140,7 @@ Worker 2개가 병렬 실행됩니다:
 git checkout feature/backend
 git fetch origin && git merge origin/develop
 # ... 작업 ...
-git add <파일명>
+git add -A
 git commit -m "feat(backend): ..."
 git push origin feature/backend
 # GitHub에서 feature/backend → develop PR 생성

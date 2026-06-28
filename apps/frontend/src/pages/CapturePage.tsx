@@ -1,188 +1,206 @@
-import { useState, useRef, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { uploadAsset } from "../api/client";
+import { motion } from "framer-motion";
+import { captureObjectFromCameras, getCameraHealth, prepareCharacterPlaceholder } from "../api/client";
 import { useSessionStore } from "../store/sessionStore";
 import PrimaryButton from "../components/PrimaryButton";
 
-interface GuideStep  { type: "guide";   text: string }
-interface CaptureStep{ type: "capture"; assetType: "character" | "object"; label: string; emoji: string }
-type Step = GuideStep | CaptureStep;
+const shutterSound = new Audio("/sounds/camera-shutter.mp3");
+shutterSound.volume = 0.7;
 
-const STEPS: Step[] = [
-  { type: "guide",   text: "안녕하세요!" },
-  { type: "guide",   text: "MINIVERSE에 오신걸 환영합니다!" },
-  { type: "guide",   text: "먼저 여러분의 NPC가 될\n캐릭터를 촬영할게요!" },
-  { type: "guide",   text: "캐릭터를 앞에 표시된\n곳에 올려주세요!" },
-  { type: "guide",   text: "캐릭터 촬영을\n시작합니다" },
-  { type: "capture", assetType: "character", label: "캐릭터", emoji: "🧍" },
-  { type: "guide",   text: "이제 당신이 조립한\n오브제를 촬영할게요!" },
-  { type: "guide",   text: "오브제를 앞에 표시된\n곳에 올려주세요!" },
-  { type: "guide",   text: "오브제 촬영을\n시작합니다" },
-  { type: "capture", assetType: "object", label: "오브제", emoji: "🧱" },
-];
-
-function GuideScreen({ step, onNext }: { step: GuideStep; onNext: () => void }) {
-  useEffect(() => {
-    const t = setTimeout(onNext, 2400);
-    return () => clearTimeout(t);
-  }, [step.text]);
-
-  const words = step.text.split(/(\n)/).flatMap((seg) =>
-    seg === "\n" ? ["\n"] : seg.split(" ")
-  );
-
-  return (
-    <motion.div
-      key={step.text}
-      className="min-h-screen flex flex-col items-center justify-center px-8 cursor-pointer select-none"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.3 }}
-      onClick={onNext}
-    >
-      <p className="text-4xl font-black text-gray-900 text-center leading-tight">
-        {words.map((w, i) =>
-          w === "\n" ? (
-            <br key={i} />
-          ) : (
-            <motion.span
-              key={`${step.text}-${i}`}
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.07, duration: 0.35 }}
-              className="inline-block mr-2"
-            >
-              {w}
-            </motion.span>
-          )
-        )}
-      </p>
-      <motion.p
-        className="text-gray-300 text-sm mt-12"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1.2 }}
-      >
-        화면을 탭하면 넘어갑니다
-      </motion.p>
-    </motion.div>
-  );
+function playShutterSound() {
+  shutterSound.currentTime = 0;
+  shutterSound.play().catch(() => {});
 }
 
-function CaptureScreen({ step, onDone }: { step: CaptureStep; onDone: (assetId: string) => void }) {
-  const { sessionId } = useSessionStore();
-  const [preview, setPreview] = useState<string | null>(null);
-  const [file, setFile] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
-
-  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    setFile(f);
-    setPreview(URL.createObjectURL(f));
-    setUploadError(null);
-  };
-
-  const handleUpload = () => {
-    if (!sessionId || !file) return;
-    setUploading(true);
-    setUploadError(null);
-
-    // 백그라운드 업로드 — await 없이 fire-and-forget
-    // worker가 비동기로 처리하므로 응답을 기다릴 필요 없음
-    uploadAsset(sessionId, step.assetType, file).catch((e) => {
-      console.error("백그라운드 업로드 실패", e);
-    });
-
-    // 400ms 후 즉시 다음 화면으로 이동
-    setTimeout(() => onDone(""), 400);
-  };
-
-  return (
-    <motion.div
-      key={step.assetType}
-      className="min-h-screen flex flex-col justify-center gap-5 px-6 py-10"
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.35 }}
-    >
-      <div className="text-center">
-        <span className="text-5xl">{step.emoji}</span>
-        <h2 className="text-2xl font-black text-gray-900 mt-2">{step.label} 촬영</h2>
-      </div>
-
-      {preview ? (
-        <div className="rounded-2xl overflow-hidden aspect-square bg-gray-100">
-          <img src={preview} className="w-full h-full object-cover" />
-        </div>
-      ) : (
-        <button
-          onClick={() => fileRef.current?.click()}
-          className="aspect-square rounded-2xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-3 text-gray-400 hover:border-purple-400 hover:text-purple-400 transition-colors"
-        >
-          <span className="text-5xl">📷</span>
-          <span className="text-sm font-medium">사진 선택 또는 촬영</span>
-        </button>
-      )}
-
-      <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFile} />
-
-      {uploadError && (
-        <p className="text-red-400 text-sm text-center">{uploadError}</p>
-      )}
-
-      <div className="flex gap-3">
-        {preview && (
-          <PrimaryButton variant="secondary" onClick={() => { setPreview(null); setFile(null); }}>
-            다시 찍기
-          </PrimaryButton>
-        )}
-        <PrimaryButton onClick={preview ? handleUpload : () => fileRef.current?.click()} disabled={uploading}>
-          {uploading ? "업로드 중..." : preview ? "업로드" : "촬영하기"}
-        </PrimaryButton>
-      </div>
-    </motion.div>
-  );
+interface CapturePageProps {
+  testMode?: boolean;
 }
 
-export default function CapturePage() {
-  const [stepIdx, setStepIdx] = useState(0);
+export default function CapturePage({ testMode = false }: CapturePageProps) {
+  const { sessionId, setUploaded } = useSessionStore();
   const navigate = useNavigate();
-  const { setUploaded, setCharacterAssetId, setObjectAssetId } = useSessionStore();
+  const [step, setStep] = useState<"character" | "object">("character");
+  const [uploading, setUploading] = useState(false);
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const [cameraReady, setCameraReady] = useState(testMode);
+  const [cameraStatus, setCameraStatus] = useState(testMode ? "카메라 테스트 모드" : "카메라 연결 확인 중...");
+  const [error, setError] = useState<string | null>(null);
 
-  const step = STEPS[stepIdx];
-  const next = () => setStepIdx((i) => i + 1);
+  useEffect(() => {
+    if (testMode) return;
 
-  const handleCaptureDone = (assetId: string) => {
-    const s = step as CaptureStep;
-    if (s.assetType === "character") { setCharacterAssetId(assetId); setUploaded("character"); }
-    else { setObjectAssetId(assetId); setUploaded("object"); }
-    if (stepIdx >= STEPS.length - 1) navigate("/profile");
-    else next();
+    let cancelled = false;
+    const checkCamera = async () => {
+      try {
+        const res = await getCameraHealth();
+        if (cancelled) return;
+        const cameras = res.data.cameras ?? [];
+        const ready = Boolean(res.data.ready);
+        setCameraReady(ready);
+        setCameraStatus(
+          ready
+            ? "카메라 4대 연결 완료"
+            : `카메라 연결 대기 중 (${cameras.filter((camera: { opened?: boolean }) => camera.opened).length}/4)`,
+        );
+      } catch {
+        if (cancelled) return;
+        setCameraReady(false);
+        setCameraStatus("Windows 카메라 서버 연결 대기 중");
+      }
+    };
+
+    void checkCamera();
+    const timer = window.setInterval(() => void checkCamera(), 3000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [testMode]);
+
+  const delay = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
+
+  const runCountdown = async () => {
+    setError(null);
+    for (const value of [3, 2, 1]) {
+      setCountdown(value);
+      await delay(850);
+    }
+    setCountdown(null);
+    playShutterSound();
   };
 
-  const captureSteps = STEPS.filter((s) => s.type === "capture");
-  const doneCount = captureSteps.filter((s) => STEPS.indexOf(s) < stepIdx).length;
+  const handleCharacterCapture = async () => {
+    if (uploading) return;
+    setUploading(true);
+    await runCountdown();
+
+    if (testMode) {
+      setUploaded("character");
+      setStep("object");
+      setUploading(false);
+      return;
+    }
+
+    if (!sessionId) {
+      setError("세션 정보가 없습니다. 처음부터 다시 시작해 주세요.");
+      setUploading(false);
+      return;
+    }
+
+    try {
+      await prepareCharacterPlaceholder(sessionId);
+      setUploaded("character");
+      setStep("object");
+    } catch {
+      setError("캐릭터 세션 준비에 실패했습니다. 다시 시도해 주세요.");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleObjectCapture = async () => {
+    if (uploading) return;
+    if (!cameraReady && !testMode) {
+      setError("카메라 4대가 모두 준비된 뒤 촬영할 수 있습니다.");
+      return;
+    }
+    setUploading(true);
+    await runCountdown();
+
+    if (testMode) {
+      setUploaded("object");
+      navigate("/test/loading");
+      return;
+    }
+
+    if (!sessionId) {
+      setError("세션 정보가 없습니다. 처음부터 다시 시작해 주세요.");
+      setUploading(false);
+      return;
+    }
+
+    try {
+      await captureObjectFromCameras(sessionId);
+      setUploaded("object");
+      navigate("/loading");
+    } catch {
+      setError("오브제 카메라 촬영에 실패했습니다. Windows 카메라 서버를 확인해 주세요.");
+      setUploading(false);
+    }
+  };
+
+  const renderCaptureStep = (
+    title: string,
+    onCapture: () => void,
+    disabled = false,
+    buttonLabel = "촬영",
+    showCameraStatus = false,
+  ) => (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="w-full flex flex-col items-center gap-6 text-center"
+    >
+      <motion.img
+        src="/images/camera.png"
+        alt=""
+        className="w-52 max-w-[68vw] object-contain"
+        initial={{ opacity: 0, scale: 0.92 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.35 }}
+      />
+      <div className="space-y-3">
+        <p className="text-3xl font-black text-gray-900">{title}</p>
+      </div>
+      <PrimaryButton onClick={onCapture} disabled={disabled}>
+        {buttonLabel}
+      </PrimaryButton>
+      {!testMode && showCameraStatus && (
+        <p className={`text-center text-sm ${cameraReady ? "text-emerald-600" : "text-gray-400"}`}>
+          {cameraStatus}
+        </p>
+      )}
+      {error && <p className="text-center text-sm text-red-500">{error}</p>}
+    </motion.div>
+  );
 
   return (
-    <div className="relative">
-      <div className="fixed top-0 left-0 right-0 z-10 flex gap-2 px-6 pt-5 max-w-md mx-auto">
-        {captureSteps.map((_, i) => (
-          <div key={i} className={`flex-1 h-1 rounded-full transition-colors duration-500 ${i < doneCount ? "bg-purple-500" : "bg-gray-200"}`} />
-        ))}
-      </div>
-      <AnimatePresence mode="wait">
-        {step.type === "guide" ? (
-          <GuideScreen key={stepIdx} step={step} onNext={next} />
-        ) : (
-          <CaptureScreen key={stepIdx} step={step as CaptureStep} onDone={handleCaptureDone} />
-        )}
-      </AnimatePresence>
+    <div className="min-h-screen flex flex-col items-center justify-center px-6 py-10 bg-white">
+      {countdown !== null ? (
+        <motion.div
+          key={countdown}
+          className="flex h-screen w-full items-center justify-center bg-white"
+          initial={{ opacity: 0, scale: 0.45, y: 24 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 1.35 }}
+          transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <motion.span
+            className="text-[9rem] font-black leading-none text-gray-950"
+            animate={{ scale: [1, 1.08, 1], opacity: [0.85, 1, 0.9] }}
+            transition={{ duration: 0.65, ease: "easeOut" }}
+          >
+            {countdown}
+          </motion.span>
+        </motion.div>
+      ) : step === "character" ? (
+        renderCaptureStep(
+          "캐릭터 촬영하기",
+          handleCharacterCapture,
+          uploading,
+          uploading ? "촬영 중..." : "촬영하기",
+          false,
+        )
+      ) : (
+        renderCaptureStep(
+          "오브제 촬영하기",
+          handleObjectCapture,
+          uploading || !cameraReady,
+          uploading ? "촬영 중..." : cameraReady ? "촬영하기" : "카메라 연결 중",
+          false,
+        )
+      )}
     </div>
   );
 }

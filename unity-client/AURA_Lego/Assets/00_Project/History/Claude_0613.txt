@@ -1,0 +1,704 @@
+================================================================
+Claude Code 작업 기록
+날짜: 2026-06-13
+브랜치: feature/unity
+================================================================
+
+주제: 서버 모드 렉 해결 — 런타임 성능 최적화 (Mock·Server 공통 적용)
+      + VR 빌드 환경 확인 + 효과확인 HUD + 플레이 멈춤(패키지 502) 해결
+
+※ 0608/0610 진단(고폴리 스키닝·그림자·상시 물리가 지배 비용)을 바탕으로
+  코드로 가능한 최적화를 Mock·Server 양쪽 모드에 동일하게 적용.
+  메시 decimation은 런타임 최적화로 대체(사용자 결정) — 메시 원본 유지.
+
+
+────────────────────────────────────────────────────────────────
+[세션 1] VR 빌드 환경 확인
+────────────────────────────────────────────────────────────────
+
+## 점검 파일
+  Assets/XR/XRGeneralSettingsPerBuildTarget.asset
+  Packages/manifest.json (XR 패키지 설치 현황)
+
+## 결과
+  | 빌드 타깃            | XR 로더        | InitOnStart | 상태                 |
+  |---------------------|---------------|-------------|----------------------|
+  | Standalone (PC)     | m_Loaders: [] | 0           | VR 비활성 (키보드+마우스) |
+  | Android             | Oculus 로더 1개 | 1           | VR(Quest) 활성        |
+
+  → PC 데스크톱 빌드는 현재 VR 아님(0610에서 OpenXR 해제 상태 유지).
+    FreeCameraController 키보드+마우스 동작. Android 타깃만 Quest VR 살아있음.
+  → 전시를 PC 모니터/키마로 한다면 현재 설정이 맞음.
+
+
+────────────────────────────────────────────────────────────────
+[세션 2] 런타임 성능 최적화 — 공통 유틸 신설
+────────────────────────────────────────────────────────────────
+
+## 방침 (사용자 결정)
+  메시 decimation 라이브러리 도입 대신, GTX1060급에서 실제 지배 비용인
+  "그림자 캐스팅"과 "스키닝 품질", "상시 물리 시뮬레이션"을 낮춰 FPS 확보.
+  메시(폴리곤)는 원본 유지. Mock(저폴리)·Server(고폴리) 동일 호출 —
+  저폴리엔 영향 미미, 고폴리에서 큰 이득.
+
+## 신규 파일 1: Scripts/Core/RuntimeOptimizer.cs (static)
+  Optimize(GameObject go): 하위 모든 Renderer/SkinnedMeshRenderer에 적용
+    - shadowCastingMode = Off          (그림자 캐스팅 제거 — GPU 핵심 절감)
+    - receiveShadows                    (옵션, 기본 유지)
+    - SkinnedMeshRenderer.quality = Bone2  (본 4→2, 스키닝 비용 절감)
+    - skinnedMotionVectors = false
+  전시 기본값은 static 필드로 한 곳에서 조정:
+    disableShadowCasting=true / disableShadowReceiving=false /
+    limitSkinQuality=true / skinQuality=Bone2 / disableSkinnedMotionVectors=true
+  여러 번 호출해도 안전(idempotent).
+
+## 신규 파일 2: Scripts/Object/PhysicsSettler.cs (MonoBehaviour)
+  낙하한 전시 오브제가 바닥에 안착하면 Rigidbody를 kinematic으로 전환해
+  상시 물리(Continuous 충돌검사 포함) 비용을 제거하고 스스로 컴포넌트 제거.
+    - settleTime=0.5s 동안 linearVelocity < 0.05 유지 → 안착 판정
+    - maxWaitTime=10s 안전망(무조건 안착)
+    - kinematic 전환 전 collisionDetectionMode=Discrete (Continuous+kinematic 경고 방지)
+  ※ Unity 6 API(linearVelocity) 사용.
+
+
+────────────────────────────────────────────────────────────────
+[세션 3] 전 스폰 경로에 최적화 연결 (Mock·Server 공통 합류점)
+────────────────────────────────────────────────────────────────
+
+## 캐릭터 (3곳 — Mock·Server 공통 합류)
+  Scripts/Character/GeneratedCharacterSpawner.cs
+    - using LegoTwin.Core 추가
+    - SetupAsGuide()  말미: RuntimeOptimizer.Optimize(go)
+    - SetupAsPlaced() 말미: RuntimeOptimizer.Optimize(go)
+  Scripts/Plaza/PlazaManager.cs
+    - SetupCharacterForPlaza() 말미: RuntimeOptimizer.Optimize(go)
+
+## 오브제 (Mock·Server·fallback 모두 RuntimePhysicsUtil 경유)
+  Scripts/Object/RuntimePhysicsUtil.cs
+    - SetupSimplePhysics(): PhysicsSettler 자동 부착 (없을 때만)
+  Scripts/Object/GeneratedObjectSpawner.cs
+    - using LegoTwin.Core 추가
+    - SpawnMock() / SpawnFromServerAsync() 말미: RuntimeOptimizer.Optimize(_spawnedObject)
+  Scripts/Plaza/PlazaManager.cs
+    - using LegoTwin.Core 추가
+    - SetupObjectPhysics(): RuntimeOptimizer.Optimize(go) 추가
+      (현재 오브제 + 광장 오브제 Mock/Server/fallback 3경로 전부 커버)
+
+## 적용 커버리지
+  | 대상              | 경로                                   | 모드        |
+  |------------------|----------------------------------------|------------|
+  | 가이드 NPC        | GeneratedCharacterSpawner.SetupAsGuide | Mock·Server |
+  | 배치 캐릭터        | GeneratedCharacterSpawner.SetupAsPlaced| Mock·Server |
+  | 광장 이전 캐릭터    | PlazaManager.SetupCharacterForPlaza    | Mock·Server |
+  | 현재 오브제        | GeneratedObjectSpawner (Mock/Server)   | Mock·Server |
+  | 광장 이전 오브제    | PlazaManager.SetupObjectPhysics        | Mock·Server |
+
+
+────────────────────────────────────────────────────────────────
+[세션 4] 효과 확인용 HUD 신설
+────────────────────────────────────────────────────────────────
+
+## 신규 파일: Scripts/Core/PerfHud.cs (디버그용, 전시 빌드에서 비활성)
+  빈 GameObject에 부착 후 Play. 좌상단에 FPS·프레임 ms 표시.
+  에디터에서는 Tris/Verts/SetPass/DrawCalls/Batches/ShadowCasters도 표시
+  (UnityEditor.UnityStats, #if UNITY_EDITOR 가드).
+    - F9 : 씬 전체 렌더러에 RuntimeOptimizer 최적화 즉시 ON/OFF (A/B 비교)
+           OFF=원본(ShadowCasting.On·SkinQuality.Auto), ON=최적화 적용
+    - F10: Time.timeScale 0↔1 (한 프레임 정밀 비교)
+  → Profiler 없이도 그림자 캐스터·드로우콜 변화를 즉석 비교 가능.
+
+## 효과 확인 결과 (사용자 검증 완료)
+  HUD로 F9 토글하며 최적화 ON/OFF 비교 → 성능 개선 효과 확인됨.
+
+
+────────────────────────────────────────────────────────────────
+[세션 5] (트러블슈팅) 플레이 ~3초 후 멈춤 — 패키지 레지스트리 502
+────────────────────────────────────────────────────────────────
+
+## 증상
+  Play 약 3초 후 에디터·플레이가 함께 얼어붙음. 동시에 콘솔에:
+    Unable to perform online search:
+    Request [GET https://packages.unity.com/-/api/search] failed with status code [502]
+    UnityEditor.EditorApplication:Internal_CallUpdateFunctions ()
+
+## 원인 (게임 코드 무관)
+  packages.unity.com/-/api/search 는 Editor 전용 Package Manager API.
+  레지스트리를 주기적으로 폴링하는 패키지들이 서버 502 응답에 메인 스레드를
+  동기 블로킹 → 에디터·플레이가 같이 멈춤. 런타임 스크립트는 이 요청을 못 보냄.
+
+## 해결 — 불필요 폴링 패키지 5개 제거 (Packages/manifest.json)
+  com.unity.ads (4.4.2)              광고
+  com.unity.analytics (3.8.1)        분석
+  com.unity.purchasing (4.12.2)      인앱결제
+  com.unity.learn.iet-framework (5.0.1)  인터랙티브 튜토리얼
+  com.unity.multiplayer.center (1.0.0)   멀티플레이 설정 허브
+
+## 서버 모드 영향 점검 (코드 검색으로 입증)
+  Assets/00_Project 전체에서 Advertisement/Purchasing/Analytics/Tutorials/
+  Multiplayer.Center 사용처 0건. 서버 통신은 아래로만 동작 → 전부 유지됨:
+    HTTP   : UnityEngine.Networking.UnityWebRequest (modules.unitywebrequest*)
+    WebSocket: NativeWebSocket (com.endel.nativewebsocket)
+    GLB    : GLTFast (com.unity.cloud.gltfast)
+  → Mock·Server 어느 모드에도 영향 없음. 제거 후 멈춤 사라짐(사용자 확인).
+
+
+────────────────────────────────────────────────────────────────
+[검증]
+────────────────────────────────────────────────────────────────
+
+  IDE 진단(OmniSharp): 신규·수정 7개 파일 오류·경고 0건.
+    RuntimeOptimizer.cs / PhysicsSettler.cs / PerfHud.cs / RuntimePhysicsUtil.cs /
+    GeneratedObjectSpawner.cs / GeneratedCharacterSpawner.cs / PlazaManager.cs
+  성능 효과: PerfHud F9 A/B 비교로 개선 확인(사용자).
+  플레이 멈춤: 패키지 제거 후 해소(사용자).
+
+
+────────────────────────────────────────────────────────────────
+[세션 6] TRILIB Standalone define 정리 (커밋 위생)
+────────────────────────────────────────────────────────────────
+
+## 배경
+  커밋본 ProjectSettings에 Standalone용 bare TRILIB define이 들어가 있었음
+  (과거 커밋에 혼입). 0606 의도는 "커밋본은 TRILIB 비움"(미설치 환경 컴파일 보장).
+
+## 처리
+  ProjectSettings.asset 의 Android·Standalone 모두 TRILIB_DISABLE_EDITOR_GLTF_IMPORT
+  만 남기고 bare TRILIB 제거 후 커밋. (라이선스 무관 — define은 문자열 플래그)
+  ※ 설치 머신은 TriLibDefineSetup이 로컬 재추가 → modified로 보이는 게 정상(커밋 금지).
+
+
+────────────────────────────────────────────────────────────────
+[세션 7] NPC 에셋 추가 + Main 씬 커밋
+────────────────────────────────────────────────────────────────
+
+  배회 NPC 3종(plankton/spongebob/squidward) fbx·머티리얼·텍스처·프리팹 추가,
+  Main.unity 배치 반영. TriLib 라이선스 점검: .gitignore로 제외·추적 0건 확인(EULA 준수).
+
+
+────────────────────────────────────────────────────────────────
+[세션 8] 협업 인프라 정비 (3인 협업 대비)
+────────────────────────────────────────────────────────────────
+
+## 발견·수정
+  - .gitignore 버그: [Logs]/[Build]/[MemoryCaptures]가 "문자 클래스"로 해석돼
+    폴더를 못 거름 → Logs/·UserSettings/가 추적되던 문제. 규칙 수정 + UserSettings 추가.
+  - Logs/·UserSettings/ git 추적 해제(git rm --cached, 디스크 보존) → 세션마다 충돌·노이즈 제거.
+  - .gitattributes 신설: 씬/프리팹/.asset merge=unityyamlmerge(Smart Merge),
+    fbx·png 등 binary 표기.
+
+
+────────────────────────────────────────────────────────────────
+[세션 9] 협업 가이드 문서 + 규칙 정리
+────────────────────────────────────────────────────────────────
+
+## 신규: UNITY_COLLABORATION.md (Assets/00_Project/History/, 백엔드1·Unity2 협업 가이드)
+  ※ 최초 docs/ 에 생성 후 History 폴더로 이동(.meta 동반).
+  환경 통일·브랜치 전략·매일 동기화·씬 잠금·.meta·TriLib/패키지·UnityYAMLMerge 등록·
+  충돌 대응 정리. 이후 규칙 보강:
+    - ProjectSettings 공유 파일 조율(태그/레이어/퀄리티 병렬편집 충돌 방지)
+    - History 작성 규칙: 기존 개발자 Claude_MMDD.txt 유지 / 신규 개발자는 _이름 suffix
+    - 커밋 전 git diff 필수 (무관한 에디터 자동변경 혼입 점검)
+
+## git.md
+  과거 jskim이 의도적으로 삭제(7b640c1, 2026-06-12) → 되살리지 않음.
+  git 규칙 단일 출처는 CLAUDE.md(§2·§5·§9) 유지.
+
+
+────────────────────────────────────────────────────────────────
+[변경된 파일 목록]
+────────────────────────────────────────────────────────────────
+
+  신규:
+    Scripts/Core/RuntimeOptimizer.cs        전시용 렌더러 최적화(그림자·스키닝)
+    Scripts/Object/PhysicsSettler.cs        오브제 안착 후 kinematic 전환
+    Scripts/Core/PerfHud.cs                 효과 확인용 FPS·통계 HUD(F9 A/B, F10 정지)
+    Assets/00_Project/History/UNITY_COLLABORATION.md  3인 협업 가이드 (History 폴더)
+    .gitattributes                          UnityYAMLMerge·binary 처리 (저장소 루트)
+    External Assets/NPC/plankton·spongebob·squidward  배회 NPC 에셋 3종
+
+  수정:
+    Scripts/Object/RuntimePhysicsUtil.cs    PhysicsSettler 자동 부착
+    Scripts/Object/GeneratedObjectSpawner.cs Optimize 호출(Mock/Server)
+    Scripts/Character/GeneratedCharacterSpawner.cs Optimize 호출(Guide/Placed)
+    Scripts/Plaza/PlazaManager.cs           Optimize 호출(캐릭터/오브제)
+    Packages/manifest.json                  불필요 폴링 패키지 5개 제거(502 멈춤 해결)
+    ProjectSettings/ProjectSettings.asset   Standalone TRILIB define 제거(커밋본)
+    Assets/Scenes/Main.unity                NPC 배치
+    .gitignore (루트)                        Logs/Build/MemoryCaptures 패턴 버그 수정 + UserSettings
+
+  추적 해제(git rm --cached, 디스크 보존):
+    Logs/, UserSettings/
+
+  신규(기록):
+    History/Claude_0613.txt
+
+
+────────────────────────────────────────────────────────────────
+[커밋 내역 — 2026-06-13]
+────────────────────────────────────────────────────────────────
+
+  시간     │ 해시    │ 타입  │ 메시지
+  ─────────┼─────────┼───────┼───────────────────────────────────────────────────────
+  10:06:03 │ 40d1021 │ feat  │ 전시 성능 최적화 — 그림자·스키닝·물리 단순화 (Mock·Server 공통)
+  10:06:19 │ b1fd2d4 │ chore │ 미사용 폴링 패키지 5개 제거 — 레지스트리 502 플레이 멈춤 해결
+  10:12:06 │ bc6e0db │ chore │ 배회 NPC 에셋(plankton·spongebob·squidward) 추가 및 Main 씬 배치
+  10:26:19 │ c1eaa43 │ chore │ ProjectSettings Standalone TRILIB define 제거 — 커밋본 TRILIB 비움
+  10:43:11 │ 94fad2a │ chore │ Unity 협업 인프라 정비 — gitignore·gitattributes·Logs/UserSettings 추적 해제
+  10:43:12 │ 7278440 │ docs  │ Unity 3인 협업 가이드 추가
+  10:54:40 │ fa26865 │ docs  │ ProjectSettings 공유 파일 조율 규칙 추가
+  11:07:17 │ a0239f2 │ docs  │ History 작업 기록 작성 규칙 추가
+  12:00:34 │ fab1a2d │ docs  │ 커밋전 git diff 규칙·History 명명 규칙 보강 + 0613 기록 마무리
+  (이후)   │ —       │ docs  │ 0613 커밋 내역 표 정리
+
+
+────────────────────────────────────────────────────────────────
+[미해결 / 추후 작업]
+────────────────────────────────────────────────────────────────
+
+  [x] 성능 효과 확인 (PerfHud F9 A/B) — 완료
+  [x] 플레이 멈춤(502) 해결 — 패키지 제거로 완료
+  [ ] 그림자가 시각적으로 필요하면 RuntimeOptimizer.disableShadowCasting=false 조정
+  [ ] (효과 부족 시) 백엔드 메시 decimation 검토 (근본 해결)
+  [ ] Server 모드 통합 테스트 — bubble_text PATCH·plaza 응답 라운드트립
+  [ ] 전시 빌드 전: _enableGuideSkip · FreeCameraController 비활성화 + PerfHud GameObject 비활성화
+
+================================================================
+
+
+================================================================
+[추가 작업] 광장/창작물 오브제 낙하 제거 → 레이캐스트 바닥 즉시 안착
+날짜: 2026-06-13
+브랜치: feature/unity
+================================================================
+
+주제: 일부 오브제가 땅 속에 파묻히고, 나의 창작물 obj는 공중에 뜨는 문제 해결.
+      "중력 낙하 후 안착" 방식을 "낙하 없이 바닥에 즉시 안착"으로 전면 교체.
+
+
+────────────────────────────────────────────────────────────────
+[세션 1] 원인 분석 — 콜라이더가 아닌 낙하·동결이 문제
+────────────────────────────────────────────────────────────────
+
+## 파묻힘 (이전 창작물 일부)
+  씬에서 BoxCollider 크기는 메시와 정확히 일치함을 확인 → 콜라이더 사이즈 문제 아님.
+  진짜 원인: objectDropHeight=15 + objectSpawnScale=12 큰 오브제가 ~17m/s로 착지 →
+  한 프레임에 깊게 관통 → 솔버가 밀어내는 도중 PhysicsSettler가 velocity<0.05·0.5초
+  조건으로 kinematic 동결 → 관통한 상태 그대로 굳어 파묻힘. (관통 깊이가 메시·자세별로
+  달라 "몇몇 개만" 묻힘)
+
+## 공중에 뜸 (나의 창작물)
+  GeneratedObjectSpawner는 ObjectSpawnPoint.position.y를 바닥으로 사용 →
+  spawnPoint Y가 높게 설정돼 있어 그 높이에 떠서 안착.
+
+
+────────────────────────────────────────────────────────────────
+[세션 2] 낙하 제거 — RuntimePhysicsUtil.PlaceOnGround 신설
+────────────────────────────────────────────────────────────────
+
+## 수정: Scripts/Object/RuntimePhysicsUtil.cs (전면 교체)
+  - SetupSimplePhysics(Rigidbody+중력+낙하) 제거 → PlaceOnGround(go, fallbackGroundY) 신설
+  - 동작:
+      ① footprint 중심에서 아래로 Ground 레이어(인덱스 6) 레이캐스트 → 실제 바닥 Y
+         (QueryTriggerInteraction.Ignore, 못 맞히면 fallbackGroundY 폴백)
+      ② 메시 바닥(bounds.min.y)이 바닥 Y에 닿도록 Y만 보정 (물리 낙하 없음)
+      ③ 기존 검증된 방식으로 루트 BoxCollider 재계산 (InverseTransform — 씬에서 일치 확인)
+  - 프리팹에 Rigidbody 있으면 isKinematic=true로 낙하 차단
+  → spawnPoint Y가 높아도 항상 바닥에 앉음. 회전·스케일 무관.
+
+## Ground 레이어 근거
+  TagManager: Ground = layer 6. Main.unity에서 124개 오브젝트가 Ground 레이어 사용
+  (바닥/환경) → 레이캐스트로 바닥 안정적으로 탐지. 못 맞히면 폴백이라 무회귀.
+
+
+────────────────────────────────────────────────────────────────
+[세션 3] 전 스폰 경로 단일 함수로 합류 (Mock·Server 동일)
+────────────────────────────────────────────────────────────────
+
+## 수정: Scripts/Plaza/PlazaManager.cs
+  - objectDropHeight 필드 + "오브제 낙하 설정" 헤더 제거
+  - 오브제 3경로(Mock / Server GLB / Server fallback) 모두 +Vector3.up*dropHeight 제거,
+    SetupObjectPhysics(go, point.position.y) 호출 (point.position.y = 폴백용)
+  - SetupObjectPhysics(go, groundY): RuntimePhysicsUtil.PlaceOnGround + RuntimeOptimizer
+
+## 수정: Scripts/Object/GeneratedObjectSpawner.cs (현재 관람객 본인 오브제)
+  - SetupPhysics(go, groundY) → PlaceOnGround, 낙하 제거
+  - Server GLB 경로에 Awaitable.NextFrameAsync() 추가 (renderer.bounds 초기화 보장)
+  - 미사용된 mass 필드 제거, applyGravity 툴팁 갱신
+
+## 안전성 검증 (나의 창작물 Y 의존 없음)
+  - PlazaManager.AttachViewToCurrentSession: 투표 UI는 오브제 XZ만 사용, Y는 절대값
+    viewHeightOffset → 오브제 Y 변경 무영향
+  - GameFlowManager: 오브제 GO 참조만 저장, 위치 Y 미사용
+  → 나의 창작물 obj를 바닥에 내려도 의존 로직 없음.
+
+## 적용 커버리지 (5경로 전부 PlaceOnGround 단일 합류)
+  | 대상            | 경로                                      | 모드        |
+  |----------------|-------------------------------------------|------------|
+  | 현재 오브제 Mock | GeneratedObjectSpawner.SpawnMock          | Mock        |
+  | 현재 오브제 GLB  | GeneratedObjectSpawner.SpawnFromServerAsync| Server     |
+  | 광장 오브제 Mock | PlazaManager (mock prefab)                | Mock        |
+  | 광장 오브제 GLB  | PlazaManager.SpawnObjectFromServerAsync   | Server      |
+  | 광장 오브제 폴백 | PlazaManager (GLB 실패 → mock fallback)    | Server      |
+  → Server GLB 두 경로는 InstantiateMainSceneAsync 후 NextFrameAsync 1프레임 대기.
+    GLB 루트는 Default 레이어라 Ground 레이캐스트 자기충돌 없음, Rigidbody 없어 낙하 없음.
+
+
+────────────────────────────────────────────────────────────────
+[세션 4] 데드코드 정리
+────────────────────────────────────────────────────────────────
+
+  - PhysicsSettler.cs (+ .meta) 삭제 — 낙하 후 kinematic 전환 전용, 호출부 소멸.
+    런타임 AddComponent로만 쓰던 컴포넌트라 씬/프리팹 직렬화 참조 0건 (missing script 없음).
+  - SetupSimplePhysics / objectDropHeight / mass 제거. 남은 참조 0건 확인.
+
+
+────────────────────────────────────────────────────────────────
+[검증]
+────────────────────────────────────────────────────────────────
+
+  - 사용자 확인: 이전 창작물·나의 창작물 obj 모두 바닥에 정상 생성 (파묻힘·뜸 해소).
+  - Server 모드: 두 GLB 경로가 Mock과 동일하게 PlaceOnGround로 합류 — 동작 동일 확인.
+
+
+────────────────────────────────────────────────────────────────
+[변경된 파일 목록]
+────────────────────────────────────────────────────────────────
+
+  수정:
+    Scripts/Object/RuntimePhysicsUtil.cs        PlaceOnGround(레이캐스트 바닥 안착)로 교체
+    Scripts/Plaza/PlazaManager.cs               objectDropHeight 제거, 3경로 즉시 안착
+    Scripts/Object/GeneratedObjectSpawner.cs    즉시 안착, NextFrameAsync, mass 제거
+
+  삭제:
+    Scripts/Object/PhysicsSettler.cs (+ .meta)  미사용(낙하 후 동결 전용)
+
+
+────────────────────────────────────────────────────────────────
+[미해결 / 추후 작업]
+────────────────────────────────────────────────────────────────
+
+  [ ] 바닥이 Ground 레이어가 아닌 구역에 spawnPoint가 있으면 폴백(spawnPoint.y)로 뜰 수
+      있음 — 필요 시 해당 바닥을 Ground 레이어로 지정
+  [ ] Server 모드 통합 테스트 — bubble_text PATCH·plaza 응답 라운드트립
+
+================================================================
+
+
+================================================================
+[추가 작업] 대기화면(입장 버튼 게이트) + 종료→대기화면 복귀(A안) + 세션 리셋 정리
+날짜: 2026-06-13
+브랜치: feature/unity
+================================================================
+
+주제: 씬 시작 지점에 대기화면을 두고, 종료 시 다시 대기화면으로 복귀하는 전시 운영 루프 구현.
+      방식 비교(A: 씬 리로드 / B: 런타임 교체) 후 A안 채택.
+      A안의 핵심 리스크인 "씬 리로드로 초기화되지 않는 static/구독 누수"를 함께 정리하고,
+      Mock·Server 양쪽에서 눈으로 검증할 수 있는 디버그 도구를 추가.
+
+
+────────────────────────────────────────────────────────────────
+[세션 1] 백엔드·Unity 세션 흐름 점검 — 런타임 갱신 가능 여부
+────────────────────────────────────────────────────────────────
+
+## 점검 결과
+  - 백엔드는 stateless REST + 큐로 이미 반복 호출 전제:
+      GET /sessions/active (큐 맨 앞 pop) → GET /sessions/{id}/status (ready 폴링)
+      → GET /unity/sessions/{id} (assets) / POST /unity-queue/advance (완료 전진)
+  - Unity SessionManager.LoadSession은 재호출 가능, OnSessionLoaded 이벤트 기반.
+  - 결론: 데이터·모델 갱신은 가능. 단 화면 정리(teardown)는 현재 "씬 리로드"에 의존.
+
+## A안 vs B안
+  A(씬 리로드): 기존 종료 흐름(QuitButton→AdvanceAndLoadNext→ReloadScene)이 이미 사용.
+    리로드가 스폰물·상태를 통째 초기화 + UnloadUnusedAssets로 메모리 평탄화.
+    전환 시 1회성 hitch(대기화면으로 가림). 변경 최소. → 채택.
+  B(런타임 교체): 무중단이나 teardown(광장 스폰물 추적·static 리셋·플레이어 복귀)을
+    직접 다 짜야 하고 누락 위험 큼. 보류.
+
+
+────────────────────────────────────────────────────────────────
+[세션 2] 종료→대기화면 복귀 (A안) — SessionManager
+────────────────────────────────────────────────────────────────
+
+## Scripts/Managers/SessionManager.cs
+  - Start의 세션 획득 로직을 BeginSessionAcquisition()로 추출
+    (첫 시작과 리로드 재진입이 공유. DontDestroyOnLoad라 Start 재실행 안 되므로 명시 재호출).
+  - AdvanceAndLoadNext(onNoNext) → EndCurrentSession()으로 교체.
+    EndCurrentSessionRoutine: 모드 분기는 "현재 세션 마무리" 한 단계뿐 —
+      Mock  : PlazaManager.SaveCurrentSessionToMockPlaza()
+      Server: ApiClient.AdvanceQueue (POST /unity-queue/advance)
+    이후 공통: sessionId·CurrentSession 초기화 → ReloadScene → 한 프레임 대기
+      → BeginSessionAcquisition()으로 다음 세션 획득(대기화면은 리로드된 씬에서 자동 표시).
+  - 모드 무관 동일 경로 → Server 전환 시 흐름 차이 없음.
+
+## Scripts/UI/QuitButton.cs
+  - OnConfirmYes: AdvanceAndLoadNext → EndCurrentSession()로 변경.
+    "예"가 앱 종료가 아니라 대기화면 복귀(다음 관람객 대기)가 됨. SessionManager 없을 때만 Quit 폴백.
+
+
+────────────────────────────────────────────────────────────────
+[세션 3] 대기화면 UI — 입장 버튼 게이트 방식
+────────────────────────────────────────────────────────────────
+
+## 요구
+  준비되면 자동 전환이 아니라 '입장' 버튼이 활성화되고, 누르면 입장.
+
+## 설계 — "세션 데이터 로드"와 "가이드 시나리오 시작" 분리
+  가이드 NPC 스폰 완료 시점(Mock=즉시 / Server=FBX 로드 완료)에 입장 버튼을 켜고,
+  StartGuideScenario는 입장 클릭까지 보류 → 대기화면 뒤에서 대사가 미리 진행되지 않음.
+
+## 신규: Scripts/UI/WaitingScreenUI.cs (순수 뷰, 의존성 0)
+  - Start에서 Show(). 외부와는 Action 콜백으로만 통신(GameFlow/Session/Plaza 미참조).
+  - ShowEnterButton(onEnter): 입장 버튼 활성화 + 클릭 시 onEnter 실행 후 Hide().
+    버튼 미연결 시 게이트 없이 즉시 onEnter(폴백).
+  - _minimumShowSeconds(기본 0.6): Mock 즉시 로드에도 한 프레임 번쩍임 방지(가시성).
+  - 페이드(unscaledTime 기반), 입장 버튼 중복 클릭 방지.
+
+## Scripts/Managers/GameFlowManager.cs
+  - SpawnGuide 콜백: npc.StartGuideScenario() 즉시 호출 → ReadyToEnter()로 교체.
+  - ReadyToEnter(): _waitingScreen(미연결 시 FindAnyObjectByType)에 ShowEnterButton(BeginGuideScenario).
+    대기화면 없으면 BeginGuideScenario() 즉시(기존 호환).
+  - BeginGuideScenario(): _currentNPC.StartGuideScenario().
+  - [SerializeField] _waitingScreen 추가.
+
+
+────────────────────────────────────────────────────────────────
+[세션 4] A안 리스크 정리 — 씬 리로드로 초기화 안 되는 static/구독
+────────────────────────────────────────────────────────────────
+
+※ 과거 Server 종료는 앱 재실행이라 static이 리셋됐지만, A안은 씬만 리로드 →
+  static·DontDestroyOnLoad 구독이 세션 간 누수. 소유 클래스에서 세션 시작 시 직접 리셋.
+
+## GameFlowManager.IsGuideMode (static, false 고정 문제)
+  - Awake에서 IsGuideMode = true 리셋 → 둘째 관람객부터 가이드 모드 정상 진입.
+
+## LikeSystem._likedSessionIds (static, 중복 투표 기록 누수)
+  - ResetVotes() 추가. PlazaManager.Awake에서 호출 → 다음 관람객이 정상 투표 가능.
+  - (검증용) VotedSessionCount 프로퍼티 추가.
+
+## WebSocketManager.OnLikesUpdated 구독 누수 (DontDestroyOnLoad ↔ 리로드 PlazaManager)
+  - PlazaManager.OnDestroy 추가 → 구독 해제. 죽은 핸들러 누적·예외 방지(Server 핵심).
+
+## CharacterAnimationController.MaterialCache (static, texture GLB 머티리얼 무한 증가)
+  - ClearMaterialCache() 추가(머티리얼·메인텍스처 Destroy 후 Clear).
+    GameFlowManager.Awake에서 호출(이전 캐릭터는 리로드로 파괴된 시점이라 안전).
+  - 광장 이전 창작물 캐릭터는 이 캐시를 쓰지 않음(SetupCharacterForPlaza가 Initialize 미호출)
+    → 캐시 클리어가 광장 캐릭터 텍스처를 깨지 않음(확인됨).
+  - texture_url은 백엔드가 항상 _texture.glb(GLB)만 전달(character_task.py) →
+    이미지(.png) 경로(LoadImageMaterial, 캐시 미경유)는 현재 구성에서 미실행.
+  - (검증용) CachedMaterialSetCount 프로퍼티 추가.
+
+
+────────────────────────────────────────────────────────────────
+[세션 5] 검증 도구 — Mock·Server 공통
+────────────────────────────────────────────────────────────────
+
+## 신규: Scripts/Core/SessionDebugHud.cs (디버그 전용, PerfHud 패턴)
+  좌상단에 모드/현재 세션/IsGuideMode/투표 기록 수/캐시 머티리얼 수/종료 사이클 수 표시.
+  [End] 키 → EndCurrentSession()(QuitButton과 동일) → 종료→대기→다음 세션 사이클 즉시 테스트.
+  읽는 값이 전부 모드 무관 → Mock으로 검증한 흐름이 Server에서도 동일하게 보임.
+
+## 검증 포인트
+  새 세션마다: IsGuideMode=True 복귀 / 투표 기록=0 / 캐시 머티리얼 누적 없음 / 같은 창작물 재투표 가능.
+
+
+────────────────────────────────────────────────────────────────
+[변경된 파일 목록]
+────────────────────────────────────────────────────────────────
+
+  신규:
+    Scripts/UI/WaitingScreenUI.cs        대기화면(입장 버튼 게이트, 순수 뷰)
+    Scripts/Core/SessionDebugHud.cs      세션 생명주기 검증 HUD(디버그 전용)
+
+  수정:
+    Scripts/Managers/SessionManager.cs   BeginSessionAcquisition 추출, EndCurrentSession(종료→리로드→대기)
+    Scripts/Managers/GameFlowManager.cs  입장 버튼 게이트(ReadyToEnter/BeginGuideScenario),
+                                         Awake에서 IsGuideMode·MaterialCache 리셋
+    Scripts/Plaza/PlazaManager.cs        Awake에서 LikeSystem.ResetVotes, OnDestroy 구독 해제
+    Scripts/Plaza/LikeSystem.cs          ResetVotes·VotedSessionCount
+    Scripts/Character/CharacterAnimationController.cs  ClearMaterialCache·CachedMaterialSetCount
+    Scripts/UI/QuitButton.cs             EndCurrentSession 호출(대기화면 복귀)
+
+
+────────────────────────────────────────────────────────────────
+[Unity Editor 작업 (코드 아님)]
+────────────────────────────────────────────────────────────────
+
+  - WaitingScreen Canvas(Overlay, Sort Order 높게) 생성:
+      Root(CanvasGroup, 활성) > Background(불투명) + StatusText(TMP) + EnterButton(Button, 비활성 시작)
+    WaitingScreenUI 연결: _root, _canvasGroup, _enterButton, _statusText
+  - GameFlowManager._waitingScreen → WaitingScreen 연결(미연결 시 자동 검색)
+  - SessionDebugHud: 빈 GameObject에 부착(검증용, 전시 빌드 전 비활성)
+  - 종료 버튼 동작 변경 인지: "예" → 앱 종료가 아니라 대기화면 복귀
+  - 전시 빌드 전 비활성화: SessionDebugHud, PerfHud, _enableGuideSkip, (VR 시)FreeCameraController
+
+
+────────────────────────────────────────────────────────────────
+[미해결 / 추후 작업]
+────────────────────────────────────────────────────────────────
+
+  [ ] (씬) WaitingScreen·EnterButton 구성 및 GameFlowManager._waitingScreen 연결
+  [ ] Server 모드 실제 백엔드로 종료→대기→다음 큐 통합 테스트
+  [ ] 디버그 스킵(Backspace)을 입장 전에 누르면 대기화면이 남는 엣지(디버그 한정) — 필요 시 가드
+  [ ] GltfImport 인스턴스는 Dispose 안 함(인스턴스 에셋 공유) — 리로드 UnloadUnusedAssets에 의존
+  [ ] ExtraBold SDF 55MB — Dynamic 유지한 채 Clear Dynamic Data로 축소 가능(50MB 경고 회피)
+
+================================================================
+
+
+================================================================
+[추가 작업 / 트러블슈팅] TMP 폰트 저장소 비대화 정리 (Static/Dynamic·atlas)
+날짜: 2026-06-13
+브랜치: feature/unity
+================================================================
+
+주제: 대기화면 텍스트 추가로 Pretendard-ExtraBold SDF가 55MB로 커지며 push 시
+      GitHub 50MB 경고 발생. 폰트 저장소 용량 정리 과정에서 겪은 시행착오와 결론.
+
+────────────────────────────────────────────────────────────────
+[배경·원인]
+────────────────────────────────────────────────────────────────
+  - Pretendard SDF 폰트가 8종 × ~38MB + Noto 38MB ≈ 390MB로 저장소의 큰 덩어리.
+  - 용량의 정체는 글리프가 아니라 4096×4096 atlas 텍스처가 .asset에 직렬화된 것.
+  - TMP Atlas Population Mode: 0=Static(런타임 글리프 생성 X), 1=Dynamic(OTF에서 생성).
+
+────────────────────────────────────────────────────────────────
+[시행착오 — 하지 말 것]
+────────────────────────────────────────────────────────────────
+  ① Clear Dynamic Data 후 Static으로 전환 → 글자 전부 □로 깨짐.
+     원인: Static은 atlas에 구운 글자만 표시하는데 Clear로 비웠으니 빈 atlas.
+     → 복구: git checkout으로 커밋된 정상본 복원(소스 OTF GUID 살아있어 가능).
+  ② 인스펙터에서 atlas만 1024로 줄이고 Clear → 거의 안 줄음.
+     원인: 용량은 atlas 텍스처 크기 지배. 1024로 안 바뀌고 4096 유지된 경우도 있었음.
+  ③ atlas 1024로 강제 + 글리프 수천 개 → World 텍스트 심하게 깨짐(블러).
+     원인: 글자 多 × 작은 atlas = 글자당 픽셀 극소. 화질↔용량은 atlas 축소로 동시 해결 불가.
+
+────────────────────────────────────────────────────────────────
+[핵심 정리 — 기억할 것]
+────────────────────────────────────────────────────────────────
+  - 런타임 생성 글리프(닉네임·한마디 등 임의 한글)는 커밋되는 .asset에 안 쌓인다.
+    → 전시 중 어떤 한글이 떠도 저장소 파일은 안 커짐. 에디터에서 본 고정 문구만 구워짐.
+  - Static 전환은 금지(임의 한글 못 다룸 + Clear와 겹치면 □). Dynamic 유지가 정답.
+  - 모드 전환·atlas 변경이 인스펙터에서 안 먹으면 Font Asset Creator로 재생성.
+  - 화질은 Sampling Point Size가 좌우(atlas 크기 아님). 작은 atlas+많은 글자=블러.
+  - 진짜 무손실 해법(선명+많은 한글+가벼운 저장소)은 Git LFS. (이번엔 미적용)
+
+────────────────────────────────────────────────────────────────
+[최종 처리]
+────────────────────────────────────────────────────────────────
+  - 미사용 5종 삭제: ExtraLight/Light/Medium/Regular/Thin (SDF+OTF).
+    참조 0 확인(씬·프리팹·머티리얼·fallback·TMP Settings·ProjectSettings 전수). ~190MB↓
+  - 사용 3종(ExtraBold/Bold/SemiBold): Atlas Population Mode=Dynamic 유지 +
+    atlas 4096→2048 축소 + Clear Dynamic Data 재생성.
+      ExtraBold 55M→8.4M, Bold 38M→8.4M, SemiBold 38M→22M (50MB 경고 해소).
+    ※ Sampling Point Size는 유지(화질 보존). atlas만 축소.
+  - 유지: NotoSansKR-Medium(사용 중).
+  - 복구 안전망: 커밋된 정상본 + 소스 OTF가 있으면 git checkout으로 언제든 복원 가능.
+
+────────────────────────────────────────────────────────────────
+[추후]
+────────────────────────────────────────────────────────────────
+  [ ] 화질·용량 무손실이 필요하면 폰트 .asset(+fbx)을 Git LFS로 이전(0613 TODO)
+  [ ] SemiBold 22M — 더 줄이려면 Clear Dynamic Data 1회 추가(선택)
+
+================================================================
+
+
+================================================================
+[추가 작업] 대기화면 영상 + 텍스트/영상 페이드 + Mock 시뮬 대기시간
+날짜: 2026-06-13 (작업 연속, 일부 06-14 새벽)
+브랜치: feature/unity
+================================================================
+
+주제: 대기화면에 영상을 넣고, 세션 준비 전엔 영상, 준비되면 영상 끄고 입장 버튼만
+      나오도록 구성. Mock에서는 준비시간을 인스펙터로 시뮬레이션.
+
+────────────────────────────────────────────────────────────────
+[영상 게이트 구성 (WaitingScreenUI)]
+────────────────────────────────────────────────────────────────
+  - 영상 표시: VideoPlayer → RenderTexture(WaitingVideo_RT) → RawImage(VideoRoot).
+    Source=Video Clip(mp4), Render Mode=Render Texture, Play On Awake·Loop.
+  - 준비 전: 영상 + 대기 텍스트(_waitingText). 준비되면 영상 페이드 아웃 + 대기 텍스트 OFF,
+    준비 텍스트(_readyText) + 입장 버튼 ON.
+  - 대기/준비 텍스트를 별도 GameObject로 분리(내용·위치·스타일 독립).
+  - 페이드: 영상 페이드 아웃(_videoFadeDuration), 대기 텍스트 페이드 인(_waitingTextFadeDuration).
+    CanvasGroup 자동 추가, 공용 FadeCanvasGroup 재사용.
+
+────────────────────────────────────────────────────────────────
+[Mock 시뮬레이션 대기시간]
+────────────────────────────────────────────────────────────────
+  - _mockPrepSeconds(인스펙터): Mock은 세션이 즉시 준비되므로, 이 시간만큼 영상을 더 보여준 뒤
+    입장 노출 → 실제 전시(Server)의 "준비 대기" 체감을 테스트.
+  - Server는 무시(실제 ShowEnterButton 시점에 즉시 노출). SessionManager.dataSourceMode로 분기.
+
+────────────────────────────────────────────────────────────────
+[후속 조정]
+────────────────────────────────────────────────────────────────
+  - 텍스트 제거: _waitingText·_readyText는 null 허용이라 인스펙터 연결만 비우면 됨(코드 변경 X).
+    → 텍스트 없이 "영상 → 입장 버튼"만으로 운용 가능.
+  - 입장 버튼 지연 노출: _enterButtonDelay(인스펙터) 추가. 준비 완료(영상 페이드 시작) 후
+    이 시간만큼 늦게 버튼이 나타남(영상이 사라진 뒤 자연스럽게 등장). 0이면 즉시.
+
+────────────────────────────────────────────────────────────────
+[트러블슈팅]
+────────────────────────────────────────────────────────────────
+  - 영상 화질 깨짐 → RenderTexture Size를 영상 해상도(예 1920×1080)로, Video Clip Transcode OFF.
+  - 대기 텍스트 페이드가 안 보임 → 원인은 "씬 로드 직후 첫 프레임 unscaledDeltaTime이 수 초로
+    튀어 페이드가 1프레임에 완료". FadeCanvasGroup에서 프레임당 진행량을 MaxStep(0.05s)로
+    clamp해 해결(영상·Root 페이드에도 동일 적용). 디버그 로그로 원인 확인 후 로그 제거.
+  - 텍스트 가독성(영상 위) → TMP는 UI Shadow/Outline 컴포넌트 미적용. 머티리얼 프리셋의
+    Underlay(그림자)/Outline 또는 반투명 배경판 사용. ExtraBold SDF.mat 프리셋 추가.
+
+────────────────────────────────────────────────────────────────
+[변경 파일]
+────────────────────────────────────────────────────────────────
+  수정: Scripts/UI/WaitingScreenUI.cs (영상 게이트·페이드·Mock 시뮬·deltaTime clamp)
+  신규: Materials/UI/WaitingVideo.mp4·WaitingVideo2.mp4 (각 2.5MB), WaitingVideo_RT.renderTexture,
+        TextMesh Pro/Fonts/Pretendard-ExtraBold SDF.mat (대기 텍스트 가독성 프리셋)
+  반영: Scenes/Main.unity, 폰트 SDF 3종 글리프 갱신(2048·Dynamic 유지)
+
+
+================================================================
+[2026-06-13 전체 커밋 내역]
+================================================================
+
+  시간  │ 해시     │ 타입  │ 메시지
+  ──────┼──────────┼───────┼──────────────────────────────────────────────────────────────
+  10:06 │ 40d1021  │ feat  │ 전시 성능 최적화 — 그림자·스키닝·물리 단순화 (Mock·Server 공통)
+  10:06 │ b1fd2d4  │ chore │ 미사용 폴링 패키지 5개 제거 — 레지스트리 502 플레이 멈춤 해결
+  10:12 │ bc6e0db  │ chore │ 배회 NPC 에셋(plankton·spongebob·squidward) 추가 및 Main 씬 배치
+  10:26 │ c1eaa43  │ chore │ ProjectSettings Standalone TRILIB define 제거 — 커밋본 TRILIB 비움
+  10:43 │ 94fad2a  │ chore │ Unity 협업 인프라 정비 — gitignore·gitattributes·Logs/UserSettings 추적 해제
+  10:43 │ 7278440  │ docs  │ Unity 3인 협업 가이드 추가 (docs/UNITY_COLLABORATION.md)
+  10:54 │ fa26865  │ docs  │ ProjectSettings 공유 파일 조율 규칙 추가
+  11:07 │ a0239f2  │ docs  │ History 작업 기록 작성 규칙 추가 — 작성자별 파일명으로 충돌 방지
+  12:00 │ fab1a2d  │ docs  │ 커밋전 git diff 규칙·History 명명 규칙 보강 + 0613 작업기록 마무리
+  12:06 │ 0555cf3  │ docs  │ 0613 작업기록 커밋 내역을 표 형식으로 정리
+  12:08 │ ff51e8d  │ chore │ UNITY_COLLABORATION.md를 History 폴더로 이동 (.meta 동반)
+  12:30 │ 4495d71  │ docs  │ 협업 가이드에 신규 개발자 온보딩 체크리스트 섹션 추가
+  13:32 │ 01fef2f  │ fix   │ 오브제 낙하 제거 → Ground 레이캐스트 바닥 즉시 안착
+  17:34 │ c34e9b7  │ feat  │ 대기화면(입장 버튼 게이트) + 종료→대기화면 복귀(A안) + 세션 리셋 정리
+  17:34 │ ad2a93c  │ docs  │ 0613 기록 보강 — 대기화면·종료 복귀(A안)·세션 리셋 정리·검증 HUD
+  17:40 │ 82afcdb  │ chore │ NPC 에셋 재구성(_yumin 폴더) 추가·이동, 대기화면 logo 추가, Main 씬 반영
+  17:42 │ 1de4f35  │ chore │ 대기화면 텍스트용 Pretendard SDF 폰트 글리프 atlas 갱신
+  18:31 │ c6b1b03  │ chore │ 미사용 Pretendard 폰트 5종 삭제 + ExtraBold Dynamic 전환
+  22:09 │ c039250  │ chore │ Pretendard 폰트 3종 atlas 4096→2048 축소 (Dynamic 유지)
+  22:11 │ fbb34c8  │ docs  │ Claude_0613.txt에 0613 전체 커밋 내역 표 추가
+  22:11 │ 99a73ba  │ chore │ Main 씬 구성 반영(대기화면·검증HUD·NPC 배치) + starwars3 NPC 에셋
+  +1일  │ 382453a  │ docs  │ 0613 폰트 정리 트러블슈팅 기록 + 커밋 내역 표 최신화
+  +1일  │ 024c265  │ feat  │ 대기화면 영상 게이트 + 텍스트/영상 페이드 + Mock 시뮬 대기시간
+  +1일  │ a2c9683  │ chore │ 대기화면 영상·RenderTexture·폰트 머티리얼 + 씬/폰트 글리프 반영
+
+  ※ 주제별:
+    ① 전시 성능·안정화      : 40d1021, b1fd2d4
+    ② 협업 인프라·문서      : bc6e0db, c1eaa43, 94fad2a, 7278440, fa26865, a0239f2,
+                              fab1a2d, 0555cf3, ff51e8d, 4495d71
+    ③ 오브제 배치 버그       : 01fef2f (땅 파묻힘/공중부양 → 바닥 즉시 안착)
+    ④ 대기화면·세션 루프(A안): c34e9b7, ad2a93c, 99a73ba (A안 핵심 + 씬 구성)
+    ⑤ 에셋·폰트 정리         : 82afcdb, 1de4f35, c6b1b03, c039250
+                              (미사용 폰트 5종 삭제 ~190MB↓ + 사용 3종 atlas 2048 축소)
+    ⑥ 대기화면 영상·페이드   : 024c265, a2c9683 (영상 게이트·Mock 시뮬·텍스트/영상 페이드)
+    ⑦ 문서                  : ad2a93c, fbb34c8, 382453a
+
+  ※ ProjectSettings.asset 의 TRILIB define(로컬 설치 자동 토글)은 규칙상 커밋 제외.
+
+================================================================

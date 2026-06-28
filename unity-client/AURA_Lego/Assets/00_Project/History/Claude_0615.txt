@@ -1,0 +1,268 @@
+================================================================
+Claude Code 작업 기록
+날짜: 2026-06-15
+브랜치: feature/unity
+================================================================
+
+주제: 광장 캐릭터 배회 고도화(즉시 시작·자기 자리 분산), 접근 시 시그니처/idle 분기,
+      모션 추가(Clap 손뼉·Handstand·Hiphop)와 파서 정리, NavMesh 광장 한정 베이크,
+      캐릭터/오브제 이름표(NameTag) 구현.
+      공통 원칙: 저결합·중복 제거·확장성·Mock/Server 동일 동작.
+
+
+────────────────────────────────────────────────────────────────
+[세션 1] 배회 즉시 시작 — "제자리 걷기" 해결
+────────────────────────────────────────────────────────────────
+
+## 증상
+  자유 모드 진입 후 캐릭터가 스폰·걷기 애니는 바로 하는데, 몇 초간 제자리에서
+  걷다가 그제서야 이동.
+
+## 원인
+  오브제 NavMeshObstacle 의 carveOnlyStationary=true(정지 0.5초 후 carve) 때문에,
+  에이전트가 첫 경로를 잡은 직후 carve 가 들어와 경로가 무효화 → 몇 초 멈춤.
+  또한 걷기 애니를 무조건 켜서(경로 대기 중에도) "제자리 걷기"로 보임.
+
+## 수정 (PlazaWanderingCharacter / PlazaManager)
+  - NavMeshObstacle.carveOnlyStationary=false → 스폰 즉시 carve(오브제는 낙하 없이 고정).
+  - 걷기/정지 애니를 실제 Agent 속도로 동기화(SyncWalkAnim) → 경로 대기 중엔 idle.
+  - 경로 무효(PathInvalid) 감지 시 즉시 재탐색.
+  - 커밋: 4ae4b69
+
+
+────────────────────────────────────────────────────────────────
+[세션 2] 캐릭터별 "자기 자리" 분산 배회 + NavMesh 광장 한정 베이크
+────────────────────────────────────────────────────────────────
+
+## 분산 배회 (사용자 요청: 센터로 몰림 → 분산)
+  - 모든 캐릭터가 공유 wanderCenter 한 점을 쓰면 중앙 집중·NavMesh 가장자리 쏠림 발생.
+  - PlazaWanderingCharacter.Setup(centerFromSpawn) 추가 → 각 캐릭터가 'NavMesh 안착한
+    자기 스폰 위치'를 중심으로 배회 → 스폰 지점이 흩어져 있어 자연 분산.
+  - PickNavPoint 폴백: 중심 기준 실패 시 '현재 위치 주변'에서 재샘플 → 중심/반경이
+    어긋나도 완전히 멈추지 않음.
+  - PlazaManager: Wander Center 비우면(권장) 자기 자리 분산, 지정하면 공용 중심.
+
+## NavMesh 베이크 (Unity Editor 작업)
+  - NavMeshSurface 의 Collect Objects 기본값(All)은 위치와 무관하게 씬 전체를 굽는다.
+    → 광장만 굽도록 PlazaGround 레이어 추가 후 Include Layers 한정(또는 Volume).
+  - 주의: 캐릭터 스폰/배회 구역 바닥이 모두 NavMesh 위여야 함. wanderCenter/Radius 가
+    NavMesh 밖이면 목적지를 못 잡아 멈춤(실측으로 확인·수정).
+  - 커밋: b645454 (PlazaGround 레이어·씬·베이크 데이터)
+
+## 건물 간격(참고, 코드 아님)
+  벽에 끼면 NavMesh 베이크 Agent Radius 를 키워 재베이크(벽에서 안쪽으로 더 깎임).
+
+
+────────────────────────────────────────────────────────────────
+[세션 3] 접근 시 시그니처 / idle 분기
+────────────────────────────────────────────────────────────────
+
+## 요구
+  접근 시: 시그니처 없는 캐릭터는 idle 애니메이션, 시그니처 있는 캐릭터는 idle 없이
+  바로 시그니처 동작.
+
+## 수정
+  - PlacedCharacterController.HasSignature(_signatureClip != null) 추가.
+  - PlazaWanderingCharacter.BeginInteraction 분기:
+      있음 → SnapFacePlayer + RebaseAnchorToCurrent + PlaySignatureMotion (idle 없이 즉시)
+      없음 → SetWalking(false)=idle 재생 + 부드럽게 응시(FaceSmooth)
+  - 배회 재개 시 걷기 애니 재동기화(_walking 리셋).
+  - 커밋: 91a1457
+  ※ 빈 시그니처는 설계상 idle (mock_plaza.json 앞쪽 세션 다수가 signature_motion="").
+    idle 이 정지 포즈로 보이면 NPC_AnimatorController 의 Idle 상태 클립 점검 필요.
+
+
+────────────────────────────────────────────────────────────────
+[세션 4] 모션 추가 + 파서 정리
+────────────────────────────────────────────────────────────────
+
+## Clap '손뼉' (커밋 7e9317d)
+## Handstand(13) / Hiphop(14) 추가 (커밋 3db62f9)
+  - enum + 파서 + MixamoMotionLibrary 기본 _entries + NPC_MotionLibrary.asset 연결 + 클립.
+  - 파서: 물구나무/핸드스탠드/handstand/headspin/헤드스핀 → Handstand,
+          힙합/비보잉/hiphop → Hiphop. enum 주석 정리.
+  - Hiphop.anim 은 기존 handstand2 가 이름 변경된 클립(GUID 816fca77).
+## 미사용 Hip Hop 소스 FBX 제거 (커밋 4c1dcf9) — .anim 추출 후 정리
+## 파서 우선순위 수정 (이 묶음)
+  - "hi"(Wave)가 "hiphop"의 부분 문자열이라 "hiphop"이 Wave 로 오매칭됨.
+  - ("hi", Wave)를 키워드 목록 맨 아래(최저 우선순위)로 이동 → hiphop 등 먼저 매칭.
+
+
+────────────────────────────────────────────────────────────────
+[세션 5] 캐릭터/오브제 이름표 (NameTag) 구현
+────────────────────────────────────────────────────────────────
+
+## 요구
+  캐릭터·오브제 위에 이름 표시. 저결합·중복 제거·확장성·Server 동일.
+
+## 신규: Scripts/UI/NameTag.cs
+  - 대상의 '자식이 아닌' 독립 오브젝트로 따라다님 → 대상 스케일(6·12배) 영향 없음.
+  - 대상 바운즈 상단 + 오프셋 위치 추적 + 카메라 빌보드.
+  - 대상 파괴 시 스스로 정리. GraphicRaycaster 미부착(표시 전용 → EventSystem NaN 회피).
+
+## 신규: Scripts/UI/NameTagSpawner.cs (싱글톤 팩토리)
+  - Attach(target, name): World Space 캔버스+TMP 라벨을 코드로 생성(프리팹 불필요).
+  - 스포너는 '이름 문자열'만 넘김 → UI 내부 비의존(저결합). 씬에 없으면 무해 no-op.
+  - 라벨 모양(폰트·크기·배경·높이)은 Inspector 한 곳에서 조정(확장성).
+
+## 부착 지점 (Mock·Server 공통 합류점 → 서버 동일)
+  - 캐릭터: GeneratedCharacterSpawner.SetupAsGuide / SetupAsPlaced (character_npc_name)
+            PlazaManager.SetupCharacterForPlaza (npcName 파라미터 추가)
+  - 오브제: GeneratedObjectSpawner.SpawnMock / SpawnFromServerAsync (object_name)
+            PlazaManager.SetupObjectPhysics (objectName 파라미터 — Mock/GLB/fallback 3경로 공통)
+
+## Unity Editor 작업 (코드 아님)
+  - 빈 GameObject 에 NameTagSpawner 추가 + Font 에 한글 TMP 폰트 연결.
+    (미설정 시 이름표 자체가 안 뜨거나 한글이 깨질 수 있음 — 무해하게 생략됨)
+
+## 검증
+  IDE 진단: NameTag/NameTagSpawner/PlazaManager/GeneratedCharacterSpawner/
+  GeneratedObjectSpawner 오류·경고 0건.
+
+
+────────────────────────────────────────────────────────────────
+[변경 파일 — 이름표 + 파서 우선순위 (이 묶음)]
+────────────────────────────────────────────────────────────────
+
+  신규: Scripts/UI/NameTag.cs, Scripts/UI/NameTagSpawner.cs
+  수정: Scripts/Character/GeneratedCharacterSpawner.cs   (이름표 부착)
+        Scripts/Object/GeneratedObjectSpawner.cs          (이름표 부착)
+        Scripts/Plaza/PlazaManager.cs                     (이름표 부착·파라미터)
+        Scripts/Character/MotionPromptParser.cs           (hi/hiphop 우선순위)
+
+
+────────────────────────────────────────────────────────────────
+[2026-06-15 커밋 내역]
+────────────────────────────────────────────────────────────────
+
+  해시      │ 타입  │ 메시지
+  ──────────┼───────┼──────────────────────────────────────────────────────────
+  4ae4b69   │ fix   │ 광장 캐릭터 배회 즉시 시작·자기 자리 분산
+  7e9317d   │ feat  │ Clap 파서에 '손뼉' 키워드 추가
+  b645454   │ chore │ 광장 NavMesh 베이크(PlazaGround 레이어 한정) + 씬 반영
+  d9cf8d2   │ chore │ Dance 모션 클립 갱신 + Mixamo Hip Hop 댄스 FBX 추가
+  6b3f91d   │ chore │ Pretendard Bold/ExtraBold SDF 글리프 갱신
+  91a1457   │ feat  │ 접근 시 시그니처/idle 분기
+  3db62f9   │ feat  │ Handstand·Hiphop 모션 추가 + 파서 키워드
+  4c1dcf9   │ chore │ 미사용 Hip Hop 소스 FBX 제거
+  (이 묶음) │ feat  │ 캐릭터/오브제 이름표(NameTag) 구현
+  (이 묶음) │ fix   │ 파서 hi/hiphop 우선순위 정리
+  (이 묶음) │ docs  │ 0615 작업 기록
+
+  ※ ProjectSettings.asset(로컬 TRILIB define)은 0606/0613 규칙상 커밋 제외(머신별 자동 토글).
+
+
+────────────────────────────────────────────────────────────────
+[미해결 / 추후 작업]
+────────────────────────────────────────────────────────────────
+
+  [ ] NameTagSpawner 씬 배치 + 한글 폰트 연결(Unity Editor)
+  [ ] 빈 시그니처 캐릭터 idle 클립 점검(NPC_AnimatorController Idle 상태)
+  [ ] EventSystem NaN 경고 — 원인 캔버스 식별 후 씬 수정(0614 이월)
+  [ ] Server 모드 통합 테스트 — 이름표·배회·시그니처 라운드트립
+
+================================================================
+
+
+================================================================
+[추가 작업 — 이름표 크기·말풍선 배치·Lie 모션·FBX 임포트 수정]
+날짜: 2026-06-15 (연속)
+브랜치: feature/unity
+================================================================
+
+────────────────────────────────────────────────────────────────
+[세션 6] 이름표 크기 분리 + 가이드 NPC 제외
+────────────────────────────────────────────────────────────────
+  - NameTagSpawner: _characterScaleMultiplier 추가(기본 0.6) + AttachCharacter() —
+    캐릭터 이름표를 오브제보다 작게. 공통 빌더 Build(target,name,worldScale)로 정리(DRY).
+  - 오브제는 Attach(기본 크기), 캐릭터(배치/광장)는 AttachCharacter(축소).
+  - 가이드 NPC(SetupAsGuide)는 이름표 미부착(사용자 요청).
+
+────────────────────────────────────────────────────────────────
+[세션 7] BubblePanel을 오브제 위에 분리 배치 (카메라 빌보드)
+────────────────────────────────────────────────────────────────
+  - PlazaSessionView.bubblePanel(RectTransform) 필드 + PlaceBubbleAtObject(objTr, h):
+    말풍선만 뷰에서 분리 → 독립 World Space 캔버스로 재부모 → 오브제 위에 떠서 카메라 향함.
+    위치/빌보드/추적은 NameTag 재사용(DRY). 재부모 시 월드 스케일 보존(크기 유지).
+    좋아요·별·버튼은 기존대로 스폰 포인트 위 유지.
+  - PlazaManager: _lastSpawnedObjectGO 추적(Mock/GLB/fallback 3경로) + bubbleObjectHeightOffset
+    + 이전/내 창작물 뷰에 PlaceBubbleAtObject 호출. Mock·Server 공통.
+  - Editor 작업: PlazaSessionView 프리팹 BubblePanel 슬롯 연결(미연결 시 뷰 안에 그대로=폴백).
+    프리팹을 Prefabs/Object → Prefabs/UI 로 이동.
+
+────────────────────────────────────────────────────────────────
+[세션 8] Lie 모션 추가
+────────────────────────────────────────────────────────────────
+  - MotionType.Lie(15) + 파서(누워/눕/lie) + MixamoMotionLibrary 기본 _entries +
+    NPC_MotionLibrary.asset(motionType 15 = Lie.anim) + Lie.anim 클립.
+
+────────────────────────────────────────────────────────────────
+[세션 9] (버그) 새 mock 캐릭터 FBX Animator 없음 → CharacterRigImporter 확장
+────────────────────────────────────────────────────────────────
+  ## 증상
+    [CharacterAnimationController] Animator 없음: PlazaChar_/Character_Guide/Character_Placed
+  ## 원인
+    새 mock 캐릭터가 서버 포맷 Character_N/Character_N.fbx 인데, 자동 임포터가
+    "_rigged.fbx"로 끝나는 파일만 Humanoid 처리 → Character_N.fbx 누락 → Animator 없음.
+  ## 수정 (Editor/CharacterRigImporter.cs)
+    IsTarget 을 "GeneratedCharacters/.../character/ 아래 모든 .fbx (.fbm 폴더 제외)"로 확장.
+    npc_X_rigged.fbx 와 Character_N.fbx 둘 다 자동 Humanoid + Animator Controller 연결.
+  ## 적용
+    이미 임포트된 파일은 1회 재처리 필요 — Tools > MINIVERSE > Set Characters Humanoid
+    → Connect Character Animator (또는 폴더 Reimport). 이후 신규 파일은 자동.
+    사용자 확인: 경고 사라짐.
+
+────────────────────────────────────────────────────────────────
+[추가 에셋]
+────────────────────────────────────────────────────────────────
+  - mock 캐릭터 Character_1~5(서버 포맷 FBX), mock 오브제 object_1/2/4/5/org.glb 추가.
+  - 미사용 sndnj.anim 제거.
+
+────────────────────────────────────────────────────────────────
+[세션 10] 말풍선·이름표 배치 세부 옵션 (커밋 dfdca951)
+────────────────────────────────────────────────────────────────
+  세션 6~7의 이름표/말풍선 기본 배치 이후, 크기·위치를 인스펙터에서 따로 조정 가능하게 보강.
+
+  ## 이름표 크기 (NameTagSpawner)
+    - 캐릭터 이름표 길이 추가 축소(사용자 요청 "조금만 더 줄여").
+  ## BubblePanel 크기·글씨·위치 (PlazaSessionView.PlaceBubbleAtObject + PlazaManager)
+    - bubbleObjectScale     : 말풍선 패널 크기 배율(독립).
+    - bubbleTextScale       : 글씨 크기 배율 — 패널 크기와 독립. localScale 아닌 fontSize 로
+                              조정(위치가 패널 중앙에서 안 벗어나게).
+    - bubbleObjectRightOffset : 말풍선 좌우(카메라 기준) 오프셋.
+    - 글씨가 패널 위로 떠오르던 문제: BubblePanel 이 stretch 앵커라 재부모 시 기준이 깨진 것이
+      원인 → 앵커 캔버스를 패널 원래 rect 크기로 잡고, 패널을 캔버스에 꽉 채워(anchor 0~1,
+      offset 0) 중앙 정렬 + Canvas.ForceUpdateCanvases() 로 해결.
+  ## 오브제 이름표 높이 분리 (NameTagSpawner)
+    - _objectHeightOffset 추가 — 오브제 이름표 높이를 캐릭터(_heightOffset)와 별도로 조절.
+  ## NameTag 좌우 오프셋 (NameTag.Bind rightOffset)
+    - 카메라 기준 right 축으로 좌우 이동(빌보드라 화면 좌우와 일치).
+
+────────────────────────────────────────────────────────────────
+[세션 11] (조사·결정) 새 mock 캐릭터 FBX 리깅 꼬임 → mock 제외·백엔드 대기 (커밋 a92eac7d)
+────────────────────────────────────────────────────────────────
+  ## 증상
+    새로 들어온 mock FBX 캐릭터(Character_N)들의 팔/다리 관절이 꼬인 채로 import 됨.
+    Configure Avatar 에서 본 매핑은 전부 초록(정상)인데도 포즈가 뒤틀림.
+  ## 조사 (모두 되돌림 — 효과 없거나 악화)
+    - 자동 Humanoid          : 상체 정상, 하체 일부 꼬임.
+    - Enforce T-Pose         : 하체 꼬임 안 풀림.
+    - humanDescription 전체 복사(npc_3 기준) : 팔 정상, 다리 꼬임.
+    - 본 매핑(human)만 복사   : 팔·다리 모두 꼬임(더 나빠짐).
+    - 런타임 아바타 교체(npc_3) : 팔·다리 꼬임 — TripoFbxLoader 의 기존 방식과 동일,
+                                 서버 모드도 같은 문제.
+  ## 원인 결론
+    원본 FBX 의 다리 bind pose/축이 비표준 → Unity 측 리타게팅으로 교정 불가.
+    Character_1 은 더 심각: Hip(Hips) 본 자체가 없어 Humanoid 구성 불가
+    ("Required human bone 'Hips' not found").
+  ## 결정
+    - 꼬임 FBX 5개를 Main 씬 mock 캐릭터 목록에서 제외(전시 화면에 안 나오게).
+    - 근본 해결은 백엔드의 T-pose 표준 리그 재익스포트 대기(요청 문서 준비됨).
+    - Unity 측 임포터 실험 변경은 전부 직전 커밋으로 되돌림(재적용 금지).
+
+────────────────────────────────────────────────────────────────
+[운영 메모]
+────────────────────────────────────────────────────────────────
+  - 자유 모드 디버그 스킵 키 = F8 (GameFlowManager._skipGuideKey, 사용자 설정).
+
+================================================================

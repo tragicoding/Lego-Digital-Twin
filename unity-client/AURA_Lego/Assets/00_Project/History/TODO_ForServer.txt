@@ -1,0 +1,108 @@
+================================================================
+백엔드 전달 사항 (Unity → Backend)
+작성: 2026-06-16 (feature/unity)
+================================================================
+
+요약: Unity 대기화면에서 받은 '캐릭터/오브제 이름'을 백엔드가 저장하고,
+      광장(이전 창작물) 조회 응답에 그대로 돌려줘야 한다.
+      (이름 '입력'은 Unity가 담당. 백엔드는 '저장/조회'만 추가하면 됨.)
+
+
+────────────────────────────────────────────────────────────────
+[1] (신규·필수) 이름 저장 엔드포인트
+────────────────────────────────────────────────────────────────
+
+PATCH /sessions/{id}/names
+
+요청 본문(JSON):
+  {
+    "character_npc_name": "푸앙이",
+    "object_name": "원형관"
+  }
+
+동작:
+  - 해당 세션의 캐릭터 이름 / 오브제 이름을 저장(갱신).
+  - 둘 중 일부만 올 수도 있음(빈 값은 보내지 않음). 받은 필드만 갱신 권장.
+  - 응답 본문은 사용 안 함(2xx면 충분). 실패해도 Unity 현재 세션 표시엔 지장 없음.
+
+호출 시점(Unity):
+  - 대기화면에서 이름 입력 완료 → 스폰 직전 1회 호출(SessionManager.SetNames → ApiClient.SaveNames).
+  - Server 모드에서만 호출. Mock 모드는 mock_plaza.json에 로컬 저장하므로 호출 안 함.
+
+Unity 측 구현 위치(참고):
+  - Core/ServerConfig.cs   : NamesUrl(sid) => {base}/sessions/{sid}/names
+  - Network/ApiClient.cs   : SaveNames(sessionId, characterName, objectName)  (NamesRequest DTO, PATCH)
+  - Managers/SessionManager.cs : SetNames() 내부에서 Server 모드일 때 호출
+
+
+────────────────────────────────────────────────────────────────
+[2] (필수) 광장 조회 응답에 이름 포함
+────────────────────────────────────────────────────────────────
+
+GET /unity/plaza/sessions
+
+→ 각 세션 항목에 아래 두 필드가 채워져 있어야 Unity가 '이전 창작물'의
+  캐릭터/오브제 머리 위 이름표를 띄울 수 있다.
+
+  - character_npc_name   ... 최상위(top-level)   → 캐릭터 이름표
+  - assets.object.object_name ... 중첩(nested)    → 오브제 이름표
+
+JSON 예:
+  {
+    "sessions": [
+      {
+        "session_id": "...",
+        "character_npc_name": "푸앙이",          // ← top-level (캐릭터 이름표)
+        "bubble_text": "...",
+        "signature_motion": "...",
+        "likes": 0,
+        "is_top_liked": false,
+        "assets": {
+          "character": { "model_url": "...", "npc_name": "푸앙이" },
+          "object":    { "model_url": "...", "object_name": "원형관" }  // ← nested (오브제 이름표)
+        }
+      }
+    ],
+    "top_session_id": "..."
+  }
+
+비고:
+  - Unity는 character_npc_name(top-level)과 assets.object.object_name(nested)을 읽는다.
+    (Mock의 mock_plaza.json도 동일 구조로 저장 중 → 형식 통일됨)
+  - 현재 세션(가이드 모드)의 단일 조회 GET /unity/sessions/{id} 응답에도 같은 위치에
+    이름이 있으면 일관적이나, 현재 세션 이름은 Unity 메모리로 처리하므로 필수는 아님.
+
+
+────────────────────────────────────────────────────────────────
+[3] (참고) 이미 사용 중인 서버 엔드포인트 — 변경 없음
+────────────────────────────────────────────────────────────────
+
+  GET  /sessions/active                  대기 큐 맨 앞 세션 ID (비파괴 peek)
+  POST /sessions/unity-queue/advance     현재 세션 완료 → 다음으로
+  GET  /sessions/{id}/status             ready_for_unity 폴링
+  GET  /unity/sessions/{id}              현재 세션 데이터
+  PATCH /sessions/{id}/profile           bubble_text(오브제 한마디)
+  PATCH /sessions/{id}/signature-motion  시그니처 동작 클립명
+  POST /sessions/{id}/like               좋아요 +1
+  WS   /ws/unity                         likes_updated 등
+
+  → [1] /names 만 신규. 나머지는 그대로.
+
+
+────────────────────────────────────────────────────────────────
+[4] (참고) 엔드포인트 경로/방식 협의 옵션
+────────────────────────────────────────────────────────────────
+
+  - 별도 /names 대신 기존 PATCH /sessions/{id}/profile 에 합치고 싶으면,
+    profile 본문에 character_npc_name / object_name 을 추가로 받도록 하고
+    Unity 측 ServerConfig.NamesUrl 를 /profile 로 바꾸고 DTO만 맞추면 됨(1줄 수정).
+  - 어느 방식이든 [2] 광장 응답에 이름이 포함되는 것이 핵심.
+
+
+────────────────────────────────────────────────────────────────
+[통합 테스트 체크]
+────────────────────────────────────────────────────────────────
+  [ ] PATCH /names 저장 동작
+  [ ] 저장한 이름이 GET /unity/plaza/sessions 응답에 라운드트립
+  [ ] Unity Server 모드: 대기화면 이름 입력 → 다음 관람객 광장에서 이름표 표시 확인
+================================================================
